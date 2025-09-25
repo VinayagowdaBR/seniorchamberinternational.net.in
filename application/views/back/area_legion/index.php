@@ -21,16 +21,16 @@
         }
         .btn-delete-legion {
             background: linear-gradient(135deg, #f59e0b, #d97706);
-            padding: 0.25rem 0.5rem;
-            font-size: 0.7rem;
+            padding: 0.85rem 3.5rem;
+            font-size: 1.30rem;
             margin-left: 0.5rem;
             border-radius: 4px;
         }
 
         #content-container {
-            max-width: 1200px;
+            max-width: 1500px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 2rem 3rem;
             /* Add top margin to avoid header overlap */
             margin-top: 80px; /* Adjust this value based on your admin header height */
             padding-top: 1rem; /* Reduced top padding since we have margin-top */
@@ -63,7 +63,7 @@
             border: none;
             border-radius: 8px;
             padding: 0.75rem 1.5rem;
-            font-size: 0.875rem;
+            font-size: 1.60rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -81,14 +81,14 @@
         }
 
         #btnAddArea {
-            font-size: 1rem;
+            font-size: 2rem;
             padding: 0.875rem 1.75rem;
         }
 
         .btn-add-legion {
             background: linear-gradient(135deg, #10b981, #059669);
             padding: 0.5rem 1rem;
-            font-size: 0.8rem;
+            font-size: 1.8rem;
         }
 
         .btn-add-legion:hover {
@@ -124,6 +124,8 @@
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            font-size: 1.95rem; /* Slightly larger font */
+            min-width: 1000px; /* Add minimum width */
         }
 
         thead {
@@ -135,7 +137,7 @@
             text-align: left;
             font-weight: 600;
             color: white;
-            font-size: 0.875rem;
+            font-size: 1.875rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
@@ -327,6 +329,42 @@
             margin-top: 0.5rem;
         }
 
+
+
+        /* Add this to your existing CSS */
+.legion-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+}
+
+.legion-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.prefix-badge {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 1.30rem;
+    font-weight: 600;
+    margin-right: 0.75rem;
+    display: inline-block;
+    min-width: 45px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.legion-name {
+    font-weight: 500;
+    color: #374151;
+}
+
+
         /* Responsive Design */
         @media (max-width: 768px) {
             #content-container {
@@ -350,7 +388,7 @@
             }
 
             th, td {
-                padding: 0.75rem 0.5rem;
+                padding: .75rem 0.5rem;
             }
 
             th:first-child, td:first-child {
@@ -460,61 +498,76 @@
         <div>
             <!-- Sample data table -->
             <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Area Name</th>
-                        <th>Legions</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    
-                    <?php 
-                    foreach ($areas as $index => $area) : ?>
-                        <tr>
-                            <td><?= $index + 1 ?></td>
-                            <td><?= htmlspecialchars($area['name']) ?></td>
-                            <td>
-                                <?php if (!empty($area['legions'])) : ?>
-                                    <ul style="margin:0; padding-left:20px;">
-                                        <?php foreach ($area['legions'] as $legion) : ?>
-                                            <li>
-                                                <div class="legion-item">
-                                                    <span class="legion-name"><?= htmlspecialchars($legion['name']) ?></span>
-                                                    <button class="btn-delete-legion" 
-                                                        data-legion-id="<?= htmlspecialchars($legion['id']) ?>" 
-                                                        data-legion-name="<?= htmlspecialchars($legion['name']) ?>"
-                                                        data-area-id="<?= htmlspecialchars($area['id']) ?>">
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php else : ?>
-                                    <em>No legions assigned.</em>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn-add-legion" 
-                                        data-area-id="<?= htmlspecialchars($area['id']) ?>" 
-                                        data-area-name="<?= htmlspecialchars($area['name']) ?>">
-                                        + Add Legion
-                                    </button>
-                                    <button class="btn-delete-area" 
-                                        data-area-id="<?= htmlspecialchars($area['id']) ?>" 
-                                        data-area-name="<?= htmlspecialchars($area['name']) ?>">
-                                        Delete Area
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; 
-                     ?>
-                </tbody>
-            </table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Area Name</th>
+            <th>Legions (Prefix - Name)</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="areasTableBody">
+        <!-- Loading placeholder - will be replaced by AJAX -->
+        <!-- <tr id="loadingRow">
+            <td colspan="4" style="text-align: center; padding: 2rem;">
+                <div style="color: #64748b; font-style: italic;">
+                    Loading areas and legions...
+                </div>
+            </td>
+        </tr> -->
+        
+        <!-- Fallback PHP content (in case AJAX fails) -->
+        <?php if (isset($areas) && !empty($areas)) : ?>
+            <?php foreach ($areas as $index => $area) : ?>
+                <tr class="php-generated-row">
+                    <td><?= $index + 1 ?></td>
+                    <td><?= htmlspecialchars($area['name']) ?></td>
+                    <td>
+                        <?php if (!empty($area['legions'])) : ?>
+                            <ul style="margin:0; padding-left:20px;">
+                                <?php foreach ($area['legions'] as $legion) : ?>
+                                    <li>
+                                        <div class="legion-item">
+                                            <div class="legion-info">
+                                                <!-- Show prefix first, then legion name -->
+                                                <span class="prefix-badge"><?= htmlspecialchars($legion['prefix'] ?? '') ?></span>
+                                                <span class="legion-name"><?= htmlspecialchars($legion['name']) ?></span>
+                                            </div>
+                                            <button class="btn-delete-legion" 
+                                                data-legion-id="<?= htmlspecialchars($legion['id']) ?>" 
+                                                data-legion-name="<?= htmlspecialchars($legion['name']) ?>"
+                                                data-legion-prefix="<?= htmlspecialchars($legion['prefix'] ?? '') ?>"
+                                                data-area-id="<?= htmlspecialchars($area['id']) ?>">
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php else : ?>
+                            <em>No legions assigned.</em>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-add-legion" 
+                                data-area-id="<?= htmlspecialchars($area['id']) ?>" 
+                                data-area-name="<?= htmlspecialchars($area['name']) ?>">
+                                + Add Legion
+                            </button>
+                            <button class="btn-delete-area" 
+                                data-area-id="<?= htmlspecialchars($area['id']) ?>" 
+                                data-area-name="<?= htmlspecialchars($area['name']) ?>">
+                                Delete Area
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </tbody>
+</table>
+
         </div>
     </div>
 </div>
@@ -530,6 +583,11 @@
             <input type="hidden" name="area_id" id="modalAreaId" value="">
             <label for="legionName">Legion Name:</label>
             <input type="text" id="legionName" name="legion_name" required placeholder="Enter legion name...">
+            <label for="legionPrefix">Legion Prefix (Short Form):</label>
+            <input type="text" id="legionPrefix" name="prefix" required 
+                placeholder="e.g., NYC, LA, CHI..." 
+                maxlength="10"
+                style="text-transform: uppercase;">
             <button type="submit">Add Legion</button>
         </form>
     </div>
@@ -566,6 +624,10 @@
 </div>
 
 <!-- JavaScript -->
+
+
+
+<!-- ///////////////////////////////////////////////////////// -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Modal elements
@@ -574,6 +636,13 @@
         const modalAreaId = document.getElementById('modalAreaId');
         const modalCloseBtn = document.getElementById('modalCloseBtn');
         const form = document.getElementById('addLegionForm');
+        //////////////////////////////////////////////
+        const prefixInput = document.getElementById('legionPrefix');
+        if (prefixInput) {
+            prefixInput.addEventListener('input', function() {
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
+        }
 
         // Add Area Modal elements
         const addAreaModal = document.getElementById('addAreaModal');
@@ -822,34 +891,143 @@
         }
 
         // Add Legion Form submission
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
+// Add Legion Form submission - UPDATED
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // UPDATED SUCCESS MESSAGE TO INCLUDE PREFIX
+            showAlert(successAlert, `Legion "${data.legion_name}" (${data.prefix || ''}) added successfully!`);
             
-            const formData = new FormData(form);
+            // UPDATED TO PASS PREFIX PARAMETER
+            addNewLegionToArea(data.area_id, data.legion_id, data.legion_name, data.prefix);
             
-            fetch(form.action, {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert(successAlert, `Legion "${data.legion_name}" added successfully!`);
-                    
-                    // Add new legion to the UI
-                    addNewLegionToArea(data.area_id, data.legion_id, data.legion_name);
-                    
-                    form.reset();
-                    hideModal(modal);
-                } else {
-                    showAlert(dangerAlert, 'Error adding legion: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert(dangerAlert, 'An error occurred while adding legion.');
+            form.reset();
+            hideModal(modal);
+        } else {
+            showAlert(dangerAlert, 'Error adding legion: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert(dangerAlert, 'An error occurred while adding legion.');
+    });
+});
+  //////////////////////////////////////////////////
+// ADD THIS NEW FUNCTION - AJAX Loading
+function loadAreasData() {
+    console.log('Loading areas data...');
+    
+    fetch('<?= site_url('admin/get_areas_ajax') ?>', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Areas data received:', data);
+        
+        if (data.success) {
+            renderAreasTable(data.data);
+        } else {
+            console.error('Failed to load areas:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading areas:', error);
+    });
+}
+
+// ADD THIS NEW FUNCTION - Render Table
+function renderAreasTable(areas) {
+    const tbody = document.querySelector('#areasTableBody') || document.querySelector('tbody');
+    
+    if (!areas || areas.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 2rem;">
+                    <em>No areas found.</em>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    areas.forEach((area, index) => {
+        let legionsHtml = '';
+        
+        if (area.legions && area.legions.length > 0) {
+            legionsHtml = '<ul style="margin:0; padding-left:20px;">';
+            area.legions.forEach(legion => {
+                legionsHtml += `
+                    <li>
+                        <div class="legion-item">
+                            <div class="legion-info">
+                                <span class="prefix-badge">${legion.prefix || ''}</span>
+                                <span class="legion-name">${legion.name}</span>
+                            </div>
+                            <button class="btn-delete-legion" 
+                                data-legion-id="${legion.id}" 
+                                data-legion-name="${legion.name}"
+                                data-legion-prefix="${legion.prefix || ''}"
+                                data-area-id="${area.id}">
+                                Delete
+                            </button>
+                        </div>
+                    </li>
+                `;
             });
-        });
+            legionsHtml += '</ul>';
+        } else {
+            legionsHtml = '<em>No legions assigned.</em>';
+        }
+        
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${area.name}</td>
+                <td>${legionsHtml}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-add-legion" 
+                            data-area-id="${area.id}" 
+                            data-area-name="${area.name}">
+                            + Add Legion
+                        </button>
+                        <button class="btn-delete-area" 
+                            data-area-id="${area.id}" 
+                            data-area-name="${area.name}">
+                            Delete Area
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+    
+    // Re-initialize button events
+    initAddLegionButtons();
+    initDeleteAreaButtons();
+    initDeleteLegionButtons();
+}
+
+
+
+
+
+
 
         // Add Area Form submission
         addAreaForm.addEventListener('submit', function(e) {
@@ -882,37 +1060,45 @@
         });
 
         // Function to add new legion to existing area
-        function addNewLegionToArea(areaId, legionId, legionName) {
-            const areaRow = document.querySelector(`button[data-area-id="${areaId}"]`).closest('tr');
-            const legionCell = areaRow.querySelector('td:nth-child(3)');
-            
-            let legionList = legionCell.querySelector('ul');
-            
-            // If no existing list, create one
-            if (!legionList) {
-                legionCell.innerHTML = '<ul style="margin:0; padding-left:20px;"></ul>';
-                legionList = legionCell.querySelector('ul');
-            }
-            
-            // Create new legion item
-            const newLegionItem = document.createElement('li');
-            newLegionItem.innerHTML = `
-                <div class="legion-item">
-                    <span class="legion-name">${legionName}</span>
-                    <button class="btn-delete-legion" 
-                        data-legion-id="${legionId}" 
-                        data-legion-name="${legionName}"
-                        data-area-id="${areaId}">
-                        Delete
-                    </button>
-                </div>
-            `;
-            
-            legionList.appendChild(newLegionItem);
-            
-            // Re-initialize delete button events for the new button
-            initDeleteLegionButtons();
-        }
+        // Function to add new legion to existing area - UPDATED
+function addNewLegionToArea(areaId, legionId, legionName, prefix) {
+    const areaRow = document.querySelector(`button[data-area-id="${areaId}"]`).closest('tr');
+    const legionCell = areaRow.querySelector('td:nth-child(3)');
+    
+    let legionList = legionCell.querySelector('ul');
+    
+    // If no existing list, create one
+    if (!legionList) {
+        legionCell.innerHTML = '<ul style="margin:0; padding-left:20px;"></ul>';
+        legionList = legionCell.querySelector('ul');
+    }
+    
+    // Create new legion item WITH PREFIX
+    const newLegionItem = document.createElement('li');
+    newLegionItem.innerHTML = `
+        <div class="legion-item">
+            <div class="legion-info">
+                <span class="prefix-badge">${prefix || ''}</span>
+                <span class="legion-name">${legionName}</span>
+            </div>
+            <button class="btn-delete-legion" 
+                data-legion-id="${legionId}" 
+                data-legion-name="${legionName}"
+                data-legion-prefix="${prefix || ''}"
+                data-area-id="${areaId}">
+                Delete
+            </button>
+        </div>
+    `;
+    
+    legionList.appendChild(newLegionItem);
+    
+    // Re-initialize delete button events for the new button
+    initDeleteLegionButtons();
+}
+
+
+
 
         // Function to add new area to table
         function addNewAreaToTable(areaName, areaId) {
@@ -943,6 +1129,7 @@
             tbody.appendChild(newRow);
             
             // Re-initialize button events for the new buttons
+            loadAreasData();
             initAddLegionButtons();
             initDeleteAreaButtons();
         }

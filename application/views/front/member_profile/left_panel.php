@@ -23,7 +23,7 @@
                     $is_premium = $this->Crud_model->get_type_name_by_id('member', $this->session->userdata('member_id'), 'membership');
                     if($pic_privacy_data[0]['profile_pic_show']=='only_me'){
                 ?>
-                z
+                
                 <?php }elseif ($pic_privacy_data[0]['profile_pic_show']=='premium' and $is_premium==2) {
                 ?>
                     <div style="border: 10px solid rgba(255, 255, 255, 0.1);width: 200px;border-radius: 50%;margin-top: 30px;background: #fff !important;" class="mx-auto">

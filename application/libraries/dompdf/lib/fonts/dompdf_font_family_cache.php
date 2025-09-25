@@ -106,13 +106,20 @@
     'normal' => $fontDir . '/flaticon2-normal_ec752926dc5822b439b513b9d8215b49',
   ),
   'font awesome 5 brands' => array(
-    'normal' => $fontDir . '/font-awesome-5-brands-normal_28f0a7f351bdabe4ef68382d2bbf320f',
+    'normal' => $fontDir . '/font-awesome-5-brands-normal_34d5a63035d4ceabd45145243c16b595',
   ),
   'font awesome 5 free' => array(
-    'normal' => $fontDir . '/font-awesome-5-free-normal_9139a16ad1809768d0a3b590dc29d157',
-    '900' => $fontDir . '/font-awesome-5-free-900_876edf9ccb96803af4429b0812650477',
+    'normal' => $fontDir . '/font-awesome-5-free-normal_2dfb22177d88b6e8bf842e419d5c8176',
+    '900' => $fontDir . '/font-awesome-5-free-900_11709c007785b26e4b520eb89b4a1b2b',
   ),
   'fontawesome' => array(
-    'normal' => $fontDir . '/fontawesome-normal_43ed29441a44386a5b3b93c46e9b6448',
+    'normal' => $fontDir . '/fontawesome-normal_e543ec8412a11f63b86e1e5e1ae30ea3',
+  ),
+  'font awesome 6 brands' => array(
+    'normal' => $fontDir . '/font-awesome-6-brands-normal_34d5a63035d4ceabd45145243c16b595',
+  ),
+  'font awesome 6 free' => array(
+    'normal' => $fontDir . '/font-awesome-6-free-normal_2dfb22177d88b6e8bf842e419d5c8176',
+    '900' => $fontDir . '/font-awesome-6-free-900_11709c007785b26e4b520eb89b4a1b2b',
   ),
 ) ?>

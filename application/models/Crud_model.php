@@ -114,45 +114,47 @@ public function update_story($id, $data)
     
 
     ////////////  GET THE  AREA  AND THE LEGION //////
-    public function get_areas_with_legions()
-    {
-        $this->db->select('areas.id as area_id, areas.name as area_name, legions.id as legion_id, legions.name as legion_name');
-        $this->db->from('areas');
-        $this->db->join('legions', 'legions.area_id = areas.id', 'left');
-        $query = $this->db->get();
-        $result = $query->result();
-    
-        log_message('debug', 'DB query result count: ' . count($result));
-    
-        $areas = [];
-    
-        foreach ($result as $row) {
-            log_message('debug', 'Processing row: area_id=' . $row->area_id . ', legion_id=' . $row->legion_id);
-    
-            $area_id = $row->area_id;
-            if (!isset($areas[$area_id])) {
-                $areas[$area_id] = [
-                    'id' => $area_id,
-                    'name' => $row->area_name,
-                    'legions' => []
-                ];
-                log_message('debug', "New area added: ID {$area_id}, Name {$row->area_name}");
-            }
-    
-            if ($row->legion_id) {
-                $areas[$area_id]['legions'][] = [
-                    'id' => $row->legion_id,
-                    'name' => $row->legion_name
-                ];
-                log_message('debug', "Added legion to area {$area_id}: Legion ID {$row->legion_id}, Name {$row->legion_name}");
-            }
+   public function get_areas_with_legions()
+{
+    // Add prefix to the SELECT statement
+    $this->db->select('areas.id as area_id, areas.name as area_name, legions.id as legion_id, legions.name as legion_name, legions.prefix as legion_prefix');
+    $this->db->from('areas');
+    $this->db->join('legions', 'legions.area_id = areas.id', 'left');
+    $query = $this->db->get();
+    $result = $query->result();
+
+    log_message('debug', 'DB query result count: ' . count($result));
+
+    $areas = [];
+
+    foreach ($result as $row) {
+        log_message('debug', 'Processing row: area_id=' . $row->area_id . ', legion_id=' . $row->legion_id . ', prefix=' . (isset($row->legion_prefix) ? $row->legion_prefix : 'NULL'));
+
+        $area_id = $row->area_id;
+        if (!isset($areas[$area_id])) {
+            $areas[$area_id] = [
+                'id' => $area_id,
+                'name' => $row->area_name,
+                'legions' => []
+            ];
+            log_message('debug', "New area added: ID {$area_id}, Name {$row->area_name}");
         }
-    
-        log_message('debug', 'Final areas array: ' . print_r($areas, true));
-    
-        return array_values($areas); // Reset keys to numeric
+
+        if ($row->legion_id) {
+            $areas[$area_id]['legions'][] = [
+                'id' => $row->legion_id,
+                'name' => $row->legion_name,
+                'prefix' => $row->legion_prefix ?? '' // Add prefix field with null coalescing
+            ];
+            log_message('debug', "Added legion to area {$area_id}: Legion ID {$row->legion_id}, Name {$row->legion_name}, Prefix {$row->legion_prefix}");
+        }
     }
-    
+
+    log_message('debug', 'Final areas array: ' . print_r($areas, true));
+
+    return array_values($areas); // Reset keys to numeric
+}
+  
 
     // In Crud_model.php
         public function get_all_areas()
@@ -168,17 +170,46 @@ public function update_story($id, $data)
 
 
     /////// INSETST LEGION //////
-    public function insert_legion($data) {
+  public function insert_legion($data) 
+{
+    log_message('debug', 'insert_legion method invoked with data: ' . print_r($data, true));
 
-          log_message('debug', 'insert_legion methos invoked ' , print_r($data, true ));
-
-        if (!isset($data['name']) || !isset($data['area_id'])) {
-            return false; // simple validation
-        }
-
-        return $this->db->insert('legions', $data);
-        // return  $data;
+    // Updated validation to include prefix
+    if (!isset($data['name']) || !isset($data['area_id']) || !isset($data['prefix'])) {
+        log_message('error', 'insert_legion validation failed: Missing required fields (name, area_id, or prefix)');
+        return false; // validation failed
     }
+
+    // Additional validation for prefix (optional but recommended)
+    if (empty(trim($data['prefix']))) {
+        log_message('error', 'insert_legion validation failed: Prefix cannot be empty');
+        return false;
+    }
+
+    // Clean the prefix data
+    $data['prefix'] = strtoupper(trim($data['prefix']));
+
+    // Check if prefix already exists (optional uniqueness check)
+    $this->db->where('prefix', $data['prefix']);
+    $existing_prefix = $this->db->get('legions');
+    if ($existing_prefix->num_rows() > 0) {
+        log_message('error', 'insert_legion validation failed: Prefix already exists - ' . $data['prefix']);
+        return false; // prefix already exists
+    }
+
+    // Insert the data
+    $insert_result = $this->db->insert('legions', $data);
+    
+    if ($insert_result) {
+        $insert_id = $this->db->insert_id();
+        log_message('debug', 'insert_legion successful: Inserted legion with ID ' . $insert_id);
+        return $insert_id; // Return the inserted ID
+    } else {
+        log_message('error', 'insert_legion failed: Database insert error');
+        return false;
+    }
+}
+
 
     public function insert_area($data) {
         log_message('debug', 'insert_area method invoked with data: ' . print_r($data, true));

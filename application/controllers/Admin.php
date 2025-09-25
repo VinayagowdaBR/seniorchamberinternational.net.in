@@ -338,27 +338,29 @@ public function add_legion() {
     // Load model
     $this->load->model('Crud_model');
 
-    // Get POST data
+    // Get POST data - ADD PREFIX HERE
     $legion_name = $this->input->post('legion_name');
+    $prefix = $this->input->post('prefix'); // NEW LINE
     $area_id = $this->input->post('area_id');
 
     // Log the received data
-    log_message('info', 'Add Legion request received with data: legion_name=' . $legion_name . ', area_id=' . $area_id);
+    log_message('info', 'Add Legion request received with data: legion_name=' . $legion_name . ', prefix=' . $prefix . ', area_id=' . $area_id);
 
-    // Simple validation
-    if (empty($legion_name) || empty($area_id)) {
+    // Simple validation - UPDATE VALIDATION
+    if (empty($legion_name) || empty($prefix) || empty($area_id)) {
         $response = [
             'success' => false,
-            'message' => 'Legion name and area ID are required.'
+            'message' => 'Legion name, prefix, and area ID are required.'
         ];
         log_message('error', 'Add Legion validation failed: ' . json_encode($response));
         echo json_encode($response);
         return;
     }
 
-    // Prepare data
+    // Prepare data - ADD PREFIX TO DATA ARRAY
     $data = [
         'name' => $legion_name,
+        'prefix' => strtoupper(trim($prefix)), // Store in uppercase
         'area_id' => $area_id
     ];
 
@@ -370,6 +372,8 @@ public function add_legion() {
             'success' => true,
             'message' => 'Legion added successfully.',
             'legion_name' => $legion_name,
+            'prefix' => strtoupper(trim($prefix)), // RETURN PREFIX
+            'legion_id' => $insert_id,
             'area_id' => $area_id
         ];
         log_message('info', 'Add Legion success response: ' . json_encode($response));
@@ -383,6 +387,7 @@ public function add_legion() {
         echo json_encode($response);
     }
 }
+
 
 public function delete_legion()
 {
@@ -464,30 +469,30 @@ public function delete_area()
     }
 }
 
+public function area_legion() {
+    // Check permission
+    if ($this->admin_permission() == FALSE) {
+        redirect(base_url() . 'admin/login', 'refresh');
+    }
 
-	public function area_legion() {
-		// Check permission
-		if ($this->admin_permission() == FALSE) {
-			redirect(base_url() . 'admin/login', 'refresh');
-		}
-	
-		// Load the model
-		$this->load->model('Crud_model');
-	
-		// Fetch the data here
-		$page_data['areas'] = $this->Crud_model->get_areas_with_legions();
-	
-		// Prepare other page data
-		$page_data['title'] = "Area & Legions || " . $this->system_title;
-		$page_data['page_name'] = "area_legion";
-		$page_data['top'] = "dashboard.php";
-		$page_data['folder'] = "area_legion"; 
-		$page_data['file'] = "index.php";    
-		$page_data['bottom'] = "dashboard.php";
-	
-		// Now pass the $page_data array with areas data to your view
-		$this->load->view('back/index', $page_data);
-	}
+    // Load the model
+    $this->load->model('Crud_model');
+
+    // Fetch the data here - MAKE SURE THIS INCLUDES PREFIX
+    $page_data['areas'] = $this->Crud_model->get_areas_with_legions();
+
+    // Prepare other page data
+    $page_data['title'] = "Area & Legions || " . $this->system_title;
+    $page_data['page_name'] = "area_legion";
+    $page_data['top'] = "dashboard.php";
+    $page_data['folder'] = "area_legion"; 
+    $page_data['file'] = "index.php";    
+    $page_data['bottom'] = "dashboard.php";
+
+    // Now pass the $page_data array with areas data to your view
+    $this->load->view('back/index', $page_data);
+}
+
 	
 
 	function admin_permission()
@@ -4695,7 +4700,11 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 					$page_data['danger_alert'] = translate("something_went_wrong!");
 				}
 				$this->load->view('back/index', $page_data);
-			} elseif ($para1 == "list_data") {
+			} elseif ($para1 == "list_data")
+			 {
+
+				log_message('debug', "Earnings list_data called at line 4700 in Admin.php");
+
 				$columns = array(
 					0 => 'package_payment_id',
 					1 => 'member_first_name',
@@ -4781,12 +4790,81 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 					"recordsFiltered" => intval($totalFiltered),
 					"data"            => $data
 				);
-
+log_message('debug', 'Earnings list_data response: ' . print_r($json_data, true));
 				echo json_encode($json_data);
-			} elseif ($para1 == "view_detail") {
-				$data['payment_id'] = $para2;
-				return $this->load->view('back/earnings/custom_payment_method_details', $data);
-			} elseif ($para1 == "download_cpm_bill_copy") {
+			} 
+		elseif ($para1 == "view_detail") {
+    // Get payment record
+    $payment_details = $this->db->get_where('package_payment', [
+        'package_payment_id' => $para2
+    ])->row();
+
+    // Get related member
+    $member_details = $this->db->get_where('member', [
+        'member_id' => $payment_details->member_id
+    ])->row();
+
+    // Get related plan
+    $plan_details = $this->db->get_where('plan', [
+        'plan_id' => $payment_details->plan_id
+    ])->row();
+	
+
+    // Pass all data to the view
+    $data['payment'] = $payment_details;
+    $data['member']  = $member_details;
+    $data['plan']    = $plan_details;
+	$data['payment_id'] = $para2;
+	
+
+    log_message('debug', 'View Detail Called | payment_id: ' . $para2);
+    log_message('debug', 'Payment Data: ' . print_r($payment_details, true));
+    log_message('debug', 'Member Data: ' . print_r($member_details, true));
+    log_message('debug', 'Plan Data: ' . print_r($plan_details, true));
+
+    return $this->load->view('back/earnings/custom_payment_method_details', $data);
+}
+
+elseif ($para1 == "download_payment_pdf") {
+    $payment_id = (int) $para2;
+
+    $payment = $this->db->get_where('package_payment', ['package_payment_id' => $payment_id])->row();
+    if (!$payment) { show_error('Payment not found'); }
+
+    $member  = $this->db->get_where('member', ['member_id' => $payment->member_id])->row();
+    $plan    = $this->db->get_where('plan',   ['plan_id'   => $payment->plan_id])->row();
+
+    // --- Make logo dompdf-proof (no path issues)
+    $logo_path = FCPATH . 'uploads/logo1.jpg';
+    $logo_src  = file_exists($logo_path)
+        ? 'data:image/'.pathinfo($logo_path, PATHINFO_EXTENSION).';base64,'.base64_encode(file_get_contents($logo_path))
+        : '';
+
+    $data = [
+        'payment' => $payment,
+        'member'  => $member,
+        'plan'    => $plan,
+        'logoSrc' => $logo_src,      // pass base64 to the view
+        'system_title' => $this->system_title ?? 'YOUR COMPANY NAME',
+    ];
+
+    // Render HTML
+    $html = $this->load->view('back/earnings/payment_pdf', $data, true);
+
+    // Optional: drop a copy so you can open it in the browser if needed
+    // file_put_contents(FCPATH.'tmp/last_receipt.html', $html);
+
+    // Generate + stream
+    $this->load->library('pdf');
+    $this->pdf->loadHtml($html);
+    $this->pdf->setPaper('A4', 'portrait');
+    $this->pdf->render();
+    $this->pdf->stream("payment_receipt_{$payment_id}.pdf", ["Attachment" => 1]);
+}
+
+
+
+			elseif ($para1 == "download_cpm_bill_copy") {
 				$cpm_bill_copy = $this->db->get_where('package_payment', array('package_payment_id' => $para2))->row()->custom_payment_method_bill_copy;
 				$this->load->helper('download');
 				$link = 'uploads/custom_payment_method_bill_image/' . $cpm_bill_copy;
@@ -4856,7 +4934,8 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 	{
 		if ($this->admin_permission() == FALSE) {
 			redirect(base_url() . 'admin/login', 'refresh');
-		} else {
+		}
+		 else {
 			$page_data['title'] = "Admin || " . $this->system_title;
 			if ($para1 == "") {
 				$page_data['top'] = "contact_messages/index.php";
@@ -4874,9 +4953,12 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 				} elseif ($this->session->flashdata('alert') == "demo_msg") {
 					$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
 				}
+  				
 
 				$this->load->view('back/index', $page_data);
 			} elseif ($para1 == "list_data") {
+
+				log_message('debug'," the list parta called");
 				$columns = array(
 					0 => 'contact_message_id',
 					1 => 'name',
@@ -19183,6 +19265,50 @@ public function update_story($id)
 
     redirect('admin/stories');
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+private function getLegionPrefix($legionId) {
+    // Define legion prefixes based on your legion system
+    $legionPrefixes = array(
+        1 => "LEG1",    // Legion 1
+        2 => "LEG2",    // Legion 2  
+        3 => "LEG3",    // Legion 3
+        4 => "LEG4",    // Legion 4
+        5 => "NATL",    // National Legion
+        6 => "PREM",    // Premium Legion
+        // Add more legion mappings as needed
+    );
+    
+    return isset($legionPrefixes[$legionId]) ? $legionPrefixes[$legionId] : "MEM";
+}
+
+
+public function get_areas_ajax() {
+    // Set JSON header
+    header('Content-Type: application/json');
+    
+    // Load model
+    $this->load->model('Crud_model');
+    
+    try {
+        // Get areas with legions including prefix
+        $areas = $this->Crud_model->get_areas_with_legions();
+        
+        log_message('debug', 'AJAX areas data: ' . json_encode($areas));
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $areas
+        ]);
+    } catch (Exception $e) {
+        log_message('error', 'AJAX get_areas error: ' . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to load areas data'
+        ]);
+    }
+}
+
 
 // File upload helper function
 private function do_upload($field_name)
