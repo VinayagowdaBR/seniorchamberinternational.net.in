@@ -368,12 +368,17 @@ public function add_legion() {
     $insert_id = $this->Crud_model->insert_legion($data);
 
     if ($insert_id) {
+        // Get the generated ID from the database
+        $this->db->where('id', $insert_id);
+        $legion = $this->db->get('legions')->row();
+        
         $response = [
             'success' => true,
             'message' => 'Legion added successfully.',
             'legion_name' => $legion_name,
             'prefix' => strtoupper(trim($prefix)), // RETURN PREFIX
             'legion_id' => $insert_id,
+            'legion_id_generated' => $legion->legion_id_generated ?? '', // RETURN GENERATED ID
             'area_id' => $area_id
         ];
         log_message('info', 'Add Legion success response: ' . json_encode($response));
@@ -492,6 +497,66 @@ public function area_legion() {
     // Now pass the $page_data array with areas data to your view
     $this->load->view('back/index', $page_data);
 }
+
+public function add_member() {
+    $this->load->model('Crud_model');
+
+    // Get POST data
+    $first_name = $this->input->post('first_name');
+    $last_name = $this->input->post('last_name');
+    $email = $this->input->post('email');
+    $mobile = $this->input->post('mobile');
+    $gender = $this->input->post('gender');
+    $legion_id = $this->input->post('legion_id');
+    $area_id = $this->input->post('area_id');
+
+    // Validation
+    if (empty($first_name) || empty($email) || empty($legion_id) || empty($area_id)) {
+        $response = [
+            'success' => false,
+            'message' => 'Required fields are missing.'
+        ];
+        echo json_encode($response);
+        return;
+    }
+
+    // Prepare member data
+    $member_data = [
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+        'email' => $email,
+        'mobile' => $mobile,
+        'gender' => $gender,
+        'legion_id' => $legion_id,
+        'area_id' => $area_id,
+        'password' => password_hash('default123', PASSWORD_DEFAULT), // Default password
+        'email_verification_status' => 1 // Verified by default for admin creation
+    ];
+
+    $member_id = $this->Crud_model->insert_member($member_data);
+
+    if ($member_id) {
+        // Get the generated profile ID
+        $this->db->where('member_id', $member_id);
+        $member = $this->db->get('member')->row();
+        
+        $response = [
+            'success' => true,
+            'message' => 'Member added successfully.',
+            'member_id' => $member_id,
+            'member_profile_id' => $member->member_profile_id,
+            'full_name' => $first_name . ' ' . $last_name
+        ];
+        echo json_encode($response);
+    } else {
+        $response = [
+            'success' => false,
+            'message' => 'Failed to add member.'
+        ];
+        echo json_encode($response);
+    }
+}
+
 
 	
 
@@ -2181,7 +2246,18 @@ public function area_legion() {
 
 						$this->db->insert('member', $data);
 						$insert_id = $this->db->insert_id();
-						$member_profile_id = strtoupper(substr(hash('sha512', rand()), 0, 8)) . $insert_id;
+						// Generate prefix-based member profile ID
+if (!empty($data['legion_id'])) {
+    $member_profile_id = $this->Crud_model->generate_member_profile_id($data['legion_id']);
+    if (!$member_profile_id) {
+        // Fallback to old method if generation fails
+        $member_profile_id = strtoupper(substr(hash('sha512', rand()), 0, 8)) . $insert_id;
+    }
+} else {
+    // Fallback for members without legion assignment
+    $member_profile_id = 'GEN' . str_pad($insert_id, 3, '0', STR_PAD_LEFT);
+}
+
 
 						$this->db->where('member_id', $insert_id);
 						$this->db->update('member', array('member_profile_id' => $member_profile_id));
@@ -19327,6 +19403,149 @@ private function do_upload($field_name)
     }
 }
 
+////////////////////////////////////////// 		START  Payment    initiation            /////////////////////////////////////////////////////////////////////////////////
+
+// Payment initiation
+public function initiate_payment() {
+    $this->load->library('phonepe');
+    $this->load->model('Crud_model');
+    
+    // Get POST data
+    $member_id = $this->input->post('member_id');
+    $package_id = $this->input->post('package_id');
+    $mobile_number = $this->input->post('mobile_number');
+    
+    // Validate input
+    if (empty($member_id) || empty($package_id)) {
+        echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+        return;
+    }
+    
+    // Get package details
+    $package = $this->Crud_model->get_package_by_id($package_id);
+    if (!$package) {
+        echo json_encode(['success' => false, 'message' => 'Package not found']);
+        return;
+    }
+    
+    // Generate unique transaction ID
+    $transaction_id = 'TXN' . time() . rand(1000, 9999);
+    $merchant_transaction_id = 'MTX' . time() . rand(1000, 9999);
+    
+    // Save transaction to database
+    $transaction_data = [
+        'member_id' => $member_id,
+        'package_id' => $package_id,
+        'transaction_id' => $transaction_id,
+        'phonepe_merchant_transaction_id' => $merchant_transaction_id,
+        'amount' => $package['amount'],
+        'status' => 'PENDING'
+    ];
+    
+    $this->Crud_model->insert_payment_transaction($transaction_data);
+    
+    // Prepare PhonePe payment data
+    $payment_data = [
+        'merchant_transaction_id' => $merchant_transaction_id,
+        'amount' => $package['amount'],
+        'redirect_url' => site_url('admin/payment_success'),
+        'callback_url' => site_url('admin/payment_callback'),
+        'mobile_number' => $mobile_number,
+        'user_id' => $member_id
+    ];
+    
+    // Create payment with PhonePe
+    $response = $this->phonepe->create_payment($payment_data);
+    
+    if ($response['success'] && isset($response['data']['instrumentResponse']['redirectInfo']['url'])) {
+        echo json_encode([
+            'success' => true,
+            'payment_url' => $response['data']['instrumentResponse']['redirectInfo']['url'],
+            'transaction_id' => $transaction_id
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Payment initiation failed',
+            'error' => $response
+        ]);
+    }
+}
+
+// Payment callback handler
+public function payment_callback() {
+    $this->load->library('phonepe');
+    $this->load->model('Crud_model');
+    
+    // Get callback data
+    $response_data = $this->input->raw_input_stream;
+    $x_verify = $this->input->get_request_header('X-VERIFY', TRUE);
+    
+    log_message('debug', 'PhonePe Callback Data: ' . $response_data);
+    log_message('debug', 'PhonePe X-VERIFY: ' . $x_verify);
+    
+    // Verify callback signature
+    if (!$this->phonepe->verify_callback($response_data, $x_verify)) {
+        log_message('error', 'PhonePe callback signature verification failed');
+        http_response_code(400);
+        echo 'Invalid signature';
+        return;
+    }
+    
+    $callback_data = json_decode(base64_decode($response_data), true);
+    $merchant_transaction_id = $callback_data['merchantTransactionId'];
+    
+    // Update transaction status
+    $this->Crud_model->update_payment_transaction_by_merchant_id($merchant_transaction_id, [
+        'phonepe_transaction_id' => $callback_data['transactionId'] ?? null,
+        'status' => $callback_data['code'] === 'PAYMENT_SUCCESS' ? 'SUCCESS' : 'FAILED',
+        'payment_method' => $callback_data['paymentInstrument']['type'] ?? null,
+        'callback_response' => json_encode($callback_data)
+    ]);
+    
+    // If payment successful, activate member package
+    if ($callback_data['code'] === 'PAYMENT_SUCCESS') {
+        $transaction = $this->Crud_model->get_payment_transaction_by_merchant_id($merchant_transaction_id);
+        $this->activate_member_package($transaction['member_id'], $transaction['package_id']);
+    }
+    
+    http_response_code(200);
+    echo 'OK';
+}
+
+// Payment success page
+public function payment_success() {
+    $transaction_id = $this->input->post('transactionId');
+    $merchant_transaction_id = $this->input->post('merchantTransactionId');
+    
+    // Check payment status
+    $this->load->library('phonepe');
+    $status_response = $this->phonepe->check_payment_status($merchant_transaction_id);
+    
+    $data['transaction_data'] = $status_response;
+    $data['success'] = $status_response['code'] === 'PAYMENT_SUCCESS';
+    
+    $this->load->view('payment_success', $data);
+}
+
+// Activate member package
+private function activate_member_package($member_id, $package_id) {
+    $package = $this->Crud_model->get_package_by_id($package_id);
+    
+    $expiry_date = date('Y-m-d H:i:s', strtotime('+' . $package['duration_days'] . ' days'));
+    
+    $member_update = [
+        'membership' => $package['name'],
+        'package_info' => json_encode($package),
+        'membership_expiry' => $expiry_date
+    ];
+    
+    $this->Crud_model->update_member($member_id, $member_update);
+}
+
+
+
+////////////////////////////////////////// 		END  Payment  Phone pay   initiation            /////////////////////////////////////////////////////////////////////////////////
 
 
 }

@@ -114,22 +114,18 @@ public function update_story($id, $data)
     
 
     ////////////  GET THE  AREA  AND THE LEGION //////
-   public function get_areas_with_legions()
-{
-    // Add prefix to the SELECT statement
-    $this->db->select('areas.id as area_id, areas.name as area_name, legions.id as legion_id, legions.name as legion_name, legions.prefix as legion_prefix');
+public function get_areas_with_legions() {
+    $this->db->select('areas.id as area_id, areas.name as area_name, legions.id as legion_id, legions.name as legion_name, legions.prefix as legion_prefix, legions.legion_id_generated');
     $this->db->from('areas');
     $this->db->join('legions', 'legions.area_id = areas.id', 'left');
+    $this->db->order_by('areas.name', 'ASC');
+    $this->db->order_by('legions.name', 'ASC');
     $query = $this->db->get();
     $result = $query->result();
-
-    log_message('debug', 'DB query result count: ' . count($result));
 
     $areas = [];
 
     foreach ($result as $row) {
-        log_message('debug', 'Processing row: area_id=' . $row->area_id . ', legion_id=' . $row->legion_id . ', prefix=' . (isset($row->legion_prefix) ? $row->legion_prefix : 'NULL'));
-
         $area_id = $row->area_id;
         if (!isset($areas[$area_id])) {
             $areas[$area_id] = [
@@ -137,24 +133,23 @@ public function update_story($id, $data)
                 'name' => $row->area_name,
                 'legions' => []
             ];
-            log_message('debug', "New area added: ID {$area_id}, Name {$row->area_name}");
         }
 
         if ($row->legion_id) {
             $areas[$area_id]['legions'][] = [
-                'id' => $row->legion_id,
+                'id' => $row->legion_id, // This is the auto-increment ID
                 'name' => $row->legion_name,
-                'prefix' => $row->legion_prefix ?? '' // Add prefix field with null coalescing
+                'prefix' => $row->legion_prefix ?? '',
+                'legion_id_generated' => $row->legion_id_generated ?? '', // This is your custom ID
+                'display_id' => $row->legion_id_generated ?? $row->legion_id // Use generated ID if available, fallback to auto ID
             ];
-            log_message('debug', "Added legion to area {$area_id}: Legion ID {$row->legion_id}, Name {$row->legion_name}, Prefix {$row->legion_prefix}");
         }
     }
 
-    log_message('debug', 'Final areas array: ' . print_r($areas, true));
-
-    return array_values($areas); // Reset keys to numeric
+    return array_values($areas);
 }
-  
+
+
 
     // In Crud_model.php
         public function get_all_areas()
@@ -170,42 +165,44 @@ public function update_story($id, $data)
 
 
     /////// INSETST LEGION //////
-  public function insert_legion($data) 
-{
+public function insert_legion($data) {
     log_message('debug', 'insert_legion method invoked with data: ' . print_r($data, true));
 
-    // Updated validation to include prefix
+    // Validation
     if (!isset($data['name']) || !isset($data['area_id']) || !isset($data['prefix'])) {
-        log_message('error', 'insert_legion validation failed: Missing required fields (name, area_id, or prefix)');
-        return false; // validation failed
-    }
-
-    // Additional validation for prefix (optional but recommended)
-    if (empty(trim($data['prefix']))) {
-        log_message('error', 'insert_legion validation failed: Prefix cannot be empty');
+        log_message('error', 'insert_legion validation failed: Missing required fields');
         return false;
     }
 
-    // Clean the prefix data
+    // Clean the data
     $data['prefix'] = strtoupper(trim($data['prefix']));
-
-    // Check if prefix already exists (optional uniqueness check)
-    $this->db->where('prefix', $data['prefix']);
-    $existing_prefix = $this->db->get('legions');
-    if ($existing_prefix->num_rows() > 0) {
-        log_message('error', 'insert_legion validation failed: Prefix already exists - ' . $data['prefix']);
-        return false; // prefix already exists
+    
+    // Validate prefix is not empty
+    if (empty($data['prefix'])) {
+        log_message('error', 'insert_legion validation failed: Prefix is empty');
+        return false;
     }
 
-    // Insert the data
-    $insert_result = $this->db->insert('legions', $data);
-    
-    if ($insert_result) {
-        $insert_id = $this->db->insert_id();
-        log_message('debug', 'insert_legion successful: Inserted legion with ID ' . $insert_id);
-        return $insert_id; // Return the inserted ID
-    } else {
-        log_message('error', 'insert_legion failed: Database insert error');
+    try {
+        // Generate the legion ID based on prefix
+        $data['legion_id_generated'] = $this->generate_legion_id($data['prefix']);
+        
+        log_message('debug', 'Generated legion ID: ' . $data['legion_id_generated']);
+
+        // Insert the data
+        $insert_result = $this->db->insert('legions', $data);
+        
+        if ($insert_result) {
+            $insert_id = $this->db->insert_id();
+            log_message('debug', 'insert_legion successful with ID: ' . $insert_id);
+            return $insert_id;
+        } else {
+            log_message('error', 'insert_legion failed: Database insert error - ' . $this->db->error()['message']);
+            return false;
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'insert_legion exception: ' . $e->getMessage());
         return false;
     }
 }
@@ -2987,5 +2984,146 @@ function ocupation_select_html()
               return  null;
             }
     }
+
+
+  public function generate_legion_id($prefix) {
+    // Clean the prefix
+    $prefix = strtoupper(trim($prefix));
+    
+    // Find the highest number for this prefix using a simpler query
+    $sql = "SELECT legion_id_generated 
+            FROM legions 
+            WHERE prefix = ? 
+            AND legion_id_generated IS NOT NULL 
+            ORDER BY CAST(SUBSTRING(legion_id_generated, LENGTH(?) + 1) AS UNSIGNED) DESC 
+            LIMIT 1";
+    
+    $query = $this->db->query($sql, array($prefix, $prefix));
+    
+    $next_number = 1; // Default start number
+    
+    if ($query->num_rows() > 0) {
+        $last_id = $query->row()->legion_id_generated;
+        
+        // Extract the numeric part from the generated ID
+        $numeric_part = substr($last_id, strlen($prefix));
+        $last_number = intval($numeric_part);
+        $next_number = $last_number + 1;
+    }
+    
+    // Generate new ID with zero padding (3 digits)
+    $generated_id = $prefix . str_pad($next_number, 3, '0', STR_PAD_LEFT);
+    
+    log_message('debug', "Generated legion ID: {$generated_id} for prefix: {$prefix}");
+    
+    return $generated_id;
+}
+
+// Add this method to generate prefix-based member profile IDs
+public function generate_member_profile_id($legion_id) {
+    // Get legion details with prefix
+    $this->db->select('prefix, legion_id_generated');
+    $this->db->where('id', $legion_id);
+    $legion_query = $this->db->get('legions');
+    
+    if ($legion_query->num_rows() == 0) {
+        log_message('error', 'Legion not found for ID: ' . $legion_id);
+        return false;
+    }
+    
+    $legion = $legion_query->row();
+    $prefix = strtoupper(trim($legion->prefix));
+    
+    if (empty($prefix)) {
+        log_message('error', 'Legion prefix is empty for legion ID: ' . $legion_id);
+        return false;
+    }
+    
+    // Count existing members with this legion prefix
+    $this->db->like('member_profile_id', $prefix, 'after');
+    $this->db->where('legion_id', $legion_id);
+    $count = $this->db->count_all_results('member');
+    
+    // Next number is count + 1
+    $next_number = $count + 1;
+    
+    // Generate member profile ID: PREFIX + M + 3-digit number
+    $member_profile_id = $prefix . 'M' . str_pad($next_number, 3, '0', STR_PAD_LEFT);
+    
+    log_message('debug', "Generated member profile ID: {$member_profile_id} for legion ID: {$legion_id}");
+    
+    return $member_profile_id;
+}
+
+
+public function insert_member($data) {
+    log_message('debug', 'insert_member method invoked with data: ' . print_r($data, true));
+
+    // Validation
+    if (!isset($data['legion_id']) || !isset($data['area_id'])) {
+        log_message('error', 'insert_member validation failed: Missing legion_id or area_id');
+        return false;
+    }
+
+    try {
+        // Generate member profile ID based on legion
+        $profile_id = $this->generate_member_profile_id($data['legion_id']);
+        
+        if (!$profile_id) {
+            log_message('error', 'Failed to generate member profile ID');
+            return false;
+        }
+        
+        $data['member_profile_id'] = $profile_id;
+        
+        // Set default values if not provided
+        if (!isset($data['member_since'])) {
+            $data['member_since'] = date('Y-m-d H:i:s');
+        }
+        
+        if (!isset($data['status'])) {
+            $data['status'] = 1; // Active by default
+        }
+        
+        // Insert the member
+        $insert_result = $this->db->insert('member', $data);
+        
+        if ($insert_result) {
+            $insert_id = $this->db->insert_id();
+            log_message('debug', "insert_member successful: ID {$insert_id}, Profile ID: {$profile_id}");
+            return $insert_id;
+        } else {
+            log_message('error', 'insert_member failed: Database insert error');
+            return false;
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Exception in insert_member: ' . $e->getMessage());
+        return false;
+    }
+}
+
+// Also add this method to get total count
+public function get_members_count_with_filters($filters = array()) {
+    $this->db->from('member');
+    $this->db->join('areas', 'member.area_id = areas.id', 'left');
+    $this->db->join('legions', 'member.legion_id = legions.id', 'left');
+    
+    // Apply filters if provided
+    if (!empty($filters['area_id'])) {
+        $this->db->where('member.area_id', $filters['area_id']);
+    }
+    
+    if (!empty($filters['legion_id'])) {
+        $this->db->where('member.legion_id', $filters['legion_id']);
+    }
+    
+    if (!empty($filters['status'])) {
+        $this->db->where('member.status', $filters['status']);
+    }
+    
+    return $this->db->count_all_results();
+}
+
 
 }
