@@ -20,6 +20,7 @@ class Home extends CI_Controller {
         
         $this->load->library('paypal');
         $this->load->library('pum');
+        $this->load->library('phonepe');
         $this->Crud_model->timezone();
      
         $this->lang->load("member","kannada");
@@ -3611,6 +3612,16 @@ if ($para1 == "add") {
             redirect(base_url() . 'home/profile', 'refresh');
         }
 
+
+		// Guard against direct GET access without required POST data
+		if (!$this->input->post('payment_type')) {
+			log_message('error', 'process_payment: missing payment_type in POST');
+			$this->session->set_flashdata('danger_alert', 'Invalid payment request.');
+			redirect(base_url() . 'home/plans', 'refresh');
+		}
+
+		log_message('debug', 'process_payment: payment_type=' . $this->input->post('payment_type') . ', plan_id=' . $this->input->post('plan_id'));
+
         if ($this->input->post('payment_type') == 'paypal') {
             $member_id = $this->session->userdata('member_id');
             $payment_type = $this->input->post('payment_type');
@@ -4069,6 +4080,72 @@ if ($para1 == "add") {
             $this->Email_model->subscruption_email('member', $member_id, $plan_id);
             redirect(base_url().'home/profile', 'refresh');
         }
+        else if ($this->input->post('payment_type') == 'phonepe') {
+			$this->load->library('phonepe');
+    $member_id = $this->session->userdata('member_id');
+    $plan_id = $this->input->post('plan_id');
+
+    $plan = $this->db->get_where('plan', array('plan_id' => $plan_id))->row();
+    if (!$plan) {
+        // Handle plan not found
+        $this->session->set_flashdata('danger_alert', 'Selected plan not found.');
+        redirect(base_url() . 'home/plans', 'refresh');
+    }
+
+    $amount_in_rupees = $plan->amount + ($plan->amount * $plan->gst / 100);
+    // PhonePe requires the amount in paise (integer)
+    $amount_in_paise = (int)($amount_in_rupees * 100);
+
+    $data['plan_id']            = $plan_id;
+    $data['member_id']          = $member_id;
+    $data['payment_type']       = 'PhonePe';
+    $data['payment_status']     = 'due';
+    $data['payment_details']    = 'none';
+    $data['amount']             = $amount_in_rupees; // Store the amount in rupees in your DB
+    $data['purchase_datetime']  = time();
+
+    $this->db->insert('package_payment', $data);
+    $payment_id = $this->db->insert_id();
+    $merchant_transaction_id = 'MT' . $payment_id . time();
+
+    $this->db->where('package_payment_id', $payment_id);
+    $this->db->update('package_payment', ['payment_code' => $merchant_transaction_id]);
+
+    $member_data = $this->db->get_where('member', array('member_id' => $member_id))->row();
+
+    $phonepe_data = [
+        'merchant_transaction_id' => $merchant_transaction_id,
+        'amount' => $amount_in_paise, // Pass the amount in paise to the library
+        'redirect_url' => base_url() . 'home/phonepe_success',
+        'callback_url' => base_url() . 'home/phonepe_success',
+        'mobile_number' => $member_data->mobile,
+        'user_id' => $member_id,
+    ];
+
+    $response = $this->phonepe->create_payment($phonepe_data);
+
+    // Check for a successful API call and the redirect URL
+    if (isset($response['success']) && $response['success'] == true && !empty($response['data']['instrumentResponse']['redirectInfo']['url'])) {
+        $redirectUrl = $response['data']['instrumentResponse']['redirectInfo']['url'];
+        redirect($redirectUrl);
+    } else {
+        // Log the detailed error from PhonePe for debugging
+        $errorMessage = isset($response['message']) ? $response['message'] : 'Unknown error during payment initiation.';
+        log_message('error', 'PhonePe Error: ' . $errorMessage . ' | Response: ' . json_encode($response));
+
+        $this->session->set_flashdata('danger_alert', 'PhonePe payment initiation failed. Please try again. ' . $errorMessage);
+        
+        // Clean up the 'due' payment record
+        $this->db->where('package_payment_id', $payment_id);
+        $this->db->delete('package_payment');
+        redirect(base_url() . 'home/plans', 'refresh');
+    }
+}
+		else {
+			log_message('error', 'process_payment: unknown payment_type ' . $this->input->post('payment_type'));
+			$this->session->set_flashdata('danger_alert', 'Unsupported payment method.');
+			redirect(base_url() . 'home/plans', 'refresh');
+		}
 
     }
 
@@ -5788,6 +5865,12 @@ if ($para1 == "add") {
                 elseif ($this->session->flashdata('alert') == "instamojo_success") {
                     $page_data['success_alert'] = translate("your_payment_via_instamojo_has_been_successfull!");
                 }
+                elseif ($this->session->flashdata('alert') == "phonepe_success") {
+                    $page_data['success_alert'] = translate("your_payment_via_phonepe_has_been_successfull!");
+                }
+            elseif ($this->session->flashdata('alert') == "phonepe_success") {
+                $page_data['success_alert'] = translate("your_payment_via_phonepe_has_been_successfull!");
+            }
                 elseif ($this->session->flashdata('alert') == "cpm_1_success") {
                     $cp_method_1_name =  $this->db->get_where('business_settings', array('type' =>'custom_payment_method_1_name' ))->row()->value;
                     $page_data['success_alert'] = translate("your_payment_via_").$cp_method_1_name.translate("_has_been_successfull!");
@@ -6177,6 +6260,81 @@ if ($para1 == "add") {
         echo $this->email->print_debugger();
         }
     }
-  
+  ///////////////////////////////////////  phonepe pay method start   ///////////////////////////////////////
     
+public function phonepe_success(){
+    try
+    {
+        $this->load->library('phonepe');
+        $merchant_transaction_id = $this->input->post('merchantTransactionId') ?: $this->input->get('merchantTransactionId');
+
+        if (!$merchant_transaction_id) {
+            $this->session->set_flashdata('danger_alert', 'Payment verification failed.');
+            redirect(base_url() . 'home/plans', 'refresh');
+        }
+
+        $payment = $this->db->get_where('package_payment', array('payment_code' => $merchant_transaction_id))->row();
+        if(!$payment){
+            $this->session->set_flashdata('danger_alert', 'Payment record not found.');
+            redirect(base_url() . 'home/plans', 'refresh');
+        }
+
+        $response = $this->phonepe->verify_payment($merchant_transaction_id);
+        if(isset($response['success']) && $response['success'] == true && isset($response['data']['state']) && $response['data']['state'] == 'COMPLETED'){
+            $data['payment_details']   = json_encode($response);
+            $data['purchase_datetime'] = time();
+            $data['payment_timestamp'] = time();
+            $data['payment_type']      = 'PhonePe';
+            $data['payment_status']    = 'paid';
+            $data['expire']            = 'no';
+            $this->db->where('package_payment_id', $payment->package_payment_id);
+            $this->db->update('package_payment', $data);
+
+            $prev_express_interest = $this->db->get_where('member', array('member_id' => $payment->member_id))->row()->express_interest;
+            $prev_direct_messages  = $this->db->get_where('member', array('member_id' => $payment->member_id))->row()->direct_messages;
+            $prev_photo_gallery    = $this->db->get_where('member', array('member_id' => $payment->member_id))->row()->photo_gallery;
+
+            $data1['membership']       = 2;
+            $data1['express_interest'] = $prev_express_interest + $this->db->get_where('plan', array('plan_id' => $payment->plan_id))->row()->express_interest;
+            $data1['direct_messages']  = $prev_direct_messages + $this->db->get_where('plan', array('plan_id' => $payment->plan_id))->row()->direct_messages;
+            $data1['photo_gallery']    = $prev_photo_gallery + $this->db->get_where('plan', array('plan_id' => $payment->plan_id))->row()->photo_gallery;
+
+            $package_info[] = array('current_package'   => $this->Crud_model->get_type_name_by_id('plan', $payment->plan_id),
+                            'package_price'     => $this->Crud_model->get_type_name_by_id('plan', $payment->plan_id, 'amount'),
+                            'payment_type'      => 'PhonePe',
+                        );
+             $data1['package_info'] = json_encode($package_info);
+
+            $this->db->where('member_id', $payment->member_id);
+            $this->db->update('member', $data1);
+            recache();
+
+            if ($this->Email_model->subscruption_email('member', $payment->member_id, $payment->plan_id)) {
+            } else {
+                $this->session->set_flashdata('alert', 'not_sent');
+            }
+
+            $this->session->set_flashdata('alert', 'phonepe_success');
+            redirect(base_url() . 'home/invoice/'.$payment->package_payment_id, 'refresh');
+        } else {
+            $this->db->where('package_payment_id', $payment->package_payment_id);
+            $this->db->delete('package_payment');
+
+            $this->session->set_flashdata('danger_alert', 'Payment failed or is pending.');
+            redirect(base_url() . 'home/plans', 'refresh');
+        }
+    }
+    catch(Exception $e){
+        $this->session->set_flashdata('danger_alert', 'Payment verification failed.');
+        redirect(base_url() . 'home/plans', 'refresh');
+    }
+}
+
+
+
+
+  /////////////////////////////////////// END phonepe pay method start   ///////////////////////////////////////
+
+
+
   }
