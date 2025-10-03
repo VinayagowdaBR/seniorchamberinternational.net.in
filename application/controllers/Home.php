@@ -4111,7 +4111,22 @@ if ($para1 == "add") {
     $this->db->where('package_payment_id', $payment_id);
     $this->db->update('package_payment', ['payment_code' => $merchant_transaction_id]);
 
-    $member_data = $this->db->get_where('member', array('member_id' => $member_id))->row();
+			$member_data = $this->db->get_where('member', array('member_id' => $member_id))->row();
+
+			// Record initiation in payment_transactions table
+			$transaction_row = array(
+				'member_id' => $member_id,
+				'package_id' => $plan_id,
+				'transaction_id' => 'TXN' . $payment_id . time(),
+				'phonepe_merchant_transaction_id' => $merchant_transaction_id,
+				'amount' => $amount_in_rupees,
+				'currency' => 'INR',
+				'status' => 'PENDING',
+				'payment_method' => 'PhonePe',
+				'created_at' => date('Y-m-d H:i:s'),
+				'updated_at' => date('Y-m-d H:i:s')
+			);
+			$this->db->insert('payment_transactions', $transaction_row);
 
     $phonepe_data = [
         'merchant_transaction_id' => $merchant_transaction_id,
@@ -4135,9 +4150,16 @@ if ($para1 == "add") {
 
         $this->session->set_flashdata('danger_alert', 'PhonePe payment initiation failed. Please try again. ' . $errorMessage);
         
-        // Clean up the 'due' payment record
+				// Clean up the 'due' payment record
         $this->db->where('package_payment_id', $payment_id);
         $this->db->delete('package_payment');
+				// Mark payment_transactions as FAILED
+				$this->db->where('phonepe_merchant_transaction_id', $merchant_transaction_id);
+				$this->db->update('payment_transactions', array(
+					'status' => 'FAILED',
+					'phonepe_response' => json_encode($response),
+					'updated_at' => date('Y-m-d H:i:s')
+				));
         redirect(base_url() . 'home/plans', 'refresh');
     }
 }
@@ -6280,6 +6302,14 @@ public function phonepe_success(){
         }
 
         $response = $this->phonepe->verify_payment($merchant_transaction_id);
+        // Update payment_transactions with callback/status response
+        $this->db->where('phonepe_merchant_transaction_id', $merchant_transaction_id);
+        $this->db->update('payment_transactions', array(
+            'phonepe_transaction_id' => isset($response['data']['transactionId']) ? $response['data']['transactionId'] : null,
+            'status' => (isset($response['data']['state']) && $response['data']['state'] == 'COMPLETED') ? 'SUCCESS' : 'FAILED',
+            'phonepe_response' => json_encode($response),
+            'updated_at' => date('Y-m-d H:i:s')
+        ));
         if(isset($response['success']) && $response['success'] == true && isset($response['data']['state']) && $response['data']['state'] == 'COMPLETED'){
             $data['payment_details']   = json_encode($response);
             $data['purchase_datetime'] = time();
