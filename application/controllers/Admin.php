@@ -4883,22 +4883,91 @@ function earnings($para1 = "", $para2 = "")
 			log_message('debug', 'Earnings list_data response: ' . print_r($json_data, true));
 			echo json_encode($json_data);
 		}
-		elseif ($para1 == "store_cart_items") {
-			$items = json_decode($this->input->post('items'), true);
-			$this->session->set_userdata('cart_items', $items);
-			echo json_encode(['status' => 'success']);
-		}
+
 		elseif ($para1 == "payment_cart") {
 			$cart_items = $this->session->userdata('cart_items');
 			if (empty($cart_items)) {
 				redirect(base_url() . 'admin/earnings', 'refresh');
 			}
 			
+			// ✅ IMPORTANT: Add ALL these variables like other admin pages
+			$page_data['title'] = "Admin || " . $this->system_title;
+			$page_data['top'] = "earnings/index.php";        // Header/top navigation
+			$page_data['folder'] = "earnings";               // Folder name
+			$page_data['file'] = "payment_cart.php";         // Your view file
+			$page_data['bottom'] = "earnings/index.php";     // Footer/bottom
+			$page_data['page_name'] = "earnings";            // Active menu item
 			$page_data['cart_items'] = $cart_items;
-			$page_data['page_name'] = "payment_cart";
-			$page_data['title'] = "Payment Cart || " . $this->system_title;
-			$this->load->view('back/earnings/payment_cart', $page_data);
+			
+			// ✅ Load through admin template
+			$this->load->view('back/index', $page_data);
 		}
+		
+
+	
+		elseif ($para1 == "process_bulk_payment") {
+			$cart_items = $this->session->userdata('cart_items');
+			if (empty($cart_items)) {
+				echo json_encode(['status' => 'error', 'message' => 'No items in cart']);
+				return;
+			}
+			
+			$total_amount = 0;
+			$payment_ids = array();
+			
+			foreach ($cart_items as $item) {
+				$total_amount += $item['amount'];
+				$payment_ids[] = $item['id'];
+			}
+			
+			// Create bulk payment record
+			$bulk_data = array(
+				'payment_ids' => json_encode($payment_ids),
+				'total_amount' => $total_amount,
+				'payment_status' => 'pending',
+				'created_at' => date('Y-m-d H:i:s')
+			);
+			
+			// Store bulk payment info
+			$this->session->set_userdata('bulk_payment_data', $bulk_data);
+			
+			echo json_encode([
+				'status' => 'success',
+				'total_amount' => $total_amount,
+				'payment_ids' => $payment_ids,
+				'redirect_url' => base_url('admin/earnings/phonepe_bulk_payment')
+			]);
+		}
+
+
+
+		elseif ($para1 == "phonepe_bulk_payment") {
+			$bulk_payment_data = $this->session->userdata('bulk_payment_data');
+			if (empty($bulk_payment_data)) {
+				redirect(base_url() . 'admin/earnings', 'refresh');
+			}
+			
+			$page_data['title'] = "Admin || " . $this->system_title;
+			$page_data['top'] = "earnings/index.php";
+			$page_data['folder'] = "earnings";
+			$page_data['file'] = "process_bulk_payment.php";  // ✅ Or phonepe_bulk_payment.php
+			$page_data['bottom'] = "earnings/index.php";
+			$page_data['page_name'] = "earnings";
+			$page_data['bulk_payment_data'] = $bulk_payment_data;
+			
+			$this->load->view('back/index', $page_data);
+		}
+		
+
+
+
+
+
+
+
+
+
+		
 		elseif ($para1 == "process_bulk_payment") {
 			$cart_items = $this->session->userdata('cart_items');
 			if (empty($cart_items)) {
@@ -4945,6 +5014,9 @@ function earnings($para1 = "", $para2 = "")
 			$page_data['title'] = "PhonePe Payment || " . $this->system_title;
 			$this->load->view('back/earnings/phonepe_bulk_payment', $page_data);
 		}
+
+
+		
 		elseif ($para1 == "bulk_payment_success") {
 			// Called after PhonePe payment success
 			$payment_ids = json_decode($this->session->userdata('bulk_payment_data')['payment_ids'], true);
