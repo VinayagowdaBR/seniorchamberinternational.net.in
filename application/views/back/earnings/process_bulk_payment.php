@@ -66,7 +66,8 @@
                         
                         <!-- Payment Form -->
                         <div id="payment_form_container">
-                            <form id="phonepe_payment_form" method="POST" action="<?php echo base_url('phonepe/initiate_payment'); ?>">
+						<form id="phonepe_payment_form" method="POST" action="<?php echo base_url('phonepe_admin/initiate_payment'); ?>">
+
                                 <input type="hidden" name="amount" value="<?php echo $bulk_payment_data['total_amount']; ?>">
                                 <input type="hidden" name="payment_type" value="bulk_payment">
                                 <input type="hidden" name="payment_ids" value='<?php echo $bulk_payment_data['payment_ids']; ?>'>
