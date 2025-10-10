@@ -3,7 +3,6 @@ node_modules/
 **/node_modules/
 
 # Ignore all vendor directories
-vendor/
-**/vendor/
+
 application/logs/
 application/cache/
