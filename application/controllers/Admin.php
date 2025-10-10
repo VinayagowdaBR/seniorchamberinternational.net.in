@@ -4719,18 +4719,21 @@ class Admin extends CI_Controller
 		if ($this->admin_permission() == FALSE) {
 			redirect(base_url() . 'admin/login', 'refresh');
 		} else {
-
+	
 			if (!empty($_POST['earningStatus'])) {
 				$state = $_POST['earningStatus'];
 				$this->session->set_userdata('earning_status', $state);
 			}
 			$page_data['title'] = "Admin || " . $this->system_title;
+			
 			if ($para1 == "") {
 				$page_data['top'] = "earnings/index.php";
 				$page_data['folder'] = "earnings";
 				$page_data['file'] = "index.php";
 				$page_data['bottom'] = "earnings/index.php";
 				$page_data['page_name'] = "earnings";
+				
+				// Flash messages
 				if ($this->session->flashdata('alert') == "delete") {
 					$page_data['success_alert'] = translate("you_have_successfully_deleted_the_data!");
 				} elseif ($this->session->flashdata('alert') == "failed_delete") {
@@ -4741,12 +4744,24 @@ class Admin extends CI_Controller
 					$page_data['success_alert'] = translate("payment_accepted_successfully!");
 				} elseif ($this->session->flashdata('alert') == "payment_accepted_error") {
 					$page_data['danger_alert'] = translate("something_went_wrong!");
+				} elseif ($this->session->flashdata('alert') == "bulk_payment_success") {
+					$page_data['success_alert'] = translate("bulk_payment_completed_successfully!");
+				} elseif ($this->session->flashdata('alert') == "bulk_payment_error") {
+					$page_data['danger_alert'] = translate("bulk_payment_failed!");
 				}
+				
 				$this->load->view('back/index', $page_data);
+<<<<<<< HEAD
 			} elseif ($para1 == "list_data") {
 
 				log_message('debug', "Earnings list_data called at line 4700 in Admin.php");
 
+=======
+			} 
+			elseif ($para1 == "list_data") {
+				log_message('debug', "Earnings list_data called");
+	
+>>>>>>> 1184ff02f6c5aaef296aaac85b7ac3d55aebfcb8
 				$columns = array(
 					0 => 'package_payment_id',
 					1 => 'member_first_name',
@@ -4759,79 +4774,98 @@ class Admin extends CI_Controller
 					8 => 'start_date',
 					9 => 'end_date',
 				);
+				
 				$limit = $this->input->post('length');
 				$start = $this->input->post('start');
-
-				if ($this->input->post('order')[0]['column'] == 0) {
+	
+				if ($this->input->post('order')[0]['column'] == 0 || $this->input->post('order')[0]['column'] == 1) {
 					$order = "package_payment_id";
 					$dir = "desc";
 				} else {
 					$order = $columns[$this->input->post('order')[0]['column']];
 					$dir = $this->input->post('order')[0]['dir'];
 				}
+				
 				$table = 'package_payment';
-
 				$totalData = $this->Crud_model->alldata_count($table);
-
 				$totalFiltered = $totalData;
-
+	
 				if (empty($this->input->post('search')['value'])) {
 					$rows = $this->Crud_model->allearnings($table, $limit, $start, $order, $dir);
 				} else {
 					$search = $this->input->post('search')['value'];
-
-					$rows =  $this->Crud_model->earning_search($table, $limit, $start, $search, $order, $dir);
+					$rows = $this->Crud_model->earning_search($table, $limit, $start, $search, $order, $dir);
 					$totalFiltered = $this->Crud_model->earning_search_count($table, $search);
 				}
-
+	
 				$data = array();
 				if (!empty($rows)) {
-					if ($dir == 'asc') {
-						$i = $start + 1;
-					} elseif ($dir == 'desc') {
-						$i = $totalFiltered - $start;
-					}
+					$i = ($dir == 'asc') ? ($start + 1) : ($totalFiltered - $start);
+					
 					foreach ($rows as $row) {
+						// ✅ Add checkbox column for bulk selection
+						$nestedData['checkbox'] = "<input type='checkbox' class='earning-checkbox' 
+							data-id='" . $row->package_payment_id . "' 
+							data-amount='" . $row->amount . "' 
+							data-member='" . htmlspecialchars($row->member_first_name . " " . $row->member_last_name) . "' 
+							data-package='" . htmlspecialchars($row->package_name) . "' 
+							data-status='" . $row->payment_status . "'>";
+						
 						$nestedData['#'] = $i;
 						$nestedData['member_name'] = $row->member_first_name . ' ' . $row->member_last_name;
 						$nestedData['date'] = date('d/m/Y h:i A', $row->purchase_datetime);
+						
+						// Payment type badges
 						if ($row->payment_type == 'payUMoney') {
-							$nestedData['payment_type'] = "<center><span class='badge badge-success'>" . 'PayUMoney' . "</span></center>";
+							$nestedData['payment_type'] = "<center><span class='badge badge-success'>PayUMoney</span></center>";
 						} elseif ($row->payment_type == 'Stripe') {
 							$nestedData['payment_type'] = "<center><span class='badge badge-info'>" . $row->payment_type . "</span></center>";
 						} elseif ($row->payment_type == 'Paypal') {
 							$nestedData['payment_type'] = "<center><span class='badge badge-primary'>" . $row->payment_type . "</span></center>";
-						} elseif (strtolower($row->payment_type) == strtolower('Instamojo')) {
+						} elseif (strtolower($row->payment_type) == 'instamojo') {
 							$nestedData['payment_type'] = "<center><span class='badge badge-warning'>" . $row->payment_type . "</span></center>";
 						} elseif (in_array($row->payment_type, ['custom_payment_method_1', 'custom_payment_method_2', 'custom_payment_method_3', 'custom_payment_method_4'])) {
 							$nestedData['payment_type'] = "<center><span class='badge badge-warning'>" . $row->custom_payment_method_name . "</span></center>";
+						} else {
+							$nestedData['payment_type'] = "<center><span class='badge badge-default'>" . $row->payment_type . "</span></center>";
 						}
+						
 						$nestedData['amount'] = currency('', 'def') . $row->amount;
 						$nestedData['package'] = $row->package_name;
+						
+						// Payment status
 						if ($row->payment_status == 'paid') {
 							$nestedData['status'] = "<center><span class='badge badge-success' style='width:60px'>" . translate($row->payment_status) . "</span></center>";
 						} elseif ($row->payment_status == 'due') {
 							$nestedData['status'] = "<center><span class='badge badge-danger' style='width:60px'>" . translate($row->payment_status) . "</span></center>";
 						}
+						
 						$nestedData['start_date'] = ($row->start_date == 0) ? 0 : date('d/m/y', strtotime($row->start_date));
 						$nestedData['end_date'] = ($row->end_date == 0) ? 0 : date('d/m/y', strtotime($row->end_date));
-						$nestedData['options'] = "<button data-target='#earnings_modal' data-toggle='modal' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('view') . " Details' onclick='get_detail($row->package_payment_id)'><i class='fa fa-eye'></i></button><button data-target='#delete_modal' data-toggle='modal' class='btn btn-danger btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('delete') . "' onclick='delete_earning(" . $row->package_payment_id . ")'><i class='fa fa-trash'></i></button>";
-
-						$data[] = $nestedData;
-						if ($dir == 'asc') {
-							$i++;
-						} elseif ($dir == 'desc') {
-							$i--;
+				
+						// ✅ Build options column with conditional invoice download button
+						$nestedData['options'] = "<button data-target='#earnings_modal' data-toggle='modal' class='btn btn-primary btn-xs add-tooltip' data-placement='top' title='" . translate('view') . " Details' onclick='get_detail($row->package_payment_id)'><i class='fa fa-eye'></i></button> ";
+						
+						// ✅ Add invoice download button if invoice is generated
+						if (!empty($row->invoice_number) && isset($row->invoice_generated) && $row->invoice_generated == 1) {
+							$nestedData['options'] .= "<a href='" . base_url('admin/earnings/download_invoice/' . $row->package_payment_id) . "' class='btn btn-success btn-xs add-tooltip' data-placement='top' title='Download Invoice' target='_blank'><i class='fa fa-download'></i></a> ";
 						}
+						
+						$nestedData['options'] .= "<button data-target='#delete_modal' data-toggle='modal' class='btn btn-danger btn-xs add-tooltip' data-placement='top' title='" . translate('delete') . "' onclick='delete_earning(" . $row->package_payment_id . ")'><i class='fa fa-trash'></i></button>";
+				
+						$data[] = $nestedData;
+						$i = ($dir == 'asc') ? $i + 1 : $i - 1;
 					}
 				}
-
+				
+	
 				$json_data = array(
-					"draw"       => intval($this->input->post('draw')),
-					"recordsTotal"    => intval($totalData),
+					"draw" => intval($this->input->post('draw')),
+					"recordsTotal" => intval($totalData),
 					"recordsFiltered" => intval($totalFiltered),
-					"data"            => $data
+					"data" => $data
 				);
+<<<<<<< HEAD
 				log_message('debug', 'Earnings list_data response: ' . print_r($json_data, true));
 				echo json_encode($json_data);
 			} elseif ($para1 == "view_detail") {
@@ -4849,6 +4883,165 @@ class Admin extends CI_Controller
 				$plan_details = $this->db->get_where('plan', [
 					'plan_id' => $payment_details->plan_id
 				])->row();
+=======
+				
+				echo json_encode($json_data);
+			}
+			// ✅ ADDED: Store cart items in session
+			elseif ($para1 == "store_cart_items") {
+				$items = json_decode($this->input->post('items'), true);
+				$this->session->set_userdata('cart_items', $items);
+				echo json_encode(['status' => 'success']);
+			}
+
+			elseif ($para1 == "invoice_history") {
+    $page_data['title'] = "Admin || " . $this->system_title;
+    $page_data['top'] = "earnings/index.php";
+    $page_data['folder'] = "earnings";
+    $page_data['file'] = "invoice_history.php";
+    $page_data['bottom'] = "earnings/index.php";
+    $page_data['page_name'] = "earnings";
+    
+    $this->load->view('back/index', $page_data);
+}
+elseif ($para1 == "invoice_history_data") {
+    // Get year filter
+    $year = $this->input->post('year') ?: date('Y');
+    
+    // Get invoice data for the year
+    $this->db->select('pp.*, m.first_name, m.last_name, m.email, p.name as package_name');
+    $this->db->from('package_payment pp');
+    $this->db->join('member m', 'm.member_id = pp.member_id');
+    $this->db->join('plan p', 'p.plan_id = pp.plan_id');
+    $this->db->where('pp.invoice_generated', 1);
+    if ($year !== 'all') {
+        $this->db->where('pp.invoice_year', $year);
+    }
+    $this->db->order_by('pp.purchase_datetime', 'DESC');
+    
+    $invoices = $this->db->get()->result();
+    
+    $data = array();
+    $sl = 1;
+    foreach ($invoices as $invoice) {
+        $nestedData = array();
+        $nestedData['#'] = $sl++;
+        $nestedData['invoice_number'] = '<strong>' . $invoice->invoice_number . '</strong>';
+        $nestedData['member_name'] = $invoice->first_name . ' ' . $invoice->last_name;
+        $nestedData['package'] = $invoice->package_name;
+        $nestedData['amount'] = currency('', 'def') . number_format($invoice->amount, 2);
+        $nestedData['validity'] = date('d M Y', strtotime($invoice->validity_start_date)) . ' - ' . 
+                                  date('d M Y', strtotime($invoice->validity_end_date));
+        $nestedData['payment_date'] = date('d M Y', $invoice->purchase_datetime);
+        $nestedData['year'] = $invoice->invoice_year;
+        $nestedData['status'] = '<span class="badge badge-success">Paid</span>';
+        $nestedData['action'] = '
+            <a href="' . base_url('admin/earnings/download_invoice/' . $invoice->package_payment_id) . '" 
+               class="btn btn-primary btn-xs" target="_blank" title="Download Invoice">
+                <i class="fa fa-download"></i>
+            </a>
+            <button class="btn btn-info btn-xs" onclick="viewInvoiceDetail(' . $invoice->package_payment_id . ')" title="View Details">
+                <i class="fa fa-eye"></i>
+            </button>';
+        
+        $data[] = $nestedData;
+    }
+    
+    echo json_encode(array('data' => $data));
+}
+elseif ($para1 == "view_detail") {
+    $payment_id = (int) $para2;
+    $page = max(1, (int) $this->input->get('page', 1));
+    $limit = 20;
+    $offset = ($page - 1) * $limit;
+
+    try {
+        $payment_details = $this->db->get_where('package_payment', ['package_payment_id' => $payment_id])->row();
+        if (!$payment_details) {
+            echo json_encode(['status' => 'error', 'message' => 'Payment not found']);
+            return;
+        }
+
+        $member_details = $this->db->get_where('member', ['member_id' => $payment_details->member_id])->row();
+        if (!$member_details) {
+            echo json_encode(['status' => 'error', 'message' => 'Member not found']);
+            return;
+        }
+
+        $plan_details = $this->db->get_where('plan', ['plan_id' => $payment_details->plan_id])->row();
+        if (!$plan_details) {
+            echo json_encode(['status' => 'error', 'message' => 'Plan not found']);
+            return;
+        }
+
+        $this->db->select('*');
+        $this->db->from('package_payment');
+        $this->db->where('member_id', $payment_details->member_id);
+        $this->db->where('payment_status', 'paid');
+        $this->db->order_by('purchase_datetime', 'DESC');
+        $this->db->limit($limit, max(0, $offset));
+        $payment_history = $this->db->get()->result();
+
+        $total_history = $this->db->from('package_payment')
+                                  ->where('member_id', $payment_details->member_id)
+                                  ->where('payment_status', 'paid')
+                                  ->count_all_results();
+
+        $data = [
+            'payment' => $payment_details,
+            'member' => $member_details,
+            'plan' => $plan_details,
+            'payment_history' => $payment_history,
+            'total_history' => $total_history,
+            'current_page' => $page,
+            'limit' => $limit,
+            'payment_id' => $payment_id
+        ];
+
+        $view_file = 'back/earnings/payment_detail_modal';
+        if (!file_exists(APPPATH . 'views/' . $view_file . '.php')) {
+            $view_file = 'back/earnings/custom_payment_method_details';
+        }
+
+        // ✅ Don't return here, just load
+        $this->load->view($view_file, $data);
+
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => 'Server error: ' . $e->getMessage()]);
+    }
+}
+
+
+// Also fix load_more_history to prevent negative offsets
+elseif ($para1 == "load_more_history") {
+    $member_id = (int) $this->input->post('member_id');
+    $page = max(1, (int) $this->input->post('page', 1)); // FIXED: Ensure page >=1
+    $limit = 20;
+    $offset = ($page - 1) * $limit;
+    
+    log_message('debug', 'Load More History | member_id: ' . $member_id . ' | page: ' . $page . ' | offset: ' . $offset);
+    
+    if ($offset < 0) {
+        $offset = 0; // Safety net
+    }
+    
+    $this->db->select('*');
+    $this->db->from('package_payment');
+    $this->db->where('member_id', $member_id);
+    $this->db->where('payment_status', 'paid');
+    $this->db->order_by('purchase_datetime', 'DESC');
+    $this->db->limit($limit, $offset);
+    
+    $more_history = $this->db->get()->result();
+    
+    log_message('debug', 'Load More Success | fetched: ' . count($more_history));
+    
+    echo json_encode(array(
+        'history' => $more_history,
+        'has_more' => count($more_history) == $limit // For hiding "Load More" button
+    ));
+}
+>>>>>>> 1184ff02f6c5aaef296aaac85b7ac3d55aebfcb8
 
 
 				// Pass all data to the view
@@ -4858,6 +5051,7 @@ class Admin extends CI_Controller
 				$data['payment_id'] = $para2;
 
 
+<<<<<<< HEAD
 				log_message('debug', 'View Detail Called | payment_id: ' . $para2);
 				log_message('debug', 'Payment Data: ' . print_r($payment_details, true));
 				log_message('debug', 'Member Data: ' . print_r($member_details, true));
@@ -4896,46 +5090,225 @@ class Admin extends CI_Controller
 				// file_put_contents(FCPATH.'tmp/last_receipt.html', $html);
 
 				// Generate + stream
+=======
+
+
+
+			// ✅ Payment cart page
+			elseif ($para1 == "payment_cart") {
+				$cart_items = $this->session->userdata('cart_items');
+				if (empty($cart_items)) {
+					redirect(base_url() . 'admin/earnings', 'refresh');
+				}
+				
+				$page_data['title'] = "Admin || " . $this->system_title;
+				$page_data['top'] = "earnings/index.php";
+				$page_data['folder'] = "earnings";
+				$page_data['file'] = "payment_cart.php";
+				$page_data['bottom'] = "earnings/index.php";
+				$page_data['page_name'] = "earnings";
+				$page_data['cart_items'] = $cart_items;
+				
+				$this->load->view('back/index', $page_data);
+			}
+
+
+
+			elseif ($para1 == "bulk_payment_success_page") {
+				$invoices = $this->session->userdata('bulk_payment_invoices');
+				
+				if (empty($invoices)) {
+					redirect(base_url() . 'admin/earnings', 'refresh');
+				}
+				
+				$page_data['title'] = "Admin || " . $this->system_title;
+				$page_data['top'] = "earnings/index.php";
+				$page_data['folder'] = "earnings";
+				$page_data['file'] = "bulk_payment_success.php";
+				$page_data['bottom'] = "earnings/index.php";
+				$page_data['page_name'] = "earnings";
+				$page_data['invoices'] = $invoices;
+				
+				$this->load->view('back/index', $page_data);
+			}
+			elseif ($para1 == "download_invoice") {
+				$payment_id = (int) $para2;
+				$this->generate_member_invoice($payment_id);
+			}
+			
+
+
+
+			// ✅ Process bulk payment (AJAX)
+			elseif ($para1 == "process_bulk_payment") {
+				$cart_items = $this->session->userdata('cart_items');
+				if (empty($cart_items)) {
+					echo json_encode(['status' => 'error', 'message' => 'No items in cart']);
+					return;
+				}
+				
+				$total_amount = 0;
+				$payment_ids = array();
+				
+				foreach ($cart_items as $item) {
+					$total_amount += $item['amount'];
+					$payment_ids[] = $item['id'];
+				}
+				
+				$bulk_data = array(
+					'payment_ids' => json_encode($payment_ids),
+					'total_amount' => $total_amount,
+					'payment_status' => 'pending',
+					'created_at' => date('Y-m-d H:i:s')
+				);
+				
+				$this->session->set_userdata('bulk_payment_data', $bulk_data);
+				
+				echo json_encode([
+					'status' => 'success',
+					'total_amount' => $total_amount,
+					'payment_ids' => $payment_ids,
+					'redirect_url' => base_url('admin/earnings/phonepe_bulk_payment')
+				]);
+			}
+			// ✅ PhonePe bulk payment page
+			elseif ($para1 == "phonepe_bulk_payment") {
+				$bulk_payment_data = $this->session->userdata('bulk_payment_data');
+				if (empty($bulk_payment_data)) {
+					redirect(base_url() . 'admin/earnings', 'refresh');
+				}
+				
+				$page_data['title'] = "Admin || " . $this->system_title;
+				$page_data['top'] = "earnings/index.php";
+				$page_data['folder'] = "earnings";
+				$page_data['file'] = "process_bulk_payment.php";
+				$page_data['bottom'] = "earnings/index.php";
+				$page_data['page_name'] = "earnings";
+				$page_data['bulk_payment_data'] = $bulk_payment_data;
+				
+				$this->load->view('back/index', $page_data);
+			}
+			// ✅ Bulk payment success callback
+			elseif ($para1 == "bulk_payment_success") {
+				$bulk_payment_data = $this->session->userdata('bulk_payment_data');
+				if (empty($bulk_payment_data)) {
+					$this->session->set_flashdata('danger_alert', 'Payment session expired');
+					redirect(base_url() . 'admin/earnings', 'refresh');
+					return;
+				}
+				
+				$payment_ids = json_decode($bulk_payment_data['payment_ids'], true);
+				
+				foreach ($payment_ids as $payment_id) {
+					$payment_details = $this->db->get_where('package_payment', array('package_payment_id' => $payment_id))->row();
+					
+					if (!$payment_details) continue;
+					
+					$member_details = $this->db->get_where('member', array('member_id' => $payment_details->member_id))->row();
+					$plan_details = $this->db->get_where('plan', array('plan_id' => $payment_details->plan_id))->row();
+	
+					if (!$member_details || !$plan_details) continue;
+	
+					$data = array();
+					$data['membership'] = ($plan_details->plan_id == '1') ? 1 : 2;
+					$data['express_interest'] = $member_details->express_interest + $plan_details->express_interest;
+					$data['direct_messages'] = $member_details->direct_messages + $plan_details->direct_messages;
+					$data['photo_gallery'] = $member_details->photo_gallery + $plan_details->photo_gallery;
+	
+					$package_info = array(array(
+						'current_package' => $plan_details->name,
+						'package_price' => $payment_details->amount,
+						'payment_type' => 'PhonePe Bulk'
+					));
+					$data['package_info'] = json_encode($package_info);
+	
+					$this->db->where('member_id', $payment_details->member_id);
+					$this->db->update('member', $data);
+	
+					$data2 = array(
+						'payment_status' => 'paid',
+						'payment_type' => 'PhonePe',
+						'payment_timestamp' => time(),
+						'purchase_datetime' => time()
+					);
+					
+					$this->db->where('package_payment_id', $payment_id);
+					$this->db->update('package_payment', $data2);
+				}
+				
+				recache();
+				$this->session->unset_userdata('cart_items');
+				$this->session->unset_userdata('bulk_payment_data');
+				$this->session->set_flashdata('alert', 'bulk_payment_success');
+				redirect(base_url() . 'admin/earnings/', 'refresh');
+			}
+
+			elseif ($para1 == "download_payment_pdf") {
+				$payment_id = (int) $para2;
+				$payment = $this->db->get_where('package_payment', ['package_payment_id' => $payment_id])->row();
+				if (!$payment) { show_error('Payment not found'); }
+	
+				$member = $this->db->get_where('member', ['member_id' => $payment->member_id])->row();
+				$plan = $this->db->get_where('plan', ['plan_id' => $payment->plan_id])->row();
+	
+				$logo_path = FCPATH . 'uploads/logo1.jpg';
+				$logo_src = file_exists($logo_path)
+					? 'data:image/'.pathinfo($logo_path, PATHINFO_EXTENSION).';base64,'.base64_encode(file_get_contents($logo_path))
+					: '';
+	
+				$data = [
+					'payment' => $payment,
+					'member' => $member,
+					'plan' => $plan,
+					'logoSrc' => $logo_src,
+					'system_title' => $this->system_title ?? 'YOUR COMPANY NAME',
+				];
+	
+				$html = $this->load->view('back/earnings/payment_pdf', $data, true);
+>>>>>>> 1184ff02f6c5aaef296aaac85b7ac3d55aebfcb8
 				$this->load->library('pdf');
 				$this->pdf->loadHtml($html);
 				$this->pdf->setPaper('A4', 'portrait');
 				$this->pdf->render();
 				$this->pdf->stream("payment_receipt_{$payment_id}.pdf", ["Attachment" => 1]);
+<<<<<<< HEAD
 			} elseif ($para1 == "download_cpm_bill_copy") {
+=======
+			}
+			elseif ($para1 == "download_cpm_bill_copy") {
+>>>>>>> 1184ff02f6c5aaef296aaac85b7ac3d55aebfcb8
 				$cpm_bill_copy = $this->db->get_where('package_payment', array('package_payment_id' => $para2))->row()->custom_payment_method_bill_copy;
 				$this->load->helper('download');
 				$link = 'uploads/custom_payment_method_bill_image/' . $cpm_bill_copy;
 				force_download($link, NULL);
-			} elseif ($para1 == "accept_payment") {
+			} 
+			elseif ($para1 == "accept_payment") {
 				$payment_details = $this->db->get_where('package_payment', array('package_payment_id' => $para2))->row();
-
 				$member_details = $this->db->get_where('member', array('member_id' => $payment_details->member_id))->row();
 				$plan_details = $this->db->get_where('plan', array('plan_id' => $payment_details->plan_id))->row();
-
-				if ($plan_details->plan_id == '1') {
-					$data['membership'] = 1;
-				} else {
-					$data['membership'] = 2;
-				}
-
+	
+				$data = array();
+				$data['membership'] = ($plan_details->plan_id == '1') ? 1 : 2;
 				$data['express_interest'] = $member_details->express_interest + $plan_details->express_interest;
 				$data['direct_messages'] = $member_details->direct_messages + $plan_details->direct_messages;
 				$data['photo_gallery'] = $member_details->photo_gallery + $plan_details->photo_gallery;
-
-				$package_info[] = array(
-					'current_package'   => $plan_details->name,
-					'package_price'     		=> $payment_details->amount,
-					'payment_type'      		=> $payment_details->custom_payment_method_name
-				);
+	
+				$package_info = array(array(
+					'current_package' => $plan_details->name,
+					'package_price' => $payment_details->amount,
+					'payment_type' => $payment_details->custom_payment_method_name
+				));
 				$data['package_info'] = json_encode($package_info);
-
+	
 				$this->db->where('member_id', $payment_details->member_id);
 				$result = $this->db->update('member', $data);
 				recache();
+				
 				if ($result) {
 					$data2['payment_status'] = "paid";
 					$this->db->where('package_payment_id', $para2);
 					$result1 = $this->db->update('package_payment', $data2);
+					
 					if ($result1) {
 						$this->session->set_flashdata('alert', 'payment_accepted');
 						redirect(base_url() . 'admin/earnings/', 'refresh');
@@ -4944,16 +5317,19 @@ class Admin extends CI_Controller
 					$this->session->set_flashdata('alert', 'payment_accepted_error');
 					redirect(base_url() . 'admin/earnings/', 'refresh');
 				}
-			} elseif ($para1 == "delete") {
+			} 
+			elseif ($para1 == "delete") {
 				if (demo()) {
 					$this->session->set_flashdata('alert', 'demo_msg');
 					return false;
 				}
+				
 				$cpm_bill_copy = $this->db->get_where('package_payment', array('package_payment_id' => $para2))->row()->custom_payment_method_bill_copy;
-
+	
 				$this->db->where('package_payment_id', $para2);
 				$result = $this->db->delete('package_payment');
 				recache();
+				
 				if ($result) {
 					if ($cpm_bill_copy != null && file_exists('uploads/custom_payment_method_bill_image/' . $cpm_bill_copy)) {
 						unlink('uploads/custom_payment_method_bill_image/' . $cpm_bill_copy);
@@ -4965,6 +5341,7 @@ class Admin extends CI_Controller
 			}
 		}
 	}
+	
 
 
 	function contact_messages($para1 = "", $para2 = "")
@@ -19403,3 +19780,294 @@ class Admin extends CI_Controller
 
 
 }
+<<<<<<< HEAD
+=======
+
+
+public function generate_pdf() {
+    // Get admin ID from session
+    $admin_id = $this->session->userdata('user_id');
+    log_message('debug', 'Admin ID from session: ' . ($admin_id ? $admin_id : 'Not set'));
+
+    if (!$admin_id) {
+        show_error('No admin is logged in.', 403);
+        return;
+    }
+
+    // Get posted date range
+    $date_range = $this->input->post('date_range');
+    log_message('debug', 'Date range received: ' . ($date_range ? $date_range : 'Not set'));
+    if (!$date_range) {
+        show_error('Date range is required', 400);
+        return;
+    }
+
+    list($start_date, $end_date) = explode('|', $date_range);
+    log_message('debug', 'Date range parsed - Start: ' . $start_date . ', End: ' . $end_date);
+
+    // Load model and fetch project data from happy_story table
+    $this->load->model('HappyStory_model');
+    $data['projects'] = $this->HappyStory_model->get_projects_by_date($start_date, $end_date);
+    log_message('debug', 'Fetched ' . count($data['projects']) . ' project records');
+
+    // Fetch admin details
+    $this->db->select('member_name, legion_name, area_name');
+    $this->db->from('happy_story');
+    $this->db->where('posted_by', $admin_id);
+    $this->db->order_by('post_time', 'DESC');
+    $this->db->limit(1);
+    $query = $this->db->get();
+    log_message('debug', 'Admin query executed: ' . $this->db->last_query());
+
+    if ($query->num_rows() > 0) {
+        $row = $query->row_array();
+        $data['member_name'] = htmlspecialchars($row['member_name'] ?? 'N/A');
+        $data['legion_name'] = htmlspecialchars($row['legion_name'] ?? 'N/A');
+        $data['area_name'] = htmlspecialchars($row['area_name'] ?? 'N/A');
+        log_message('debug', 'Admin data: ' . json_encode($row));
+    } else {
+        $data['member_name'] = 'N/A';
+        $data['legion_name'] = 'N/A';
+        $data['area_name'] = 'N/A';
+        log_message('debug', 'No admin data found for posted_by: ' . $admin_id);
+    }
+
+    // Set title and company
+    $formatted_start = date('d-m-Y', strtotime($start_date));
+    $formatted_end = date('d-m-Y', strtotime($end_date));
+    $data['title'] = "Report - $formatted_start to $formatted_end";
+    $data['company'] = 'Senior Chamber International';
+
+    // Load PDF library
+    $this->load->library('pdf');
+
+    // Load HTML content from view
+    $html = $this->load->view('pdf/project_report', $data, true);
+
+    // Create and render PDF
+    $this->pdf->create($html, 'project_report_' . date('dmY_His'));
+}
+
+
+
+public function generate() {
+
+   $admin_id = $this->session->userdata('admin_id'); // Get admin ID from session
+    log_message('debug', 'Admin ID from session: ' . ($admin_id ? $admin_id : 'Not set'));
+    log_message('debug', 'Session data: ' . json_encode($this->session->userdata()));
+
+
+    // Rest of the method remains the same
+    $range = $this->input->get('range');
+    log_message('debug', 'generate() called with date_range: ' . ($range ? $range : 'Not set'));
+    if (!$range) {
+        show_error('Date range is required', 400);
+        return;
+    }
+
+    list($start_date, $end_date) = explode('|', $range);
+    log_message('debug', 'Date range parsed - Start: ' . $start_date . ', End: ' . $end_date);
+
+    $this->load->model('Crud_model');
+    $data['report_data'] = $this->Crud_model->get_report_by_range($start_date, $end_date);
+    log_message('debug', 'Fetched ' . count($data['report_data']) . ' records for date range');
+
+    foreach ($data['report_data'] as $row) {
+        log_message('debug', 'Row: ' . json_encode($row));
+    }
+
+    if ($admin_id) {
+        $this->db->select('member_name, legion_name, area_name');
+        $this->db->from('happy_story');
+        $this->db->where('posted_by', $admin_id);
+        $this->db->order_by('post_time', 'DESC');
+        $this->db->limit(1);
+        $query = $this->db->get();
+        log_message('debug', 'Admin query executed: ' . $this->db->last_query());
+
+        if ($query->num_rows() > 0) {
+            $row = $query->row_array();
+            $data['member_name'] = htmlspecialchars($row['member_name'] ?? 'N/A');
+            $data['legion_name'] = htmlspecialchars($row['legion_name'] ?? 'N/A');
+            $data['area_name'] = htmlspecialchars($row['area_name'] ?? 'N/A');
+            log_message('debug', 'Admin data: ' . json_encode($row));
+        } else {
+            $data['member_name'] = 'N/A';
+            $data['legion_name'] = 'N/A';
+            $data['area_name'] = 'N/A';
+            log_message('debug', 'No admin data found for posted_by: ' . $admin_id);
+        }
+    } else {
+        $data['member_name'] = 'N/A';
+        $data['legion_name'] = 'N/A';
+        $data['area_name'] = 'N/A';
+        log_message('debug', 'No admin ID set, defaulting to N/A for admin data');
+    }
+
+    $formatted_start = date('d-m-Y', strtotime($start_date));
+    $formatted_end = date('d-m-Y', strtotime($end_date));
+    $data['title'] = "Report - $formatted_start to $formatted_end";
+    $data['company'] = "Senior Chamber International";
+
+    $this->load->library('pdf');
+    $html = $this->load->view('pdf/report_template', $data, true);
+    $this->pdf->create($html, 'Report_' . date('dmY_His'));
+}
+
+public function update_story($id)
+{
+    $this->load->model('Crud_model');
+
+    // Collect the POST data safely
+    $data = array(
+        'title'         => $this->input->post('story_name', true),
+        'date'          => $this->input->post('dated', true),
+        'program_date'  => $this->input->post('program_date', true), // ✅ New line added
+        'description'   => $this->input->post('description', true),
+        'program_area'  => $this->input->post('program_area', true),
+    );
+
+    // Handle file uploads for photos (if any)
+    if (!empty($_FILES['activity_photo']['name'])) {
+        $upload = $this->do_upload('activity_photo');
+        if ($upload['status'] === 'success') {
+            $data['activity_photo'] = $upload['file_name'];
+        } else {
+            $this->session->set_flashdata('error', $upload['error']);
+            redirect('admin/stories/edit_story/' . $id);
+            return;
+        }
+    }
+
+    if (!empty($_FILES['press_coverage']['name'])) {
+        $upload = $this->do_upload('press_coverage');
+        if ($upload['status'] === 'success') {
+            $data['press_coverage'] = $upload['file_name'];
+        } else {
+            $this->session->set_flashdata('error', $upload['error']);
+            redirect('admin/stories/edit_story/' . $id);
+            return;
+        }
+    }
+
+    log_message('debug', 'Update data: ' . print_r($data, true));
+
+    $update = $this->Crud_model->update_story($id, $data);
+
+    if ($update) {
+        $this->session->set_flashdata('success', 'Project updated successfully!');
+    } else {
+        $this->session->set_flashdata('error', 'Failed to update the project.');
+    }
+
+    redirect('admin/stories');
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+private function getLegionPrefix($legionId) {
+    // Define legion prefixes based on your legion system
+    $legionPrefixes = array(
+        1 => "LEG1",    // Legion 1
+        2 => "LEG2",    // Legion 2  
+        3 => "LEG3",    // Legion 3
+        4 => "LEG4",    // Legion 4
+        5 => "NATL",    // National Legion
+        6 => "PREM",    // Premium Legion
+        // Add more legion mappings as needed
+    );
+    
+    return isset($legionPrefixes[$legionId]) ? $legionPrefixes[$legionId] : "MEM";
+}
+
+
+public function get_areas_ajax() {
+    // Set JSON header
+    header('Content-Type: application/json');
+    
+    // Load model
+    $this->load->model('Crud_model');
+    
+    try {
+        // Get areas with legions including prefix
+        $areas = $this->Crud_model->get_areas_with_legions();
+        
+        log_message('debug', 'AJAX areas data: ' . json_encode($areas));
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $areas
+        ]);
+    } catch (Exception $e) {
+        log_message('error', 'AJAX get_areas error: ' . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to load areas data'
+        ]);
+    }
+}
+
+
+// File upload helper function
+private function do_upload($field_name)
+{
+    $config['upload_path'] = './uploads/happy_story_image/';
+    $config['allowed_types'] = 'gif|jpg|png|jpeg';
+    $config['max_size'] = 2048; // 2MB max
+    $config['encrypt_name'] = TRUE;
+
+    $this->load->library('upload', $config);
+
+    if (!$this->upload->do_upload($field_name)) {
+        return ['status' => 'error', 'error' => $this->upload->display_errors()];
+    } else {
+        return ['status' => 'success', 'file_name' => $this->upload->data('file_name')];
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+private function generate_member_invoice($payment_id)
+{
+    // Get payment details
+    $payment = $this->db->get_where('package_payment', array('package_payment_id' => $payment_id))->row();
+    
+    if (!$payment) {
+        show_error('Payment not found');
+        return;
+    }
+    
+    $member = $this->db->get_where('member', array('member_id' => $payment->member_id))->row();
+    $plan = $this->db->get_where('plan', array('plan_id' => $payment->plan_id))->row();
+    
+    // Get company logo
+    $logo_path = FCPATH . 'uploads/logo1.jpg';
+    $logo_src = file_exists($logo_path)
+        ? 'data:image/'.pathinfo($logo_path, PATHINFO_EXTENSION).';base64,'.base64_encode(file_get_contents($logo_path))
+        : '';
+    
+    $data = array(
+        'payment' => $payment,
+        'member' => $member,
+        'plan' => $plan,
+        'logoSrc' => $logo_src,
+        'system_title' => $this->system_title,
+        'invoice_number' => $payment->invoice_number,
+        'invoice_date' => date('d M Y', $payment->purchase_datetime)
+    );
+    
+    // Load PDF library
+    $html = $this->load->view('back/earnings/member_invoice', $data, true);
+    $this->load->library('pdf');
+    $this->pdf->loadHtml($html);
+    $this->pdf->setPaper('A4', 'portrait');
+    $this->pdf->render();
+    $this->pdf->stream("Invoice_{$payment->invoice_number}.pdf", array("Attachment" => 1));
+}
+
+
+
+// PhonePe admin endpoints removed as requested
+
+
+}
+>>>>>>> 1184ff02f6c5aaef296aaac85b7ac3d55aebfcb8
