@@ -11,18 +11,19 @@ class Admin extends CI_Controller
 	 *	http://codecanyon.net/user/activeitezone
 	 */
 
-function __construct()
-{
-	parent::__construct();
-	$this->load->database(); // Ensure database is loaded
-	$this->load->library('session'); // Add this
-	$this->system_name = $this->Crud_model->get_type_name_by_id('general_settings', '1', 'value');
-	$this->system_email = $this->Crud_model->get_type_name_by_id('general_settings', '2', 'value');
-	$this->system_title = $this->Crud_model->get_type_name_by_id('general_settings', '3', 'value');
-	$this->Crud_model->timezone();
-	$this->load->library('spreadsheet');
-	$this->lang->load("member", "kannada");
-}
+	function __construct()
+	{
+		parent::__construct();
+		$this->load->database(); // Ensure database is loaded
+		$this->load->library('session'); // Add this
+		$this->load->view('template/front/your_view');
+		$this->system_name = $this->Crud_model->get_type_name_by_id('general_settings', '1', 'value');
+		$this->system_email = $this->Crud_model->get_type_name_by_id('general_settings', '2', 'value');
+		$this->system_title = $this->Crud_model->get_type_name_by_id('general_settings', '3', 'value');
+		$this->Crud_model->timezone();
+		$this->load->library('spreadsheet');
+		$this->lang->load("member", "kannada");
+	}
 
 	public function contribution($para1 = "", $para2 = "")
 	{
@@ -278,28 +279,30 @@ function __construct()
 		}
 	}
 
-	public function get_legions_of_area($area_id = null) {
+	public function get_legions_of_area($area_id = null)
+	{
 		$this->load->model('Crud_model'); // Load model if not autoloaded
-	
+
 		if ($area_id === null) {
 			// Get area_id from URI segment or GET parameter if not passed
 			$area_id = $this->input->get('area_id') ?? $this->uri->segment(3);
 		}
-	
+
 		$legions = $this->Crud_model->get_legions_by_area($area_id);
-	
+
 		// Log legions as JSON string to avoid "array to string" warning
 		log_message('info', 'Fetched legions: ' . json_encode($legions));
-	
+
 		// Return JSON response
 		echo json_encode($legions);
 	}
-	
-	public function add_area() {
+
+	public function add_area()
+	{
 		$this->load->model('Crud_model');
-	
+
 		$area_name = $this->input->post('area_name');  // missing semicolon fixed
-	
+
 		if (empty($area_name)) {
 			$response = [
 				'success' => false,
@@ -309,11 +312,11 @@ function __construct()
 			echo json_encode($response);
 			return;
 		}
-	
+
 		$data = ['name' => $area_name];
-	
+
 		$insert_id = $this->Crud_model->insert_area($data);
-	
+
 		if ($insert_id) {
 			$response = [
 				'success' => true,
@@ -332,233 +335,236 @@ function __construct()
 			echo json_encode($response);
 		}
 	}
-	
-
-public function add_legion() {
-    // Load model
-    $this->load->model('Crud_model');
-
-    // Get POST data - ADD PREFIX HERE
-    $legion_name = $this->input->post('legion_name');
-    $prefix = $this->input->post('prefix'); // NEW LINE
-    $area_id = $this->input->post('area_id');
-
-    // Log the received data
-    log_message('info', 'Add Legion request received with data: legion_name=' . $legion_name . ', prefix=' . $prefix . ', area_id=' . $area_id);
-
-    // Simple validation - UPDATE VALIDATION
-    if (empty($legion_name) || empty($prefix) || empty($area_id)) {
-        $response = [
-            'success' => false,
-            'message' => 'Legion name, prefix, and area ID are required.'
-        ];
-        log_message('error', 'Add Legion validation failed: ' . json_encode($response));
-        echo json_encode($response);
-        return;
-    }
-
-    // Prepare data - ADD PREFIX TO DATA ARRAY
-    $data = [
-        'name' => $legion_name,
-        'prefix' => strtoupper(trim($prefix)), // Store in uppercase
-        'area_id' => $area_id
-    ];
-
-    // Insert via model and check result
-    $insert_id = $this->Crud_model->insert_legion($data);
-
-    if ($insert_id) {
-        // Get the generated ID from the database
-        $this->db->where('id', $insert_id);
-        $legion = $this->db->get('legions')->row();
-        
-        $response = [
-            'success' => true,
-            'message' => 'Legion added successfully.',
-            'legion_name' => $legion_name,
-            'prefix' => strtoupper(trim($prefix)), // RETURN PREFIX
-            'legion_id' => $insert_id,
-            'legion_id_generated' => $legion->legion_id_generated ?? '', // RETURN GENERATED ID
-            'area_id' => $area_id
-        ];
-        log_message('info', 'Add Legion success response: ' . json_encode($response));
-        echo json_encode($response);
-    } else {
-        $response = [
-            'success' => false,
-            'message' => 'Failed to add legion.'
-        ];
-        log_message('error', 'Add Legion failed to insert: ' . json_encode($response));
-        echo json_encode($response);
-    }
-}
 
 
-public function delete_legion()
-{
-    log_message('info', 'Delete legion method invoked');
+	public function add_legion()
+	{
+		// Load model
+		$this->load->model('Crud_model');
 
-    $json = file_get_contents('php://input');
-    $data = json_decode($json, true);
+		// Get POST data - ADD PREFIX HERE
+		$legion_name = $this->input->post('legion_name');
+		$prefix = $this->input->post('prefix'); // NEW LINE
+		$area_id = $this->input->post('area_id');
 
-    $legion_id = $data['legion_id'] ?? null;
+		// Log the received data
+		log_message('info', 'Add Legion request received with data: legion_name=' . $legion_name . ', prefix=' . $prefix . ', area_id=' . $area_id);
 
-    if (!$legion_id) {
-        echo json_encode(['success' => false, 'message' => 'Missing legion ID']);
-        return;
-    }
+		// Simple validation - UPDATE VALIDATION
+		if (empty($legion_name) || empty($prefix) || empty($area_id)) {
+			$response = [
+				'success' => false,
+				'message' => 'Legion name, prefix, and area ID are required.'
+			];
+			log_message('error', 'Add Legion validation failed: ' . json_encode($response));
+			echo json_encode($response);
+			return;
+		}
 
-    // ✅ Check if legion is being used in `member` table
-    $inUse = $this->db->get_where('member', ['legion_id' => $legion_id])->num_rows();
+		// Prepare data - ADD PREFIX TO DATA ARRAY
+		$data = [
+			'name' => $legion_name,
+			'prefix' => strtoupper(trim($prefix)), // Store in uppercase
+			'area_id' => $area_id
+		];
 
-    if ($inUse > 0) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Cannot delete: This legion is assigned to one or more members.'
-        ]);
-        return;
-    }
+		// Insert via model and check result
+		$insert_id = $this->Crud_model->insert_legion($data);
 
-    // ✅ Proceed to delete from `legions` table
-    $this->db->where('id', $legion_id);
-    $deleted = $this->db->delete('legions');
+		if ($insert_id) {
+			// Get the generated ID from the database
+			$this->db->where('id', $insert_id);
+			$legion = $this->db->get('legions')->row();
 
-    if ($deleted) {
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Delete failed. Please try again.'
-        ]);
-    }
-}
-
-
-	
-public function delete_area()
-{
-    log_message('info', 'Delete area method invoked');
-
-    $json = file_get_contents('php://input');
-    $data = json_decode($json, true);
-
-    $area_id = $data['area_id'] ?? null;
-
-    if (!$area_id) {
-        echo json_encode(['success' => false, 'message' => 'Missing area ID']);
-        return;
-    }
-
-    // ✅ Check if the area is being used in `legions` table
-    $inUse = $this->db->get_where('legions', ['area_id' => $area_id])->num_rows();
-
-    if ($inUse > 0) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Cannot delete: This area has assigned legions.'
-        ]);
-        return;
-    }
-
-    // ✅ Proceed with deletion
-    $this->db->where('id', $area_id); // assuming `id` is primary key in `area` table
-    $deleted = $this->db->delete('areas'); // use actual table name
-
-    if ($deleted) {
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Delete failed. Please try again.'
-        ]);
-    }
-}
-
-public function area_legion() {
-    // Check permission
-    if ($this->admin_permission() == FALSE) {
-        redirect(base_url() . 'admin/login', 'refresh');
-    }
-
-    // Load the model
-    $this->load->model('Crud_model');
-
-    // Fetch the data here - MAKE SURE THIS INCLUDES PREFIX
-    $page_data['areas'] = $this->Crud_model->get_areas_with_legions();
-
-    // Prepare other page data
-    $page_data['title'] = "Area & Legions || " . $this->system_title;
-    $page_data['page_name'] = "area_legion";
-    $page_data['top'] = "dashboard.php";
-    $page_data['folder'] = "area_legion"; 
-    $page_data['file'] = "index.php";    
-    $page_data['bottom'] = "dashboard.php";
-
-    // Now pass the $page_data array with areas data to your view
-    $this->load->view('back/index', $page_data);
-}
-
-public function add_member() {
-    $this->load->model('Crud_model');
-
-    // Get POST data
-    $first_name = $this->input->post('first_name');
-    $last_name = $this->input->post('last_name');
-    $email = $this->input->post('email');
-    $mobile = $this->input->post('mobile');
-    $gender = $this->input->post('gender');
-    $legion_id = $this->input->post('legion_id');
-    $area_id = $this->input->post('area_id');
-
-    // Validation
-    if (empty($first_name) || empty($email) || empty($legion_id) || empty($area_id)) {
-        $response = [
-            'success' => false,
-            'message' => 'Required fields are missing.'
-        ];
-        echo json_encode($response);
-        return;
-    }
-
-    // Prepare member data
-    $member_data = [
-        'first_name' => $first_name,
-        'last_name' => $last_name,
-        'email' => $email,
-        'mobile' => $mobile,
-        'gender' => $gender,
-        'legion_id' => $legion_id,
-        'area_id' => $area_id,
-        'password' => password_hash('default123', PASSWORD_DEFAULT), // Default password
-        'email_verification_status' => 1 // Verified by default for admin creation
-    ];
-
-    $member_id = $this->Crud_model->insert_member($member_data);
-
-    if ($member_id) {
-        // Get the generated profile ID
-        $this->db->where('member_id', $member_id);
-        $member = $this->db->get('member')->row();
-        
-        $response = [
-            'success' => true,
-            'message' => 'Member added successfully.',
-            'member_id' => $member_id,
-            'member_profile_id' => $member->member_profile_id,
-            'full_name' => $first_name . ' ' . $last_name
-        ];
-        echo json_encode($response);
-    } else {
-        $response = [
-            'success' => false,
-            'message' => 'Failed to add member.'
-        ];
-        echo json_encode($response);
-    }
-}
+			$response = [
+				'success' => true,
+				'message' => 'Legion added successfully.',
+				'legion_name' => $legion_name,
+				'prefix' => strtoupper(trim($prefix)), // RETURN PREFIX
+				'legion_id' => $insert_id,
+				'legion_id_generated' => $legion->legion_id_generated ?? '', // RETURN GENERATED ID
+				'area_id' => $area_id
+			];
+			log_message('info', 'Add Legion success response: ' . json_encode($response));
+			echo json_encode($response);
+		} else {
+			$response = [
+				'success' => false,
+				'message' => 'Failed to add legion.'
+			];
+			log_message('error', 'Add Legion failed to insert: ' . json_encode($response));
+			echo json_encode($response);
+		}
+	}
 
 
-	
+	public function delete_legion()
+	{
+		log_message('info', 'Delete legion method invoked');
+
+		$json = file_get_contents('php://input');
+		$data = json_decode($json, true);
+
+		$legion_id = $data['legion_id'] ?? null;
+
+		if (!$legion_id) {
+			echo json_encode(['success' => false, 'message' => 'Missing legion ID']);
+			return;
+		}
+
+		// ✅ Check if legion is being used in `member` table
+		$inUse = $this->db->get_where('member', ['legion_id' => $legion_id])->num_rows();
+
+		if ($inUse > 0) {
+			echo json_encode([
+				'success' => false,
+				'message' => 'Cannot delete: This legion is assigned to one or more members.'
+			]);
+			return;
+		}
+
+		// ✅ Proceed to delete from `legions` table
+		$this->db->where('id', $legion_id);
+		$deleted = $this->db->delete('legions');
+
+		if ($deleted) {
+			echo json_encode(['success' => true]);
+		} else {
+			echo json_encode([
+				'success' => false,
+				'message' => 'Delete failed. Please try again.'
+			]);
+		}
+	}
+
+
+
+	public function delete_area()
+	{
+		log_message('info', 'Delete area method invoked');
+
+		$json = file_get_contents('php://input');
+		$data = json_decode($json, true);
+
+		$area_id = $data['area_id'] ?? null;
+
+		if (!$area_id) {
+			echo json_encode(['success' => false, 'message' => 'Missing area ID']);
+			return;
+		}
+
+		// ✅ Check if the area is being used in `legions` table
+		$inUse = $this->db->get_where('legions', ['area_id' => $area_id])->num_rows();
+
+		if ($inUse > 0) {
+			echo json_encode([
+				'success' => false,
+				'message' => 'Cannot delete: This area has assigned legions.'
+			]);
+			return;
+		}
+
+		// ✅ Proceed with deletion
+		$this->db->where('id', $area_id); // assuming `id` is primary key in `area` table
+		$deleted = $this->db->delete('areas'); // use actual table name
+
+		if ($deleted) {
+			echo json_encode(['success' => true]);
+		} else {
+			echo json_encode([
+				'success' => false,
+				'message' => 'Delete failed. Please try again.'
+			]);
+		}
+	}
+
+	public function area_legion()
+	{
+		// Check permission
+		if ($this->admin_permission() == FALSE) {
+			redirect(base_url() . 'admin/login', 'refresh');
+		}
+
+		// Load the model
+		$this->load->model('Crud_model');
+
+		// Fetch the data here - MAKE SURE THIS INCLUDES PREFIX
+		$page_data['areas'] = $this->Crud_model->get_areas_with_legions();
+
+		// Prepare other page data
+		$page_data['title'] = "Area & Legions || " . $this->system_title;
+		$page_data['page_name'] = "area_legion";
+		$page_data['top'] = "dashboard.php";
+		$page_data['folder'] = "area_legion";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "dashboard.php";
+
+		// Now pass the $page_data array with areas data to your view
+		$this->load->view('back/index', $page_data);
+	}
+
+	public function add_member()
+	{
+		$this->load->model('Crud_model');
+
+		// Get POST data
+		$first_name = $this->input->post('first_name');
+		$last_name = $this->input->post('last_name');
+		$email = $this->input->post('email');
+		$mobile = $this->input->post('mobile');
+		$gender = $this->input->post('gender');
+		$legion_id = $this->input->post('legion_id');
+		$area_id = $this->input->post('area_id');
+
+		// Validation
+		if (empty($first_name) || empty($email) || empty($legion_id) || empty($area_id)) {
+			$response = [
+				'success' => false,
+				'message' => 'Required fields are missing.'
+			];
+			echo json_encode($response);
+			return;
+		}
+
+		// Prepare member data
+		$member_data = [
+			'first_name' => $first_name,
+			'last_name' => $last_name,
+			'email' => $email,
+			'mobile' => $mobile,
+			'gender' => $gender,
+			'legion_id' => $legion_id,
+			'area_id' => $area_id,
+			'password' => password_hash('default123', PASSWORD_DEFAULT), // Default password
+			'email_verification_status' => 1 // Verified by default for admin creation
+		];
+
+		$member_id = $this->Crud_model->insert_member($member_data);
+
+		if ($member_id) {
+			// Get the generated profile ID
+			$this->db->where('member_id', $member_id);
+			$member = $this->db->get('member')->row();
+
+			$response = [
+				'success' => true,
+				'message' => 'Member added successfully.',
+				'member_id' => $member_id,
+				'member_profile_id' => $member->member_profile_id,
+				'full_name' => $first_name . ' ' . $last_name
+			];
+			echo json_encode($response);
+		} else {
+			$response = [
+				'success' => false,
+				'message' => 'Failed to add member.'
+			];
+			echo json_encode($response);
+		}
+	}
+
+
+
 
 	function admin_permission()
 	{
@@ -608,7 +614,7 @@ public function add_member() {
 				// log_message('debug', 'Fetched Areas: ' . print_r($areas, true));
 
 				$page_data['areas'] = $this->Crud_model->get_all_areas();
-				
+
 				$page_data['top'] 		= "members/index.php";
 				$page_data['folder'] 	= "admin";
 				$page_data['file']	 	= "add_admin.php";
@@ -635,8 +641,8 @@ public function add_member() {
 				}
 
 				$this->load->view('back/index', $page_data);
-			} 
-			
+			}
+
 			// elseif ($para1 == "do_add") {
 			// 	$this->form_validation->set_rules('name', 'Name', 'required');
 			// 	$this->form_validation->set_rules('email', 'Email', 'required');
@@ -686,9 +692,9 @@ public function add_member() {
 				$this->form_validation->set_rules('area', 'Area', 'required');
 				$this->form_validation->set_rules('legion_id', 'Legion', 'required');
 				$this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
-                $this->form_validation->set_rules('confirm_password', 'Confirm Password', 'required|matches[password]');
+				$this->form_validation->set_rules('confirm_password', 'Confirm Password', 'required|matches[password]');
 
-			
+
 				if ($this->form_validation->run() == FALSE) {
 					// handle validation failure - load form with errors
 					$page_data['top']       = "members/index.php";
@@ -696,11 +702,11 @@ public function add_member() {
 					$page_data['file']      = "add_admin.php";
 					$page_data['bottom']    = "members/index.php";
 					$page_data['page_name'] = "admin";
-			        $page_data['form_contents'] = $this->input->post();
-                    $page_data['areas'] = $this->Crud_model->get_all_areas(); // populate dropdown
-                	$page_data['form_contents'] = $this->input->post();
+					$page_data['form_contents'] = $this->input->post();
+					$page_data['areas'] = $this->Crud_model->get_all_areas(); // populate dropdown
+					$page_data['form_contents'] = $this->input->post();
 					$page_data['danger_alert'] = translate("failed_to_add_the_data!");
-			
+
 					$this->load->view('back/index', $page_data);
 				} else {
 					// Prepare admin data
@@ -712,18 +718,18 @@ public function add_member() {
 					$password = $this->input->post('password');
 					$data['password']  = sha1($password);
 					$data['timestamp'] = time();
-			
+
 					// Insert admin record
 					$this->db->insert('admin', $data);
 					$admin_id = $this->db->insert_id();
-			
+
 					if ($admin_id) {
 						// Define static arrays of role IDs
-						$areaRoleArray   = [3, 4, 5,6]; // Replace with real area role IDs
-						$legionRoleArray = [2, 7,8,9];    // Replace with real legion role IDs
-					
+						$areaRoleArray   = [3, 4, 5, 6]; // Replace with real area role IDs
+						$legionRoleArray = [2, 7, 8, 9];    // Replace with real legion role IDs
+
 						$role_id = (int)$this->input->post('role');
-					
+
 						// Insert into admin_area if role is allowed
 						if (in_array($role_id, $areaRoleArray)) {
 							$area_data = [
@@ -732,7 +738,7 @@ public function add_member() {
 							];
 							$this->db->insert('admin_area', $area_data);
 						}
-					
+
 						// Insert into admin_legion if role is allowed
 						if (in_array($role_id, $legionRoleArray)) {
 							$legion_data = [
@@ -741,22 +747,19 @@ public function add_member() {
 							];
 							$this->db->insert('admin_legion', $legion_data);
 						}
-					
+
 						// Send email with password
 						$this->Email_model->member_staff_account_opening_by_admin('admin', $data['email'], $password);
-					
+
 						recache();
-					
+
 						$this->session->set_flashdata('alert', 'add');
 						redirect(base_url() . 'admin/admins', 'refresh');
 					} else {
 						$this->session->set_flashdata('alert', 'failed_add');
 						redirect(base_url() . 'admin/admins', 'refresh');
 					}
-					
 				}
-			
-			
 			} elseif ($para1 == "update") {
 				$this->form_validation->set_rules('name', 'Name', 'required');
 				$this->form_validation->set_rules('email', 'Email', 'required');
@@ -950,10 +953,10 @@ public function add_member() {
 	function members($para1 = "", $para2 = "", $para3 = "", $para4 = "")
 	{
 
-		 $log_message = "members - para1: $para1, para2: $para2, para3: $para3, para4: $para4";
-    	log_message("info", $log_message);
-	     //error_reporting(E_ALL);
-	     // ini_set('display_errors',1);
+		$log_message = "members - para1: $para1, para2: $para2, para3: $para3, para4: $para4";
+		log_message("info", $log_message);
+		//error_reporting(E_ALL);
+		// ini_set('display_errors',1);
 		if ($this->admin_permission() == FALSE) {
 			redirect(base_url() . 'admin/login', 'refresh');
 		} else {
@@ -1014,7 +1017,7 @@ public function add_member() {
 							0 => '',
 							1 => 'member_profile_id',
 							2 => 'first_name',
-                            3 => 'status',
+							3 => 'status',
 							4 => 'follower',
 							5 => 'reported_by',
 							6 => 'member_since',
@@ -1022,8 +1025,7 @@ public function add_member() {
 							8 => 'sub_caste_name',
 						);
 					}
-				} 
-				elseif ($para1 == "premium_members") {
+				} elseif ($para1 == "premium_members") {
 					if ($member_approval == 'yes') {
 						$columns = array(
 							0 => '',
@@ -1041,7 +1043,7 @@ public function add_member() {
 							0 => '',
 							1 => 'member_profile_id',
 							2 => 'first_name',
-                            3 => 'status',
+							3 => 'status',
 							4 => 'follower',
 							5 => 'reported_by',
 							6 => 'member_since',
@@ -1049,9 +1051,7 @@ public function add_member() {
 							8 => 'sub_caste_name',
 						);
 					}
-				}
-				
-				elseif ($para1 == "national_members") {
+				} elseif ($para1 == "national_members") {
 					if ($member_approval == 'yes') {
 						$columns = array(
 							0 => '',
@@ -1069,7 +1069,7 @@ public function add_member() {
 							0 => '',
 							1 => 'member_profile_id',
 							2 => 'first_name',
-                            3 => 'status',
+							3 => 'status',
 							4 => 'follower',
 							5 => 'reported_by',
 							6 => 'member_since',
@@ -1077,8 +1077,7 @@ public function add_member() {
 							8 => 'sub_caste_name',
 						);
 					}
-				}
-				elseif ($para1 == "guest_members") {
+				} elseif ($para1 == "guest_members") {
 					if ($member_approval == 'yes') {
 						$columns = array(
 							0 => '',
@@ -1096,7 +1095,7 @@ public function add_member() {
 							0 => '',
 							1 => 'member_profile_id',
 							2 => 'first_name',
-                            3 => 'status',
+							3 => 'status',
 							4 => 'follower',
 							5 => 'reported_by',
 							6 => 'member_since',
@@ -1104,8 +1103,7 @@ public function add_member() {
 							8 => 'sub_caste_name',
 						);
 					}
-				}
-				elseif ($para1 == "ngb_members") {
+				} elseif ($para1 == "ngb_members") {
 					if ($member_approval == 'yes') {
 						$columns = array(
 							0 => '',
@@ -1123,7 +1121,7 @@ public function add_member() {
 							0 => '',
 							1 => 'member_profile_id',
 							2 => 'first_name',
-                            3 => 'status',
+							3 => 'status',
 							4 => 'follower',
 							5 => 'reported_by',
 							6 => 'member_since',
@@ -1146,29 +1144,25 @@ public function add_member() {
 
 				if ($para1 == "free_members") {
 					$member_type = 1;
-				}
-				 elseif ($para1 == "premium_members") {
+				} elseif ($para1 == "premium_members") {
 					$member_type = 2;
-				}
-				 elseif ($para1 == "national_members") {
+				} elseif ($para1 == "national_members") {
 					$member_type = 3;
-				}
-				 elseif ($para1 == "ngb_members") {
+				} elseif ($para1 == "ngb_members") {
 					$member_type = 4;
-				}
-				 elseif ($para1 == "guest_members") {
+				} elseif ($para1 == "guest_members") {
 					$member_type = 0;
 				}
-				
+
 
 				$totalData = $this->Crud_model->allmembers_count($member_type);
 
 				$totalFiltered = $totalData;
 
 				if (empty($this->input->post('search')['value'])) {
-					 
+
 					$members = $this->Crud_model->allmembers($member_type, $limit, $start, $order, $dir);
-				} else {  
+				} else {
 					$search = $this->input->post('search')['value'];
 
 					$members =  $this->Crud_model->members_search($member_type, $limit, $start, $search, $order, $dir);
@@ -1182,19 +1176,19 @@ public function add_member() {
 					foreach ($members as $member) {
 
 						$image = json_decode($member->profile_image, true);
-						$basic_info = json_decode($member->spiritual_and_social_background, true);  
-						$nestedData['caste'] =$basic_info[0]['caste'];
-						$nestedData['sub_caste']=$basic_info[0]['sub_caste'];
-						if(!empty($basic_info[0]['caste'])){
+						$basic_info = json_decode($member->spiritual_and_social_background, true);
+						$nestedData['caste'] = $basic_info[0]['caste'];
+						$nestedData['sub_caste'] = $basic_info[0]['sub_caste'];
+						if (!empty($basic_info[0]['caste'])) {
 							$page_data['caste'] = $this->db->get_where("caste", array("caste_id" => $basic_info[0]['caste']))->row_array();
-						$nestedData['caste'] =$page_data['caste']['caste_name'];	 	
-						//print_r($page_data);exit;	
+							$nestedData['caste'] = $page_data['caste']['caste_name'];
+							//print_r($page_data);exit;	
 						}
-						if(!empty($basic_info[0]['sub_caste'])){
-							$page_data['get_sub_caste'] = $this->db->get_where("sub_caste", array("sub_caste_id" => $basic_info[0]['sub_caste']))->row_array(); 
-							$nestedData['sub_caste']=	$page_data['get_sub_caste']['sub_caste_name'];
-						//print_r($page_data);exit;	
-						} 
+						if (!empty($basic_info[0]['sub_caste'])) {
+							$page_data['get_sub_caste'] = $this->db->get_where("sub_caste", array("sub_caste_id" => $basic_info[0]['sub_caste']))->row_array();
+							$nestedData['sub_caste'] =	$page_data['get_sub_caste']['sub_caste_name'];
+							//print_r($page_data);exit;	
+						}
 						//         		if (file_exists('uploads/profile_image/'.$image[0]['thumb'])) {
 						// 			$member_image="<img src='".base_url()."uploads/profile_image/".$image[0]['thumb']."' class='img-sm'>";
 						// 		}
@@ -1269,7 +1263,7 @@ public function add_member() {
 						}
 						$nestedData['member_since'] = date('d/m/Y h:i:s A', strtotime($member->member_since));
 						$nestedData['member_status'] = $acnt_status_button;
-						$nestedData['options'] = "<a href='" . base_url() . "admin/members/" . $para1 . "/view_member/" . $member->member_id . "' id='demo-dt-view-btn' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('view_profile' ) . "' ><i class='fa fa-eye'></i></a>
+						$nestedData['options'] = "<a href='" . base_url() . "admin/members/" . $para1 . "/view_member/" . $member->member_id . "' id='demo-dt-view-btn' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('view_profile') . "' ><i class='fa fa-eye'></i></a>
 						 <a href='" . base_url() . "admin/members/" . $para1 . "/edit_member/" . $member->member_id . "' id='demo-dt-edit-btn' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('edit_profile') . "' ><i class='fa fa-edit'></i></a>
 			                <a href='" . base_url() . "admin/members/" . $para1 . "/print_member/" . $member->member_id . "' id='demo-dt-pdf-btn' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('Generate_Pdf') . "' ><i class='fa fa-file-pdf-o'></i></a>			
 									
@@ -1279,7 +1273,7 @@ public function add_member() {
 						// if ($dir == 'asc') { $i++; } elseif ($dir == 'desc') { $i--; }
 					}
 				}
-				 //echo '<pre>';print_r($data);exit;
+				//echo '<pre>';print_r($data);exit;
 				$json_data = array(
 					"draw"            => intval($this->input->post('draw')),
 					"recordsTotal"    => intval($totalData),
@@ -1317,9 +1311,9 @@ public function add_member() {
 						);
 					}
 				} elseif ($para1 == "premium_members") {
-					log_message("info","list of premium members");
+					log_message("info", "list of premium members");
 					if ($member_approval == 'yes') {
-						log_message("info","list of premium members");
+						log_message("info", "list of premium members");
 						$columns = array(
 							0 => '',
 							1 => 'member_profile_id',
@@ -1339,7 +1333,6 @@ public function add_member() {
 							5 => 'member_since',
 						);
 					}
-				
 				} elseif ($para1 == "guest_members") {
 					if ($member_approval == 'yes') {
 						$columns = array(
@@ -1361,8 +1354,7 @@ public function add_member() {
 							5 => 'member_since',
 						);
 					}
-				}
-				elseif ($para1 == "ngb_members") {
+				} elseif ($para1 == "ngb_members") {
 					if ($member_approval == 'yes') {
 						$columns = array(
 							0 => '',
@@ -1383,9 +1375,8 @@ public function add_member() {
 							5 => 'member_since',
 						);
 					}
-				}
-				elseif ($para1 == "national_members") {
-					log_message("info","list of national members");
+				} elseif ($para1 == "national_members") {
+					log_message("info", "list of national members");
 					if ($member_approval == 'yes') {
 						$columns = array(
 							0 => '',
@@ -1409,8 +1400,8 @@ public function add_member() {
 				}
 				$nakshatra = $this->input->post('nakshatra');
 				$nakshatra_gender = $this->input->post('gender');
-			
-				
+
+
 				$limit = $this->input->post('length');
 				$start = $this->input->post('start');
 
@@ -1424,33 +1415,29 @@ public function add_member() {
 
 				if ($para1 == "free_members") {
 					$member_type = 1;
-				} 
-				elseif ($para1 == "premium_members") {
+				} elseif ($para1 == "premium_members") {
 					$member_type = 2;
-				}
-				elseif ($para1 == "guest_members") {
+				} elseif ($para1 == "guest_members") {
 					$member_type = 0;
-				}
-				elseif ($para1 == "ngb_members") {
+				} elseif ($para1 == "ngb_members") {
 					$member_type = 4;
-				}
-				elseif ($para1 == "national_members") {
+				} elseif ($para1 == "national_members") {
 					$member_type = 3;
 				}
 
-				$totalData = $this->Crud_model->star_allmembers_count($member_type, $limit, $start, $order, $dir,$nakshatra,$nakshatra_gender);
+				$totalData = $this->Crud_model->star_allmembers_count($member_type, $limit, $start, $order, $dir, $nakshatra, $nakshatra_gender);
 
 				$totalFiltered = $totalData;
 
 				if (empty($this->input->post('search')['value'])) {
 
-					$members = $this->Crud_model->allmembers_starfilter($member_type, $limit, $start, $order, $dir,$nakshatra,$nakshatra_gender);
+					$members = $this->Crud_model->allmembers_starfilter($member_type, $limit, $start, $order, $dir, $nakshatra, $nakshatra_gender);
 				} else {
 					$search = $this->input->post('search')['value'];
 
-					$members =  $this->Crud_model->star_members_search($member_type, $limit, $start, $search, $order, $dir,$nakshatra,$nakshatra_gender);
+					$members =  $this->Crud_model->star_members_search($member_type, $limit, $start, $search, $order, $dir, $nakshatra, $nakshatra_gender);
 
-					$totalFiltered = $this->Crud_model->star_members_search_count($member_type, $limit, $start, $search, $order, $dir,$nakshatra,$nakshatra_gender);
+					$totalFiltered = $this->Crud_model->star_members_search_count($member_type, $limit, $start, $search, $order, $dir, $nakshatra, $nakshatra_gender);
 				}
 
 				$data = array();
@@ -1460,20 +1447,20 @@ public function add_member() {
 
 						// added by divya
 
-						$basic_info = json_decode($member->spiritual_and_social_background, true);  
-						$nestedData['caste'] =$basic_info[0]['caste'];
-						$nestedData['sub_caste']=$basic_info[0]['sub_caste'];
+						$basic_info = json_decode($member->spiritual_and_social_background, true);
+						$nestedData['caste'] = $basic_info[0]['caste'];
+						$nestedData['sub_caste'] = $basic_info[0]['sub_caste'];
 
-						if(!empty($basic_info[0]['caste'])){
+						if (!empty($basic_info[0]['caste'])) {
 							$page_data['caste'] = $this->db->get_where("caste", array("caste_id" => $basic_info[0]['caste']))->row_array();
-						$nestedData['caste'] =$page_data['caste']['caste_name'];	 	
-						//print_r($page_data);exit;	
+							$nestedData['caste'] = $page_data['caste']['caste_name'];
+							//print_r($page_data);exit;	
 						}
-						if(!empty($basic_info[0]['sub_caste'])){
-							$page_data['get_sub_caste'] = $this->db->get_where("sub_caste", array("sub_caste_id" => $basic_info[0]['sub_caste']))->row_array(); 
-							$nestedData['sub_caste']=	$page_data['get_sub_caste']['sub_caste_name'];
-						//print_r($page_data);exit;	
-						} 
+						if (!empty($basic_info[0]['sub_caste'])) {
+							$page_data['get_sub_caste'] = $this->db->get_where("sub_caste", array("sub_caste_id" => $basic_info[0]['sub_caste']))->row_array();
+							$nestedData['sub_caste'] =	$page_data['get_sub_caste']['sub_caste_name'];
+							//print_r($page_data);exit;	
+						}
 
 						if (file_exists('uploads/profile_image/' . $image[0]['thumb'])) {
 
@@ -1547,8 +1534,8 @@ public function add_member() {
 						// if ($dir == 'asc') { $i++; } elseif ($dir == 'desc') { $i--; }
 					}
 				}
-			
-				
+
+
 				$json_data = array(
 					"draw"            => intval($this->input->post('draw')),
 					"recordsTotal"    => intval($totalData),
@@ -1598,8 +1585,7 @@ public function add_member() {
 					$dompdf->render();
 					$fileName = $page_data['get_free_member_by_id'][0]->first_name . " " . $page_data['get_free_member_by_id'][0]->last_name . " " . "Member Details";
 					$dompdf->stream($fileName . ".pdf", array("Attachment" => 0));
-				} 
-				elseif ($para2 == "starmatching") {
+				} elseif ($para2 == "starmatching") {
 					$page_data['top'] = "members/index.php";
 					$page_data['folder'] = "members";
 					$page_data['file'] = "star_matching.php";
@@ -1607,7 +1593,6 @@ public function add_member() {
 					$page_data['get_free_members'] = $this->db->get_where("member", array("membership" => 1, "member_id" => $para3))->result();
 					foreach ($page_data['get_free_members'] as $get_free_members) {
 						$page_data['nakshatra'] = json_decode($get_free_members->astronomic_information, true);
-		
 					}
 					// $page_data['nakshatra'] = $page_data['nakshatra'][0]['moon_sign'];
 					if ($this->session->flashdata('alert') == "edit") {
@@ -1624,9 +1609,8 @@ public function add_member() {
 				$page_data['parameter'] 	= "free_members";
 				$page_data['page_name'] 	= "free_members";
 				$this->load->view('back/index', $page_data);
-			} 
-			elseif ($para1 == "premium_members") {
-				
+			} elseif ($para1 == "premium_members") {
+
 				if ($para2 == "") {
 					$page_data['top'] = "members/index.php";
 					$page_data['folder'] = "members";
@@ -1665,8 +1649,7 @@ public function add_member() {
 					$dompdf->render();
 					$fileName = $page_data['get_premium_member_by_id'][0]->first_name . " " . $page_data['get_premium_member_by_id'][0]->last_name . " " . "Member Details";
 					$dompdf->stream($fileName . ".pdf", array("Attachment" => 0));
-				}
-				elseif ($para2 == "starmatching") {
+				} elseif ($para2 == "starmatching") {
 					$page_data['top'] = "members/index.php";
 					$page_data['folder'] = "members";
 					$page_data['file'] = "premium_star_matching.php";
@@ -1674,9 +1657,8 @@ public function add_member() {
 					$page_data['get_premium_members'] = $this->db->get_where("member", array("membership" => 2, "member_id" => $para3))->result();
 					foreach ($page_data['get_premium_members'] as $get_premium_members) {
 						$page_data['nakshatra'] = json_decode($get_premium_members->astronomic_information, true);
-		
 					}
-					
+
 					// $page_data['nakshatra'] = $page_data['nakshatra'][0]['moon_sign'];
 					if ($this->session->flashdata('alert') == "edit") {
 						$page_data['success_alert'] = translate("you_have_successfully_edited_the_profile!");
@@ -1692,12 +1674,10 @@ public function add_member() {
 				$page_data['parameter'] = "premium_members";
 				$page_data['page_name'] = "premium_members";
 				$this->load->view('back/index', $page_data);
-			} 
-			
-			elseif ($para1 == "national_members") {
+			} elseif ($para1 == "national_members") {
 				if ($para2 == "") {
 
-					log_message("info","National Members entry point of funcitons");
+					log_message("info", "National Members entry point of funcitons");
 					$page_data['top'] = "members/index.php";
 					$page_data['folder'] = "members";
 					$page_data['file'] = "index.php";
@@ -1735,8 +1715,7 @@ public function add_member() {
 					$dompdf->render();
 					$fileName = $page_data['get_premium_member_by_id'][0]->first_name . " " . $page_data['get_premium_member_by_id'][0]->last_name . " " . "Member Details";
 					$dompdf->stream($fileName . ".pdf", array("Attachment" => 0));
-				}
-				elseif ($para2 == "starmatching") {
+				} elseif ($para2 == "starmatching") {
 					$page_data['top'] = "members/index.php";
 					$page_data['folder'] = "members";
 					$page_data['file'] = "premium_star_matching.php";
@@ -1744,9 +1723,8 @@ public function add_member() {
 					$page_data['get_premium_members'] = $this->db->get_where("member", array("membership" => 3, "member_id" => $para3))->result();
 					foreach ($page_data['get_premium_members'] as $get_premium_members) {
 						$page_data['nakshatra'] = json_decode($get_premium_members->astronomic_information, true);
-		
 					}
-					
+
 					// $page_data['nakshatra'] = $page_data['nakshatra'][0]['moon_sign'];
 					if ($this->session->flashdata('alert') == "edit") {
 						$page_data['success_alert'] = translate("you_have_successfully_edited_the_profile!");
@@ -1762,10 +1740,9 @@ public function add_member() {
 				$page_data['parameter'] = "national_members";
 				$page_data['page_name'] = "national_members";
 				$this->load->view('back/index', $page_data);
-			}
-			elseif ($para1 == "guest_members") {
+			} elseif ($para1 == "guest_members") {
 				if ($para2 == "") {
-					log_message("info","Guest Members entry point of funcitons");
+					log_message("info", "Guest Members entry point of funcitons");
 					$page_data['top'] = "members/index.php";
 					$page_data['folder'] = "members";
 					$page_data['file'] = "index.php";
@@ -1803,8 +1780,7 @@ public function add_member() {
 					$dompdf->render();
 					$fileName = $page_data['get_premium_member_by_id'][0]->first_name . " " . $page_data['get_premium_member_by_id'][0]->last_name . " " . "Member Details";
 					$dompdf->stream($fileName . ".pdf", array("Attachment" => 0));
-				}
-				elseif ($para2 == "starmatching") {
+				} elseif ($para2 == "starmatching") {
 					$page_data['top'] = "members/index.php";
 					$page_data['folder'] = "members";
 					$page_data['file'] = "premium_star_matching.php";
@@ -1812,9 +1788,8 @@ public function add_member() {
 					$page_data['get_premium_members'] = $this->db->get_where("member", array("membership" => 0, "member_id" => $para3))->result();
 					foreach ($page_data['get_premium_members'] as $get_premium_members) {
 						$page_data['nakshatra'] = json_decode($get_premium_members->astronomic_information, true);
-		
 					}
-					
+
 					// $page_data['nakshatra'] = $page_data['nakshatra'][0]['moon_sign'];
 					if ($this->session->flashdata('alert') == "edit") {
 						$page_data['success_alert'] = translate("you_have_successfully_edited_the_profile!");
@@ -1830,8 +1805,7 @@ public function add_member() {
 				$page_data['parameter'] = "guest_members";
 				$page_data['page_name'] = "guest_members";
 				$this->load->view('back/index', $page_data);
-			}
-			elseif ($para1 == "ngb_members") {
+			} elseif ($para1 == "ngb_members") {
 				if ($para2 == "") {
 					$page_data['top'] = "members/index.php";
 					$page_data['folder'] = "members";
@@ -1870,8 +1844,7 @@ public function add_member() {
 					$dompdf->render();
 					$fileName = $page_data['get_premium_member_by_id'][0]->first_name . " " . $page_data['get_premium_member_by_id'][0]->last_name . " " . "Member Details";
 					$dompdf->stream($fileName . ".pdf", array("Attachment" => 0));
-				}
-				elseif ($para2 == "starmatching") {
+				} elseif ($para2 == "starmatching") {
 					$page_data['top'] = "members/index.php";
 					$page_data['folder'] = "members";
 					$page_data['file'] = "premium_star_matching.php";
@@ -1879,9 +1852,8 @@ public function add_member() {
 					$page_data['get_premium_members'] = $this->db->get_where("member", array("membership" => 4, "member_id" => $para3))->result();
 					foreach ($page_data['get_premium_members'] as $get_premium_members) {
 						$page_data['nakshatra'] = json_decode($get_premium_members->astronomic_information, true);
-		
 					}
-					
+
 					// $page_data['nakshatra'] = $page_data['nakshatra'][0]['moon_sign'];
 					if ($this->session->flashdata('alert') == "edit") {
 						$page_data['success_alert'] = translate("you_have_successfully_edited_the_profile!");
@@ -1897,8 +1869,7 @@ public function add_member() {
 				$page_data['parameter'] = "ngb_members";
 				$page_data['page_name'] = "ngb_members";
 				$this->load->view('back/index', $page_data);
-			}
-			 elseif ($para1 == "add_member") {
+			} elseif ($para1 == "add_member") {
 				if ($para2 == "") {
 					$page_data['top'] 		= "members/index.php";
 					$page_data['folder'] 	= "members";
@@ -2078,7 +2049,7 @@ public function add_member() {
 							'city_of_birth'             => ''
 						);
 						$astronomic_information = json_encode($astronomic_information);
-						$data['nakshtra_id']=$this->input->post('nakshtra');
+						$data['nakshtra_id'] = $this->input->post('nakshtra');
 						// ------------------------------------ Astronomic Information------------------------------------ //
 
 						// ------------------------------------Permanent Address------------------------------------ //
@@ -2247,16 +2218,16 @@ public function add_member() {
 						$this->db->insert('member', $data);
 						$insert_id = $this->db->insert_id();
 						// Generate prefix-based member profile ID
-if (!empty($data['legion_id'])) {
-    $member_profile_id = $this->Crud_model->generate_member_profile_id($data['legion_id']);
-    if (!$member_profile_id) {
-        // Fallback to old method if generation fails
-        $member_profile_id = strtoupper(substr(hash('sha512', rand()), 0, 8)) . $insert_id;
-    }
-} else {
-    // Fallback for members without legion assignment
-    $member_profile_id = 'GEN' . str_pad($insert_id, 3, '0', STR_PAD_LEFT);
-}
+						if (!empty($data['legion_id'])) {
+							$member_profile_id = $this->Crud_model->generate_member_profile_id($data['legion_id']);
+							if (!$member_profile_id) {
+								// Fallback to old method if generation fails
+								$member_profile_id = strtoupper(substr(hash('sha512', rand()), 0, 8)) . $insert_id;
+							}
+						} else {
+							// Fallback for members without legion assignment
+							$member_profile_id = 'GEN' . str_pad($insert_id, 3, '0', STR_PAD_LEFT);
+						}
 
 
 						$this->db->where('member_id', $insert_id);
@@ -2280,8 +2251,7 @@ if (!empty($data['legion_id'])) {
 						redirect(base_url() . 'admin/members/add_member', 'refresh');
 					}
 				}
-			} 
-			elseif ($para1 == "update_member") {
+			} elseif ($para1 == "update_member") {
 				$this->form_validation->set_rules('introduction', 'Introduction', 'required');
 
 				$this->form_validation->set_rules('first_name', 'First Name', 'required');
@@ -2334,7 +2304,7 @@ if (!empty($data['legion_id'])) {
 					$page_data['page_name'] = "edit_member";
 					$page_data['form_error'] = "yes";
 					$page_data['form_contents'] = $this->input->post();
-					
+
 					$this->session->set_flashdata('alert', 'edit_fail');
 					if ($para3 == 'premium_members') {
 						$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 2, "member_id" => $para2))->result();
@@ -2499,7 +2469,7 @@ if (!empty($data['legion_id'])) {
 						'city_of_birth'				=>	$this->input->post('city_of_birth')
 					);
 					$data['astronomic_information'] = json_encode($astronomic_information);
-					$data['nakshtra_id']=$this->input->post('nakshtra');
+					$data['nakshtra_id'] = $this->input->post('nakshtra');
 					// ------------------------------------ Astronomic Information------------------------------------ //
 
 					// ------------------------------------Permanent Address------------------------------------ //
@@ -2525,13 +2495,13 @@ if (!empty($data['legion_id'])) {
 					// ------------------------------------Family Information------------------------------------ //
 
 					// ------------------------------------ Additional Personal Details------------------------------------ //
-		       $additional_personal_details[] = array(
-					// 'home_district'         => $this->input->post('home_district'),
-					// 'family_residence'      => $this->input->post('family_residence'),
-					// 'fathers_occupation'    => $this->input->post('fathers_occupation'),
-					// 'special_circumstances' => $this->input->post('special_circumstances'),
-					'anniversary'           => $this->input->post('anniversary')
-				);
+					$additional_personal_details[] = array(
+						// 'home_district'         => $this->input->post('home_district'),
+						// 'family_residence'      => $this->input->post('family_residence'),
+						// 'fathers_occupation'    => $this->input->post('fathers_occupation'),
+						// 'special_circumstances' => $this->input->post('special_circumstances'),
+						'anniversary'           => $this->input->post('anniversary')
+					);
 
 					$data['additional_personal_details'] = json_encode($additional_personal_details);
 					// ------------------------------------ Additional Personal Details------------------------------------ //
@@ -2589,9 +2559,7 @@ if (!empty($data['legion_id'])) {
 						redirect(base_url() . 'admin/members/' . $para3, 'refresh');
 					}
 				}
-			
-			} 
-			elseif ($para1 == "upgrade_member_package") {
+			} elseif ($para1 == "upgrade_member_package") {
 				$up_member_id = $this->input->post('up_member_id');
 				$plan_id = $this->input->post('plan');
 				$member_type = $this->input->post('member_type');
@@ -3117,8 +3085,8 @@ if (!empty($data['legion_id'])) {
 
 	function deleted_members($para1 = "", $para2 = "", $para3 = "", $para4 = "")
 	{
-	    
-	    
+
+
 		if ($this->admin_permission() == FALSE) {
 			redirect(base_url() . 'admin/login', 'refresh');
 		} else {
@@ -3219,7 +3187,7 @@ if (!empty($data['legion_id'])) {
 
 						$nestedData['image'] = $member_image;
 						$nestedData['address'] = $address;
-						 $nestedData['percentage'] = $member->percentage.'%';
+						$nestedData['percentage'] = $member->percentage . '%';
 						$nestedData['name'] = $member->first_name . ' ' . $member->last_name;
 						if ($member_approval == 'yes') {
 							if ($member->status == "pending") {
@@ -3397,8 +3365,8 @@ if (!empty($data['legion_id'])) {
 
 	function member_delete($para1)
 	{
-	    error_reporting(E_ALL);
-        ini_set('display_errors',1);
+		error_reporting(E_ALL);
+		ini_set('display_errors', 1);
 		if (demo()) {
 			$this->session->set_flashdata('alert', 'demo_msg');
 			return false;
@@ -3512,885 +3480,878 @@ if (!empty($data['legion_id'])) {
 		}
 	}
 
-	
-				// elseif ($para1 == "update_story") {  
-				// 	log_message('debug', 'Story ID to update: ');
-				// 	$this->form_validation->set_rules('story_name', 'Story Name', 'required');
-				// 	$this->form_validation->set_rules('dated', 'Dated', 'required');
-				// 	// $this->form_validation->set_rules('member_name', 'Member Name', 'required');
-				// 	// $this->form_validation->set_rules('partner_name', 'Partner Name', 'required');
-				// 	$this->form_validation->set_rules('description', 'Description', 'required');
 
-				//  if ($this->form_validation->run() == FALSE) {
-				// 		$page_data['top'] 		= "stories/index.php";
-				// 		$page_data['folder'] 	= "stories";
-				// 		$page_data['file']	 	= "edit_story.php";
-				// 		$page_data['bottom'] 	= "stories/index.php";
-				// 		$page_data['page_name'] = "stories";
-				// 		$page_data['form_contents'] = $this->input->post();
-				// 	}else{ 
-				// 		$data=array();
-				// 		$data['title'] = $this->input->post('story_name');
-				// 		$data['happy_story_id'] = $para2;
-				//         $data['date'] = date('Y-m-d',strtotime($this->input->post('dated')));
-				//         $data['member_name'] = $this->input->post('member_name');
-				//         $data['partner_name'] = $this->input->post('partner_name');
-				// 		$data['description'] = $this->input->post('description'); 	
-				// 		$data['program_area'] = $this->input->post('program_area');
-				// 		$data['legion_name'] = $this->input->post('legion_name');
-				// 		$data['area_name'] = $this->input->post('area_name');			         
-				//         //print_r($_FILES);exit;
-				// 		$config = $this->set_upload_happy_story_image();
-				// 		$this->load->library('upload');
-				// 		$this->upload->initialize($config);
+	// elseif ($para1 == "update_story") {  
+	// 	log_message('debug', 'Story ID to update: ');
+	// 	$this->form_validation->set_rules('story_name', 'Story Name', 'required');
+	// 	$this->form_validation->set_rules('dated', 'Dated', 'required');
+	// 	// $this->form_validation->set_rules('member_name', 'Member Name', 'required');
+	// 	// $this->form_validation->set_rules('partner_name', 'Partner Name', 'required');
+	// 	$this->form_validation->set_rules('description', 'Description', 'required');
 
-				// 		if ($_FILES['story_photo']['name'] !== '') {
-				// 			$id = uniqid();
-				// 			$path = $_FILES['story_photo']['name'];
-				// 			$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
-				// 			if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
-				// 				$this->Crud_model->file_up("story_photo", "happy_story", $id, '', '', $ext);
-				// 				$images[] = array('image' => 'happy_story_' . $id . $ext, 'thumb' => 'happy_story_' . $id . '_thumb' . $ext);
-				// 				$data['image'] = json_encode($images);
-				// 			} else {
-				// 				$this->session->set_flashdata('alert', 'failed_image');
-				// 				redirect(base_url() . 'admin/stories', 'refresh');
-				// 			}
-				// 		}
-				// 		//print_r($data);exit;
-				// 		$this->db->where('happy_story_id', $para2 );
-				// 		log_message('debug', 'Story ID to update: ', $data);
-				// 		$this->db->update('happy_story', $data);
-				// 		$result = $this->db->affected_rows();
-				// 		if ($result == true) {
-				// 			$this->session->set_flashdata('success', 'Updated successfully');
-				// 			redirect('admin/stories');
-				// 		} else {
-				// 			$this->session->set_flashdata('failed', 'Failed');
-				// 			redirect('admin/stories');
-				// 		}
+	//  if ($this->form_validation->run() == FALSE) {
+	// 		$page_data['top'] 		= "stories/index.php";
+	// 		$page_data['folder'] 	= "stories";
+	// 		$page_data['file']	 	= "edit_story.php";
+	// 		$page_data['bottom'] 	= "stories/index.php";
+	// 		$page_data['page_name'] = "stories";
+	// 		$page_data['form_contents'] = $this->input->post();
+	// 	}else{ 
+	// 		$data=array();
+	// 		$data['title'] = $this->input->post('story_name');
+	// 		$data['happy_story_id'] = $para2;
+	//         $data['date'] = date('Y-m-d',strtotime($this->input->post('dated')));
+	//         $data['member_name'] = $this->input->post('member_name');
+	//         $data['partner_name'] = $this->input->post('partner_name');
+	// 		$data['description'] = $this->input->post('description'); 	
+	// 		$data['program_area'] = $this->input->post('program_area');
+	// 		$data['legion_name'] = $this->input->post('legion_name');
+	// 		$data['area_name'] = $this->input->post('area_name');			         
+	//         //print_r($_FILES);exit;
+	// 		$config = $this->set_upload_happy_story_image();
+	// 		$this->load->library('upload');
+	// 		$this->upload->initialize($config);
 
- 				// 	$page_data['top'] 		= "stories/index.php";
-				// 	$page_data['folder'] 	= "stories";
-				// 	$page_data['file']	 	= "edit_story.php";
-				// 	$page_data['bottom'] 	= "stories/index.php";
-				// 	$page_data['page_name'] = "stories";
-				// 	$page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
-				// 	//print_r($page_data);exit;
-					
-				// 	 }
-				// 	$this->load->view('back/index', $page_data);
+	// 		if ($_FILES['story_photo']['name'] !== '') {
+	// 			$id = uniqid();
+	// 			$path = $_FILES['story_photo']['name'];
+	// 			$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
+	// 			if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
+	// 				$this->Crud_model->file_up("story_photo", "happy_story", $id, '', '', $ext);
+	// 				$images[] = array('image' => 'happy_story_' . $id . $ext, 'thumb' => 'happy_story_' . $id . '_thumb' . $ext);
+	// 				$data['image'] = json_encode($images);
+	// 			} else {
+	// 				$this->session->set_flashdata('alert', 'failed_image');
+	// 				redirect(base_url() . 'admin/stories', 'refresh');
+	// 			}
+	// 		}
+	// 		//print_r($data);exit;
+	// 		$this->db->where('happy_story_id', $para2 );
+	// 		log_message('debug', 'Story ID to update: ', $data);
+	// 		$this->db->update('happy_story', $data);
+	// 		$result = $this->db->affected_rows();
+	// 		if ($result == true) {
+	// 			$this->session->set_flashdata('success', 'Updated successfully');
+	// 			redirect('admin/stories');
+	// 		} else {
+	// 			$this->session->set_flashdata('failed', 'Failed');
+	// 			redirect('admin/stories');
+	// 		}
 
-					 
-				// }
+	// 	$page_data['top'] 		= "stories/index.php";
+	// 	$page_data['folder'] 	= "stories";
+	// 	$page_data['file']	 	= "edit_story.php";
+	// 	$page_data['bottom'] 	= "stories/index.php";
+	// 	$page_data['page_name'] = "stories";
+	// 	$page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
+	// 	//print_r($page_data);exit;
+
+	// 	 }
+	// 	$this->load->view('back/index', $page_data);
 
 
-// function stories($para1 = "", $para2 = "", $para3 = "")
-// 	{ 
- 
-// 		$this->db->where("(membership=2)");
-// 		$this->db->where("(status='approved')");
-//         $query = $this->db->get('member');
-
-//         if($query->num_rows()>0)
-//         {
-//            $res=   $query->result();
-//         }
- 
-
-//        // echo '<pre>';print_r($res);exit;
-// 		if ($this->admin_permission() == FALSE) {
-// 			redirect(base_url() . 'admin/login', 'refresh');
-// 		} else {
-// 			$page_data['title'] = "Admin || " . $this->system_title;
-// 			if ($para1 == "") {
-// 				$page_data['top'] = "stories/index.php";
-// 				$page_data['folder'] = "stories";
-// 				$page_data['file'] = "index.php";
-// 				$page_data['bottom'] = "stories/index.php";
-// 				$page_data['page_name'] = "stories";
-// 				if ($this->session->flashdata('alert') == "approve") {
-// 					$page_data['success_alert'] = translate("you_have_successfully_approved_the_story!");
-// 				} elseif ($this->session->flashdata('alert') == "unpublish") {
-// 					$page_data['danger_alert'] = translate("you_have_successfully_unpublished_the_story!");
-// 				} elseif ($this->session->flashdata('alert') == "delete") {
-// 					$page_data['success_alert'] = translate("you_have_successfully_deleted_the_data!");
-// 				} elseif ($this->session->flashdata('alert') == "failed_delete") {
-// 					$page_data['danger_alert'] = translate("failed_to_delete_the_data!");
-// 				} elseif ($this->session->flashdata('alert') == "demo_msg") {
-// 					$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
-// 				}
-
-// 				$this->load->view('back/index', $page_data);
-// 			} 
-// 			elseif ($para1 == "edit_story") {  
-// 					$page_data['top'] 		= "stories/index.php";
-// 					$page_data['folder'] 	= "stories";
-// 					$page_data['file']	 	= "edit_story.php";
-// 					$page_data['bottom'] 	= "stories/index.php";
-// 					$page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
-					
-// 					//print_r($page_data);exit;
-// 					$page_data['page_name'] = "stories";
-// 					$this->load->view('back/index', $page_data);
-
-					 
-// 				}
-// 				elseif ($para1 == "update_story") {
-//     $this->form_validation->set_rules('story_name', 'Story Name', 'required');
-//     // $this->form_validation->set_rules('dated', 'Dated', 'required');
-//     $this->form_validation->set_rules('description', 'Description', 'required');
-
-//     if ($this->form_validation->run() == FALSE) {
-//         $page_data['top']          = "stories/index.php";
-//         $page_data['folder']       = "stories";
-//         $page_data['file']         = "edit_story.php";
-//         $page_data['bottom']       = "stories/index.php";
-//         $page_data['page_name']    = "stories";
-//         $page_data['form_contents'] = $this->input->post();
-//     } else {
-//         $data = array(
-//             'title'         => $this->input->post('story_name'),
-//             'happy_story_id'=> $para2,
-
-//             'description'   => $this->input->post('description'),
-//             'program_area'  => $this->input->post('program_area'),
-//             'legion_name'   => $this->input->post('legion_name'),
-//             'area_name'     => $this->input->post('area_name')
-//         );
-
-//         // Upload story_photo
-//         if (!empty($_FILES['story_photo']['name'])) {
-//             $id = uniqid();
-//             $path = $_FILES['story_photo']['name'];
-//             $ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
-//             $allowed_exts = [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"];
-
-//             if (in_array($ext, $allowed_exts)) {
-//                 $this->Crud_model->file_up("story_photo", "happy_story", $id, '', '', $ext);
-//                 $images[] = array(
-//                     'image' => 'happy_story_' . $id . $ext,
-//                     'thumb' => 'happy_story_' . $id . '_thumb' . $ext
-//                 );
-//                 $data['image'] = json_encode($images);
-//             } else {
-//                 $this->session->set_flashdata('alert', 'failed_image');
-//                 redirect(base_url() . 'admin/stories', 'refresh');
-//             }
-//         }
-
-//         // Upload activity_photo
-//         if (!empty($_FILES['activity_photo']['name'])) {
-//             $upload = $this->do_upload('activity_photo');
-//             if ($upload['status'] === 'success') {
-//                 $data['activity_photo'] = $upload['file_name'];
-//             } else {
-//                 $this->session->set_flashdata('error', $upload['error']);
-//                 redirect('admin/stories/edit_story/' . $para2);
-//                 return;
-//             }
-//         }
-
-//         // Upload press_coverage
-//         if (!empty($_FILES['press_coverage']['name'])) {
-//             $upload = $this->do_upload('press_coverage');
-//             if ($upload['status'] === 'success') {
-//                 $data['press_coverage'] = $upload['file_name'];
-//             } else {
-//                 $this->session->set_flashdata('error', $upload['error']);
-//                 redirect('admin/stories/edit_story/' . $para2);
-//                 return;
-//             }
-//         }
-
-//         // Update DB
-//         $this->db->where('happy_story_id', $para2);
-//         $this->db->update('happy_story', $data);
-//         $result = $this->db->affected_rows();
-
-//         if ($result > 0) {
-//             $this->session->set_flashdata('success', 'Updated successfully');
-//             redirect('admin/stories');
-//         } else {
-//             $this->session->set_flashdata('failed', 'Failed');
-//             redirect('admin/stories');
-//         }
-//     }
-
-//     // In case of form validation failure or update failure
-//     $page_data['top']       = "stories/index.php";
-//     $page_data['folder']    = "stories";
-//     $page_data['file']      = "edit_story.php";
-//     $page_data['bottom']    = "stories/index.php";
-//     $page_data['page_name'] = "stories";
-//     $page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
-
-//     $this->load->view('back/index', $page_data);
-// }
-// 				elseif ($para1 == "list_data") {
-// 					$columns = array(
-// 						0 => '',
-// 						1 => 'title',
-// 						2 => 'date',
-// 						3 => 'description',
-// 						4 => 'options'
-// 					);
-// 					$limit = $this->input->post('length');
-// 					$start = $this->input->post('start');
-				
-// 					// Handle sorting
-// 					if ($this->input->post('order')[0]['column'] == 0) {
-// 						$order = "happy_story_id";
-// 						$dir = "desc";
-// 					} else {
-// 						$order = $columns[$this->input->post('order')[0]['column']];
-// 						$dir = $this->input->post('order')[0]['dir'];
-// 					}
-// 					$table = 'happy_story';
-
-					
-				
-// 					// Get total records
-// 					$totalData = $this->Crud_model->alldata_count($table);
-				
-// 					$totalFiltered = $totalData;
-				
-// 					// Fetch data
-// 					if (empty($this->input->post('search')['value'])) {
-// 						$rows = $this->Crud_model->allstories($table, $limit, $start, $order, $dir);
-// 					} else {
-// 						$search = $this->input->post('search')['value'];
-// 						$rows = $this->Crud_model->story_search($table, $limit, $start, $search, $order, $dir);
-// 						$totalFiltered = $this->Crud_model->story_search_count($table, $search);
-// 					}
-				
-// 					$data = array();
-// 					if (!empty($rows)) {
-// 						foreach ($rows as $row) {
-// 							// Format activity_photo as an img tag
-// 							$story_image = $row->activity_photo && file_exists('Uploads/happy_story_image/' . $row->activity_photo) ?
-// 								"<img src='" . base_url('Uploads/happy_story_image/' . $row->activity_photo) . "' class='img-sm' height='30' width='30' alt='story image'>" :
-// 								"<img src='" . base_url('Uploads/happy_story_image/default_image.jpg') . "' class='img-sm' height='30' width='30' alt='default image'>";
-				
-// 							// Approval button based on role
-// 							$role_id = $this->session->userdata('role_id');
-// 							$national_role_ids = [1, 3, 4, 5, 6];
-// 							$is_national_role = in_array((int)$role_id, $national_role_ids);
-// 							$approve_button = '';
-// 							if ($is_national_role) {
-// 								if ($row->approval_status == 1) {
-// 									$approve_button = "
-// 										<button data-target='#approval_modal' data-toggle='modal' class='btn btn-dark btn-xs add-tooltip'
-// 											title='" . translate('unpublish') . "'
-// 											onclick='approval(0, {$row->happy_story_id})'>
-// 											<i class='fa fa-close'></i>
-// 										</button>";
-// 								} elseif ($row->approval_status == 0) {
-// 									$approve_button = "
-// 										<button data-target='#approval_modal' data-toggle='modal' class='btn btn-success btn-xs add-tooltip'
-// 											title='" . translate('approve') . "'
-// 											onclick='approval(1, {$row->happy_story_id})'>
-// 											<i class='fa fa-check'></i>
-// 										</button>";
-// 								}
-// 							}
-				
-// 							// Prepare DataTable row
-// 							$nestedData = [];
-// 							$nestedData['partner_name'] =  $row->title;
-// 							$nestedData['image'] = $story_image;
-// 							$nestedData['title'] = $row->title;
-// 							$nestedData['date'] = $row->date;
+	// }
 
 
-// 							$nestedData['description'] = $row->description;
-// 							$nestedData['options'] = $approve_button . "
-// 								<a href='" . base_url('admin/stories/view_story/' . $row->happy_story_id) . "' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('view') . "'><i class='fa fa-eye'></i></a>
-// 								<a href='" . base_url('admin/stories/edit_story/' . $row->happy_story_id) . "' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('edit') . "'><i class='fa fa-edit'></i></a>
-// 								<button data-target='#delete_modal' data-toggle='modal' class='btn btn-danger btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('delete') . "' onclick='delete_story(" . $row->happy_story_id . ")'><i class='fa fa-trash'></i></button>";
-				
-// 							$data[] = $nestedData;
-// 						}
-// 					}
-				
-// 					$json_data = array(
-// 						"draw" => intval($this->input->post('draw')),
-// 						"recordsTotal" => intval($totalData),
-// 						"recordsFiltered" => intval($totalFiltered),
-// 						"data" => $data
-// 					);
-// 					echo json_encode($json_data);
-// 				}
-// 			elseif ($para1 == "approval") {
-// 				if ($para2 == 0) {
-// 					$data['approval_status'] = 1;
-// 					$this->session->set_flashdata('alert', 'approve');
-// 				} elseif ($para2 == 1) {
-// 					$data['approval_status'] = 0;
-// 					$this->session->set_flashdata('alert', 'unpublish');
-// 				}
-// 				$this->db->where('happy_story_id', $para3);
-// 				$this->db->update('happy_story', $data);
-// 				recache();
-// 			} elseif ($para1 == "view_story") {
-// 				$page_data['top'] = "stories/stories.php";
-// 				$page_data['folder'] = "stories";
-// 				$page_data['file'] = "view_story.php";
-// 				$page_data['bottom'] = "stories/stories.php";
-// 				$page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->result();
-// 				$page_data['page_name'] = "stories";
-// 				$this->load->view('back/index', $page_data);
-// 			} elseif ($para1 == "delete") {
-// 				if (demo()) {
-// 					$this->session->set_flashdata('alert', 'demo_msg');
-// 					return false;
-// 				}
-// 				$img =  $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row()->image;
-// 				$img = json_decode($img, true);
-// 				unlink('uploads/happy_story_image/' . $img[0]['img']);
-// 				unlink('uploads/happy_story_image/' . $img[0]['thumb']);
-// 				$video_exist = $this->db->get_where("story_video", array("story_id" => $para2))->result();
-// 				if ($video_exist) {
-// 					$vid_type = $this->db->get_where("story_video", array("story_id" => $para2))->row()->type;
-// 					if ($vid_type == 'upload') {
-// 						$video_src = $this->db->get_where("story_video", array("story_id" => $para2))->row()->video_src;
-// 						unlink($video_src);
-// 					}
-// 					$this->db->where('story_id', $para2);
-// 					$this->db->delete('story_video');
-// 				}
-// 				$this->db->where('happy_story_id', $para2);
-// 				$result = $this->db->delete('happy_story');
-// 				recache();
-// 				if ($result) {
-// 					$this->session->set_flashdata('alert', 'delete');
-// 				} else {
-// 					$this->session->set_flashdata('alert', 'failed_delete');
-// 				}
-// 			}
-// 			else if ($para1 == "add_story") {
-// 				$page_data['top'] = "stories/index.php";
-// 				$page_data['folder'] = "stories";
-// 				$page_data['file'] = "add_story.php";
-// 				$page_data['bottom'] = "stories/index.php";
-// 				$page_data['page_name'] = "stories";
-			
-// 				// Get admin_id from session
-// 				$admin_id = $this->session->userdata('admin_id');
-// 				$admin_name = $this->session->userdata('name');
-// 				// $admin_id = 26;
-// 				// Fetch legion data for autofill based on session admin_id
-// 				$legion_info = $this->Crud_model->get_legion_and_area_by_admin($admin_id);
+	// function stories($para1 = "", $para2 = "", $para3 = "")
+	// 	{ 
 
-// 				if (!$legion_info['status']) {
-// 					$this->session->set_flashdata('failed', $legion_info['message']);
-// 					redirect('admin/stories');
-// 				}
-				
-// 				$page_data['legion'] = $legion_info;
-// 				$page_data['legion']['admin_name'] = $admin_name;
-			
-// 				$this->load->view('back/index', $page_data);
-// 			}
-			
-// 			else if ($para1 == "edit_story") {
-// 				$page_data['top'] = "stories/index.php";
-// 				$page_data['folder'] = "stories";
-// 				$page_data['file'] = "edit_story.php";
-// 				$page_data['bottom'] = "stories/index.php";
-// 				$page_data['guruji_photo_id'] = $para2;
-// 				$page_data['page_name'] = "stories";
-	
-// 				$this->load->view('back/index', $page_data);
-// 			}
-// 		}
-// 	}
+	// 		$this->db->where("(membership=2)");
+	// 		$this->db->where("(status='approved')");
+	//         $query = $this->db->get('member');
+
+	//         if($query->num_rows()>0)
+	//         {
+	//            $res=   $query->result();
+	//         }
 
 
-function stories($para1 = "", $para2 = "", $para3 = "")
-{ 
-    // Start output buffering
-    ob_start();
-    
-    // Fetch admin ID from session
-    $admin_id = $this->session->userdata('admin_id');
-    if (!$admin_id) {
-        log_message('error', 'No admin_id in session, redirecting to login');
-        ob_end_clean();
-        redirect(base_url() . 'admin/login', 'refresh');
-        return;
-    }
-    log_message('debug', 'Stories function invoked | Admin ID: ' . $admin_id);
-    
-    // Get legion details
-    $legion_info = $this->Crud_model->get_legion_and_area_by_admin($admin_id);
-    
-    // Initialize member query result
-    $res = [];
-    
-    // Filter members by legion_id (check if column exists)
-    if ($legion_info['status'] && !empty($legion_info['legion_id'])) {
-        $this->db->where('membership', 2);
-        $this->db->where('status', 'approved');
-        $columns = $this->db->list_fields('member');
-        if (in_array('legion_id', $columns)) {
-            $this->db->where('member.legion_id', $legion_info['legion_id']);
-        } else {
-            log_message('debug', 'legion_id column not found in member table, skipping filter');
-        }
-        $query = $this->db->get('member');
-        log_message('debug', 'Member query: ' . $this->db->last_query());
+	//        // echo '<pre>';print_r($res);exit;
+	// 		if ($this->admin_permission() == FALSE) {
+	// 			redirect(base_url() . 'admin/login', 'refresh');
+	// 		} else {
+	// 			$page_data['title'] = "Admin || " . $this->system_title;
+	// 			if ($para1 == "") {
+	// 				$page_data['top'] = "stories/index.php";
+	// 				$page_data['folder'] = "stories";
+	// 				$page_data['file'] = "index.php";
+	// 				$page_data['bottom'] = "stories/index.php";
+	// 				$page_data['page_name'] = "stories";
+	// 				if ($this->session->flashdata('alert') == "approve") {
+	// 					$page_data['success_alert'] = translate("you_have_successfully_approved_the_story!");
+	// 				} elseif ($this->session->flashdata('alert') == "unpublish") {
+	// 					$page_data['danger_alert'] = translate("you_have_successfully_unpublished_the_story!");
+	// 				} elseif ($this->session->flashdata('alert') == "delete") {
+	// 					$page_data['success_alert'] = translate("you_have_successfully_deleted_the_data!");
+	// 				} elseif ($this->session->flashdata('alert') == "failed_delete") {
+	// 					$page_data['danger_alert'] = translate("failed_to_delete_the_data!");
+	// 				} elseif ($this->session->flashdata('alert') == "demo_msg") {
+	// 					$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
+	// 				}
 
-        if ($query->num_rows() > 0) {
-            $res = $query->result();
-            log_message('debug', 'Member query returned ' . $query->num_rows() . ' rows for legion_id: ' . $legion_info['legion_id']);
-        } else {
-            log_message('debug', 'No members found for legion_id: ' . $legion_info['legion_id']);
-        }
-    } else {
-        log_message('debug', 'No legion assigned for admin_id: ' . $admin_id . ' | Message: ' . ($legion_info['message'] ?? 'Unknown error'));
-    }
+	// 				$this->load->view('back/index', $page_data);
+	// 			} 
+	// 			elseif ($para1 == "edit_story") {  
+	// 					$page_data['top'] 		= "stories/index.php";
+	// 					$page_data['folder'] 	= "stories";
+	// 					$page_data['file']	 	= "edit_story.php";
+	// 					$page_data['bottom'] 	= "stories/index.php";
+	// 					$page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
 
-    // Check admin permissions
-    if ($this->admin_permission() === FALSE) {
-        log_message('debug', 'Admin permission check failed, redirecting to login');
-        ob_end_clean();
-        redirect(base_url() . 'admin/login', 'refresh');
-        return;
-    }
+	// 					//print_r($page_data);exit;
+	// 					$page_data['page_name'] = "stories";
+	// 					$this->load->view('back/index', $page_data);
 
-    $page_data['title'] = "Admin || " . $this->system_title;
-    if ($para1 == "") {
-        $page_data['top'] = "stories/index.php";
-        $page_data['folder'] = "stories";
-        $page_data['file'] = "index.php";
-        $page_data['bottom'] = "stories/index.php";
-        $page_data['page_name'] = "stories";
-        if ($this->session->flashdata('alert') == "approve") {
-            $page_data['success_alert'] = translate("you_have_successfully_approved_the_story!");
-        } elseif ($this->session->flashdata('alert') == "unpublish") {
-            $page_data['danger_alert'] = translate("you_have_successfully_unpublished_the_story!");
-        } elseif ($this->session->flashdata('alert') == "delete") {
-            $page_data['success_alert'] = translate("you_have_successfully_deleted_the_data!");
-        } elseif ($this->session->flashdata('alert') == "failed_delete") {
-            $page_data['danger_alert'] = translate("failed_to_delete_the_data!");
-        } elseif ($this->session->flashdata('alert') == "demo_msg") {
-            $page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
-        }
 
-        ob_end_clean();
-        $this->load->view('back/index', $page_data);
-    } 
-    elseif ($para1 == "edit_story") {  
-        $page_data['top'] = "stories/index.php";
-        $page_data['folder'] = "stories";
-        $page_data['file'] = "edit_story.php";
-        $page_data['bottom'] = "stories/index.php";
-        if ($legion_info['status']) {
-            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-            $page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
-            log_message('debug', 'Edit story query: ' . $this->db->last_query());
-            if (!$page_data['get_story']) {
-                log_message('debug', 'Story not found or unauthorized for happy_story_id: ' . $para2 . ', legion_id: ' . $legion_info['legion_id']);
-                $this->session->set_flashdata('failed', 'Story not found or not authorized.');
-                ob_end_clean();
-                redirect(base_url() . 'admin/stories');
-            }
-        } else {
-            log_message('debug', 'No legion assigned for edit_story | Message: ' . $legion_info['message']);
-            $this->session->set_flashdata('failed', $legion_info['message']);
-            ob_end_clean();
-            redirect(base_url() . 'admin/stories');
-        }
-        $page_data['page_name'] = "stories";
-        ob_end_clean();
-        $this->load->view('back/index', $page_data);
-    }
-    elseif ($para1 == "update_story") {
-        $this->form_validation->set_rules('story_name', 'Story Name', 'required');
-        $this->form_validation->set_rules('description', 'Description', 'required');
+	// 				}
+	// 				elseif ($para1 == "update_story") {
+	//     $this->form_validation->set_rules('story_name', 'Story Name', 'required');
+	//     // $this->form_validation->set_rules('dated', 'Dated', 'required');
+	//     $this->form_validation->set_rules('description', 'Description', 'required');
 
-        if ($this->form_validation->run() == FALSE) {
-            $page_data['top'] = "stories/index.php";
-            $page_data['folder'] = "stories";
-            $page_data['file'] = "edit_story.php";
-            $page_data['bottom'] = "stories/index.php";
-            $page_data['page_name'] = "stories";
-            $page_data['form_contents'] = $this->input->post();
-        } else {
-            if ($legion_info['status']) {
-                $data = array(
-                    'title' => $this->input->post('story_name'),
-                    'description' => $this->input->post('description'),
-                    'program_area' => $this->input->post('program_area'),
-                    'legion_name' => $this->input->post('legion_name'),
-                    'area_name' => $this->input->post('area_name')
-                );
+	//     if ($this->form_validation->run() == FALSE) {
+	//         $page_data['top']          = "stories/index.php";
+	//         $page_data['folder']       = "stories";
+	//         $page_data['file']         = "edit_story.php";
+	//         $page_data['bottom']       = "stories/index.php";
+	//         $page_data['page_name']    = "stories";
+	//         $page_data['form_contents'] = $this->input->post();
+	//     } else {
+	//         $data = array(
+	//             'title'         => $this->input->post('story_name'),
+	//             'happy_story_id'=> $para2,
 
-                if (!empty($_FILES['story_photo']['name'])) {
-                    $id = uniqid();
-                    $path = $_FILES['story_photo']['name'];
-                    $ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
-                    $allowed_exts = [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"];
-                    if (in_array($ext, $allowed_exts)) {
-                        $this->Crud_model->file_up("story_photo", "happy_story", $id, '', '', $ext);
-                        $data['image'] = 'happy_story_' . $id . $ext;
-                    } else {
-                        $this->session->set_flashdata('alert', 'failed_image');
-                        ob_end_clean();
-                        redirect(base_url() . 'admin/stories', 'refresh');
-                    }
-                }
+	//             'description'   => $this->input->post('description'),
+	//             'program_area'  => $this->input->post('program_area'),
+	//             'legion_name'   => $this->input->post('legion_name'),
+	//             'area_name'     => $this->input->post('area_name')
+	//         );
 
-                if (!empty($_FILES['activity_photo']['name'])) {
-                    $upload = $this->do_upload('activity_photo');
-                    if ($upload['status'] === 'success') {
-                        $data['activity_photo'] = $upload['file_name'];
-                    } else {
-                        $this->session->set_flashdata('error', $upload['error']);
-                        ob_end_clean();
-                        redirect('admin/stories/edit_story/' . $para2);
-                        return;
-                    }
-                }
+	//         // Upload story_photo
+	//         if (!empty($_FILES['story_photo']['name'])) {
+	//             $id = uniqid();
+	//             $path = $_FILES['story_photo']['name'];
+	//             $ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
+	//             $allowed_exts = [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"];
 
-                if (!empty($_FILES['press_coverage']['name'])) {
-                    $upload = $this->do_upload('press_coverage');
-                    if ($upload['status'] === 'success') {
-                        $data['press_coverage'] = $upload['file_name'];
-                    } else {
-                        $this->session->set_flashdata('error', $upload['error']);
-                        ob_end_clean();
-                        redirect('admin/stories/edit_story/' . $para2);
-                        return;
-                    }
-                }
+	//             if (in_array($ext, $allowed_exts)) {
+	//                 $this->Crud_model->file_up("story_photo", "happy_story", $id, '', '', $ext);
+	//                 $images[] = array(
+	//                     'image' => 'happy_story_' . $id . $ext,
+	//                     'thumb' => 'happy_story_' . $id . '_thumb' . $ext
+	//                 );
+	//                 $data['image'] = json_encode($images);
+	//             } else {
+	//                 $this->session->set_flashdata('alert', 'failed_image');
+	//                 redirect(base_url() . 'admin/stories', 'refresh');
+	//             }
+	//         }
 
-                $this->db->where('happy_story_id', $para2);
-                $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                $this->db->update('happy_story', $data);
-                log_message('debug', 'Update story query: ' . $this->db->last_query());
-                $result = $this->db->affected_rows();
+	//         // Upload activity_photo
+	//         if (!empty($_FILES['activity_photo']['name'])) {
+	//             $upload = $this->do_upload('activity_photo');
+	//             if ($upload['status'] === 'success') {
+	//                 $data['activity_photo'] = $upload['file_name'];
+	//             } else {
+	//                 $this->session->set_flashdata('error', $upload['error']);
+	//                 redirect('admin/stories/edit_story/' . $para2);
+	//                 return;
+	//             }
+	//         }
 
-                if ($result > 0) {
-                    log_message('debug', 'Story updated successfully for happy_story_id: ' . $para2);
-                    $this->session->set_flashdata('success', 'Updated successfully');
-                    ob_end_clean();
-                    redirect('admin/stories');
-                } else {
-                    log_message('debug', 'Failed to update story for happy_story_id: ' . $para2 . ' or unauthorized');
-                    $this->session->set_flashdata('failed', 'Failed to update or unauthorized.');
-                    ob_end_clean();
-                    redirect('admin/stories');
-                }
-            } else {
-                log_message('debug', 'No legion assigned for update_story | Message: ' . $legion_info['message']);
-                $this->session->set_flashdata('failed', $legion_info['message']);
-                ob_end_clean();
-                redirect('admin/stories');
-            }
-        }
+	//         // Upload press_coverage
+	//         if (!empty($_FILES['press_coverage']['name'])) {
+	//             $upload = $this->do_upload('press_coverage');
+	//             if ($upload['status'] === 'success') {
+	//                 $data['press_coverage'] = $upload['file_name'];
+	//             } else {
+	//                 $this->session->set_flashdata('error', $upload['error']);
+	//                 redirect('admin/stories/edit_story/' . $para2);
+	//                 return;
+	//             }
+	//         }
 
-        $page_data['top'] = "stories/index.php";
-        $page_data['folder'] = "stories";
-        $page_data['file'] = "edit_story.php";
-        $page_data['bottom'] = "stories/index.php";
-        $page_data['page_name'] = "stories";
-        if ($legion_info['status']) {
-            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-            $page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
-        }
-        ob_end_clean();
-        $this->load->view('back/index', $page_data);
-    }
-    elseif ($para1 == "list_data") {
-        try {
-            $columns = array(
-                0 => '',
-                1 => 'title',
-                2 => 'date',
-                3 => 'description',
-                4 => 'options'
-            );
-            $limit = $this->input->post('length');
-            $start = $this->input->post('start');
+	//         // Update DB
+	//         $this->db->where('happy_story_id', $para2);
+	//         $this->db->update('happy_story', $data);
+	//         $result = $this->db->affected_rows();
 
-            if ($this->input->post('order')[0]['column'] == 0) {
-                $order = "happy_story_id";
-                $dir = "desc";
-            } else {
-                $order = $columns[$this->input->post('order')[0]['column']];
-                $dir = $this->input->post('order')[0]['dir'];
-            }
-            $table = 'happy_story';
+	//         if ($result > 0) {
+	//             $this->session->set_flashdata('success', 'Updated successfully');
+	//             redirect('admin/stories');
+	//         } else {
+	//             $this->session->set_flashdata('failed', 'Failed');
+	//             redirect('admin/stories');
+	//         }
+	//     }
 
-            $json_data = array(
-                'draw' => intval($this->input->post('draw')),
-                'recordsTotal' => 0,
-                'recordsFiltered' => 0,
-                'data' => []
-            );
+	//     // In case of form validation failure or update failure
+	//     $page_data['top']       = "stories/index.php";
+	//     $page_data['folder']    = "stories";
+	//     $page_data['file']      = "edit_story.php";
+	//     $page_data['bottom']    = "stories/index.php";
+	//     $page_data['page_name'] = "stories";
+	//     $page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
 
-            if ($legion_info['status'] && !empty($legion_info['legion_id'])) {
-                // Reset query builder state
-                $this->db->reset_query();
-                // Fallback queries with explicit table qualification
-                if (!method_exists($this->Crud_model, 'alldata_count')) {
-                    $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                    $this->db->from($table);
-                    $totalData = $this->db->count_all_results();
-                } else {
-                    // Assume Crud_model method handles legion_id internally or via query builder
-                    $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                    $totalData = $this->Crud_model->alldata_count($table);
-                }
-                $totalFiltered = $totalData;
-                log_message('debug', 'Total stories query: ' . $this->db->last_query());
-                log_message('debug', 'Total stories for legion_id ' . $legion_info['legion_id'] . ': ' . $totalData);
+	//     $this->load->view('back/index', $page_data);
+	// }
+	// 				elseif ($para1 == "list_data") {
+	// 					$columns = array(
+	// 						0 => '',
+	// 						1 => 'title',
+	// 						2 => 'date',
+	// 						3 => 'description',
+	// 						4 => 'options'
+	// 					);
+	// 					$limit = $this->input->post('length');
+	// 					$start = $this->input->post('start');
 
-                $this->db->reset_query();
-                if (empty($this->input->post('search')['value'])) {
-                    if (!method_exists($this->Crud_model, 'allstories')) {
-                        $this->db->select('happy_story.*');
-                        $this->db->from($table);
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                        $this->db->limit($limit, $start);
-                        $this->db->order_by($order, $dir);
-                        $rows = $this->db->get()->result();
-                    } else {
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                        $rows = $this->Crud_model->allstories($table, $limit, $start, $order, $dir);
-                    }
-                } else {
-                    $search = $this->input->post('search')['value'];
-                    if (!method_exists($this->Crud_model, 'story_search')) {
-                        $this->db->select('happy_story.*');
-                        $this->db->from($table);
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                        $this->db->group_start();
-                        $this->db->like('happy_story.title', $search);
-                        $this->db->or_like('happy_story.description', $search);
-                        $this->db->group_end();
-                        $this->db->limit($limit, $start);
-                        $this->db->order_by($order, $dir);
-                        $rows = $this->db->get()->result();
-                    } else {
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                        $rows = $this->Crud_model->story_search($table, $limit, $start, $search, $order, $dir);
-                    }
-                    $this->db->reset_query();
-                    if (!method_exists($this->Crud_model, 'story_search_count')) {
-                        $this->db->from($table);
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                        $this->db->group_start();
-                        $this->db->like('happy_story.title', $search);
-                        $this->db->or_like('happy_story.description', $search);
-                        $this->db->group_end();
-                        $totalFiltered = $this->db->count_all_results();
-                    } else {
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                        $totalFiltered = $this->Crud_model->story_search_count($table, $search);
-                    }
-                }
-                log_message('debug', 'Data query: ' . $this->db->last_query());
-                log_message('debug', 'Fetched ' . (is_array($rows) ? count($rows) : 0) . ' stories for legion_id: ' . $legion_info['legion_id']);
-            } else {
-                log_message('debug', 'No legion assigned for list_data | Message: ' . ($legion_info['message'] ?? 'Unknown error'));
-                ob_end_clean();
-                header('Content-Type: application/json');
-                echo json_encode($json_data);
-                return;
-            }
+	// 					// Handle sorting
+	// 					if ($this->input->post('order')[0]['column'] == 0) {
+	// 						$order = "happy_story_id";
+	// 						$dir = "desc";
+	// 					} else {
+	// 						$order = $columns[$this->input->post('order')[0]['column']];
+	// 						$dir = $this->input->post('order')[0]['dir'];
+	// 					}
+	// 					$table = 'happy_story';
 
-            $data = array();
-            if (!empty($rows) && is_array($rows)) {
-                foreach ($rows as $row) {
-                    $story_image = $row->activity_photo && file_exists('uploads/happy_story_image/' . $row->activity_photo) ?
-                        "<img src='" . base_url('uploads/happy_story_image/' . $row->activity_photo) . "' class='img-sm' height='30' width='30' alt='story image'>" :
-                        "<img src='" . base_url('uploads/happy_story_image/default_image.jpg') . "' class='img-sm' height='30' width='30' alt='default image'>";
 
-                    $role_id = $this->session->userdata('role_id') ?? 0;
-                    $national_role_ids = [1, 3, 4, 5, 6];
-                    $is_national_role = in_array((int)$role_id, $national_role_ids);
-                    $approve_button = '';
-                    if ($is_national_role) {
-                        if ($row->approval_status == 1) {
-                            $approve_button = "
+
+	// 					// Get total records
+	// 					$totalData = $this->Crud_model->alldata_count($table);
+
+	// 					$totalFiltered = $totalData;
+
+	// 					// Fetch data
+	// 					if (empty($this->input->post('search')['value'])) {
+	// 						$rows = $this->Crud_model->allstories($table, $limit, $start, $order, $dir);
+	// 					} else {
+	// 						$search = $this->input->post('search')['value'];
+	// 						$rows = $this->Crud_model->story_search($table, $limit, $start, $search, $order, $dir);
+	// 						$totalFiltered = $this->Crud_model->story_search_count($table, $search);
+	// 					}
+
+	// 					$data = array();
+	// 					if (!empty($rows)) {
+	// 						foreach ($rows as $row) {
+	// 							// Format activity_photo as an img tag
+	// 							$story_image = $row->activity_photo && file_exists('Uploads/happy_story_image/' . $row->activity_photo) ?
+	// 								"<img src='" . base_url('Uploads/happy_story_image/' . $row->activity_photo) . "' class='img-sm' height='30' width='30' alt='story image'>" :
+	// 								"<img src='" . base_url('Uploads/happy_story_image/default_image.jpg') . "' class='img-sm' height='30' width='30' alt='default image'>";
+
+	// 							// Approval button based on role
+	// 							$role_id = $this->session->userdata('role_id');
+	// 							$national_role_ids = [1, 3, 4, 5, 6];
+	// 							$is_national_role = in_array((int)$role_id, $national_role_ids);
+	// 							$approve_button = '';
+	// 							if ($is_national_role) {
+	// 								if ($row->approval_status == 1) {
+	// 									$approve_button = "
+	// 										<button data-target='#approval_modal' data-toggle='modal' class='btn btn-dark btn-xs add-tooltip'
+	// 											title='" . translate('unpublish') . "'
+	// 											onclick='approval(0, {$row->happy_story_id})'>
+	// 											<i class='fa fa-close'></i>
+	// 										</button>";
+	// 								} elseif ($row->approval_status == 0) {
+	// 									$approve_button = "
+	// 										<button data-target='#approval_modal' data-toggle='modal' class='btn btn-success btn-xs add-tooltip'
+	// 											title='" . translate('approve') . "'
+	// 											onclick='approval(1, {$row->happy_story_id})'>
+	// 											<i class='fa fa-check'></i>
+	// 										</button>";
+	// 								}
+	// 							}
+
+	// 							// Prepare DataTable row
+	// 							$nestedData = [];
+	// 							$nestedData['partner_name'] =  $row->title;
+	// 							$nestedData['image'] = $story_image;
+	// 							$nestedData['title'] = $row->title;
+	// 							$nestedData['date'] = $row->date;
+
+
+	// 							$nestedData['description'] = $row->description;
+	// 							$nestedData['options'] = $approve_button . "
+	// 								<a href='" . base_url('admin/stories/view_story/' . $row->happy_story_id) . "' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('view') . "'><i class='fa fa-eye'></i></a>
+	// 								<a href='" . base_url('admin/stories/edit_story/' . $row->happy_story_id) . "' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('edit') . "'><i class='fa fa-edit'></i></a>
+	// 								<button data-target='#delete_modal' data-toggle='modal' class='btn btn-danger btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('delete') . "' onclick='delete_story(" . $row->happy_story_id . ")'><i class='fa fa-trash'></i></button>";
+
+	// 							$data[] = $nestedData;
+	// 						}
+	// 					}
+
+	// 					$json_data = array(
+	// 						"draw" => intval($this->input->post('draw')),
+	// 						"recordsTotal" => intval($totalData),
+	// 						"recordsFiltered" => intval($totalFiltered),
+	// 						"data" => $data
+	// 					);
+	// 					echo json_encode($json_data);
+	// 				}
+	// 			elseif ($para1 == "approval") {
+	// 				if ($para2 == 0) {
+	// 					$data['approval_status'] = 1;
+	// 					$this->session->set_flashdata('alert', 'approve');
+	// 				} elseif ($para2 == 1) {
+	// 					$data['approval_status'] = 0;
+	// 					$this->session->set_flashdata('alert', 'unpublish');
+	// 				}
+	// 				$this->db->where('happy_story_id', $para3);
+	// 				$this->db->update('happy_story', $data);
+	// 				recache();
+	// 			} elseif ($para1 == "view_story") {
+	// 				$page_data['top'] = "stories/stories.php";
+	// 				$page_data['folder'] = "stories";
+	// 				$page_data['file'] = "view_story.php";
+	// 				$page_data['bottom'] = "stories/stories.php";
+	// 				$page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->result();
+	// 				$page_data['page_name'] = "stories";
+	// 				$this->load->view('back/index', $page_data);
+	// 			} elseif ($para1 == "delete") {
+	// 				if (demo()) {
+	// 					$this->session->set_flashdata('alert', 'demo_msg');
+	// 					return false;
+	// 				}
+	// 				$img =  $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row()->image;
+	// 				$img = json_decode($img, true);
+	// 				unlink('uploads/happy_story_image/' . $img[0]['img']);
+	// 				unlink('uploads/happy_story_image/' . $img[0]['thumb']);
+	// 				$video_exist = $this->db->get_where("story_video", array("story_id" => $para2))->result();
+	// 				if ($video_exist) {
+	// 					$vid_type = $this->db->get_where("story_video", array("story_id" => $para2))->row()->type;
+	// 					if ($vid_type == 'upload') {
+	// 						$video_src = $this->db->get_where("story_video", array("story_id" => $para2))->row()->video_src;
+	// 						unlink($video_src);
+	// 					}
+	// 					$this->db->where('story_id', $para2);
+	// 					$this->db->delete('story_video');
+	// 				}
+	// 				$this->db->where('happy_story_id', $para2);
+	// 				$result = $this->db->delete('happy_story');
+	// 				recache();
+	// 				if ($result) {
+	// 					$this->session->set_flashdata('alert', 'delete');
+	// 				} else {
+	// 					$this->session->set_flashdata('alert', 'failed_delete');
+	// 				}
+	// 			}
+	// 			else if ($para1 == "add_story") {
+	// 				$page_data['top'] = "stories/index.php";
+	// 				$page_data['folder'] = "stories";
+	// 				$page_data['file'] = "add_story.php";
+	// 				$page_data['bottom'] = "stories/index.php";
+	// 				$page_data['page_name'] = "stories";
+
+	// 				// Get admin_id from session
+	// 				$admin_id = $this->session->userdata('admin_id');
+	// 				$admin_name = $this->session->userdata('name');
+	// 				// $admin_id = 26;
+	// 				// Fetch legion data for autofill based on session admin_id
+	// 				$legion_info = $this->Crud_model->get_legion_and_area_by_admin($admin_id);
+
+	// 				if (!$legion_info['status']) {
+	// 					$this->session->set_flashdata('failed', $legion_info['message']);
+	// 					redirect('admin/stories');
+	// 				}
+
+	// 				$page_data['legion'] = $legion_info;
+	// 				$page_data['legion']['admin_name'] = $admin_name;
+
+	// 				$this->load->view('back/index', $page_data);
+	// 			}
+
+	// 			else if ($para1 == "edit_story") {
+	// 				$page_data['top'] = "stories/index.php";
+	// 				$page_data['folder'] = "stories";
+	// 				$page_data['file'] = "edit_story.php";
+	// 				$page_data['bottom'] = "stories/index.php";
+	// 				$page_data['guruji_photo_id'] = $para2;
+	// 				$page_data['page_name'] = "stories";
+
+	// 				$this->load->view('back/index', $page_data);
+	// 			}
+	// 		}
+	// 	}
+
+
+	function stories($para1 = "", $para2 = "", $para3 = "")
+	{
+		// Start output buffering
+		ob_start();
+
+		// Fetch admin ID from session
+		$admin_id = $this->session->userdata('admin_id');
+		if (!$admin_id) {
+			log_message('error', 'No admin_id in session, redirecting to login');
+			ob_end_clean();
+			redirect(base_url() . 'admin/login', 'refresh');
+			return;
+		}
+		log_message('debug', 'Stories function invoked | Admin ID: ' . $admin_id);
+
+		// Get legion details
+		$legion_info = $this->Crud_model->get_legion_and_area_by_admin($admin_id);
+
+		// Initialize member query result
+		$res = [];
+
+		// Filter members by legion_id (check if column exists)
+		if ($legion_info['status'] && !empty($legion_info['legion_id'])) {
+			$this->db->where('membership', 2);
+			$this->db->where('status', 'approved');
+			$columns = $this->db->list_fields('member');
+			if (in_array('legion_id', $columns)) {
+				$this->db->where('member.legion_id', $legion_info['legion_id']);
+			} else {
+				log_message('debug', 'legion_id column not found in member table, skipping filter');
+			}
+			$query = $this->db->get('member');
+			log_message('debug', 'Member query: ' . $this->db->last_query());
+
+			if ($query->num_rows() > 0) {
+				$res = $query->result();
+				log_message('debug', 'Member query returned ' . $query->num_rows() . ' rows for legion_id: ' . $legion_info['legion_id']);
+			} else {
+				log_message('debug', 'No members found for legion_id: ' . $legion_info['legion_id']);
+			}
+		} else {
+			log_message('debug', 'No legion assigned for admin_id: ' . $admin_id . ' | Message: ' . ($legion_info['message'] ?? 'Unknown error'));
+		}
+
+		// Check admin permissions
+		if ($this->admin_permission() === FALSE) {
+			log_message('debug', 'Admin permission check failed, redirecting to login');
+			ob_end_clean();
+			redirect(base_url() . 'admin/login', 'refresh');
+			return;
+		}
+
+		$page_data['title'] = "Admin || " . $this->system_title;
+		if ($para1 == "") {
+			$page_data['top'] = "stories/index.php";
+			$page_data['folder'] = "stories";
+			$page_data['file'] = "index.php";
+			$page_data['bottom'] = "stories/index.php";
+			$page_data['page_name'] = "stories";
+			if ($this->session->flashdata('alert') == "approve") {
+				$page_data['success_alert'] = translate("you_have_successfully_approved_the_story!");
+			} elseif ($this->session->flashdata('alert') == "unpublish") {
+				$page_data['danger_alert'] = translate("you_have_successfully_unpublished_the_story!");
+			} elseif ($this->session->flashdata('alert') == "delete") {
+				$page_data['success_alert'] = translate("you_have_successfully_deleted_the_data!");
+			} elseif ($this->session->flashdata('alert') == "failed_delete") {
+				$page_data['danger_alert'] = translate("failed_to_delete_the_data!");
+			} elseif ($this->session->flashdata('alert') == "demo_msg") {
+				$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
+			}
+
+			ob_end_clean();
+			$this->load->view('back/index', $page_data);
+		} elseif ($para1 == "edit_story") {
+			$page_data['top'] = "stories/index.php";
+			$page_data['folder'] = "stories";
+			$page_data['file'] = "edit_story.php";
+			$page_data['bottom'] = "stories/index.php";
+			if ($legion_info['status']) {
+				$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+				$page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
+				log_message('debug', 'Edit story query: ' . $this->db->last_query());
+				if (!$page_data['get_story']) {
+					log_message('debug', 'Story not found or unauthorized for happy_story_id: ' . $para2 . ', legion_id: ' . $legion_info['legion_id']);
+					$this->session->set_flashdata('failed', 'Story not found or not authorized.');
+					ob_end_clean();
+					redirect(base_url() . 'admin/stories');
+				}
+			} else {
+				log_message('debug', 'No legion assigned for edit_story | Message: ' . $legion_info['message']);
+				$this->session->set_flashdata('failed', $legion_info['message']);
+				ob_end_clean();
+				redirect(base_url() . 'admin/stories');
+			}
+			$page_data['page_name'] = "stories";
+			ob_end_clean();
+			$this->load->view('back/index', $page_data);
+		} elseif ($para1 == "update_story") {
+			$this->form_validation->set_rules('story_name', 'Story Name', 'required');
+			$this->form_validation->set_rules('description', 'Description', 'required');
+
+			if ($this->form_validation->run() == FALSE) {
+				$page_data['top'] = "stories/index.php";
+				$page_data['folder'] = "stories";
+				$page_data['file'] = "edit_story.php";
+				$page_data['bottom'] = "stories/index.php";
+				$page_data['page_name'] = "stories";
+				$page_data['form_contents'] = $this->input->post();
+			} else {
+				if ($legion_info['status']) {
+					$data = array(
+						'title' => $this->input->post('story_name'),
+						'description' => $this->input->post('description'),
+						'program_area' => $this->input->post('program_area'),
+						'legion_name' => $this->input->post('legion_name'),
+						'area_name' => $this->input->post('area_name')
+					);
+
+					if (!empty($_FILES['story_photo']['name'])) {
+						$id = uniqid();
+						$path = $_FILES['story_photo']['name'];
+						$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
+						$allowed_exts = [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"];
+						if (in_array($ext, $allowed_exts)) {
+							$this->Crud_model->file_up("story_photo", "happy_story", $id, '', '', $ext);
+							$data['image'] = 'happy_story_' . $id . $ext;
+						} else {
+							$this->session->set_flashdata('alert', 'failed_image');
+							ob_end_clean();
+							redirect(base_url() . 'admin/stories', 'refresh');
+						}
+					}
+
+					if (!empty($_FILES['activity_photo']['name'])) {
+						$upload = $this->do_upload('activity_photo');
+						if ($upload['status'] === 'success') {
+							$data['activity_photo'] = $upload['file_name'];
+						} else {
+							$this->session->set_flashdata('error', $upload['error']);
+							ob_end_clean();
+							redirect('admin/stories/edit_story/' . $para2);
+							return;
+						}
+					}
+
+					if (!empty($_FILES['press_coverage']['name'])) {
+						$upload = $this->do_upload('press_coverage');
+						if ($upload['status'] === 'success') {
+							$data['press_coverage'] = $upload['file_name'];
+						} else {
+							$this->session->set_flashdata('error', $upload['error']);
+							ob_end_clean();
+							redirect('admin/stories/edit_story/' . $para2);
+							return;
+						}
+					}
+
+					$this->db->where('happy_story_id', $para2);
+					$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+					$this->db->update('happy_story', $data);
+					log_message('debug', 'Update story query: ' . $this->db->last_query());
+					$result = $this->db->affected_rows();
+
+					if ($result > 0) {
+						log_message('debug', 'Story updated successfully for happy_story_id: ' . $para2);
+						$this->session->set_flashdata('success', 'Updated successfully');
+						ob_end_clean();
+						redirect('admin/stories');
+					} else {
+						log_message('debug', 'Failed to update story for happy_story_id: ' . $para2 . ' or unauthorized');
+						$this->session->set_flashdata('failed', 'Failed to update or unauthorized.');
+						ob_end_clean();
+						redirect('admin/stories');
+					}
+				} else {
+					log_message('debug', 'No legion assigned for update_story | Message: ' . $legion_info['message']);
+					$this->session->set_flashdata('failed', $legion_info['message']);
+					ob_end_clean();
+					redirect('admin/stories');
+				}
+			}
+
+			$page_data['top'] = "stories/index.php";
+			$page_data['folder'] = "stories";
+			$page_data['file'] = "edit_story.php";
+			$page_data['bottom'] = "stories/index.php";
+			$page_data['page_name'] = "stories";
+			if ($legion_info['status']) {
+				$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+				$page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
+			}
+			ob_end_clean();
+			$this->load->view('back/index', $page_data);
+		} elseif ($para1 == "list_data") {
+			try {
+				$columns = array(
+					0 => '',
+					1 => 'title',
+					2 => 'date',
+					3 => 'description',
+					4 => 'options'
+				);
+				$limit = $this->input->post('length');
+				$start = $this->input->post('start');
+
+				if ($this->input->post('order')[0]['column'] == 0) {
+					$order = "happy_story_id";
+					$dir = "desc";
+				} else {
+					$order = $columns[$this->input->post('order')[0]['column']];
+					$dir = $this->input->post('order')[0]['dir'];
+				}
+				$table = 'happy_story';
+
+				$json_data = array(
+					'draw' => intval($this->input->post('draw')),
+					'recordsTotal' => 0,
+					'recordsFiltered' => 0,
+					'data' => []
+				);
+
+				if ($legion_info['status'] && !empty($legion_info['legion_id'])) {
+					// Reset query builder state
+					$this->db->reset_query();
+					// Fallback queries with explicit table qualification
+					if (!method_exists($this->Crud_model, 'alldata_count')) {
+						$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+						$this->db->from($table);
+						$totalData = $this->db->count_all_results();
+					} else {
+						// Assume Crud_model method handles legion_id internally or via query builder
+						$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+						$totalData = $this->Crud_model->alldata_count($table);
+					}
+					$totalFiltered = $totalData;
+					log_message('debug', 'Total stories query: ' . $this->db->last_query());
+					log_message('debug', 'Total stories for legion_id ' . $legion_info['legion_id'] . ': ' . $totalData);
+
+					$this->db->reset_query();
+					if (empty($this->input->post('search')['value'])) {
+						if (!method_exists($this->Crud_model, 'allstories')) {
+							$this->db->select('happy_story.*');
+							$this->db->from($table);
+							$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+							$this->db->limit($limit, $start);
+							$this->db->order_by($order, $dir);
+							$rows = $this->db->get()->result();
+						} else {
+							$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+							$rows = $this->Crud_model->allstories($table, $limit, $start, $order, $dir);
+						}
+					} else {
+						$search = $this->input->post('search')['value'];
+						if (!method_exists($this->Crud_model, 'story_search')) {
+							$this->db->select('happy_story.*');
+							$this->db->from($table);
+							$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+							$this->db->group_start();
+							$this->db->like('happy_story.title', $search);
+							$this->db->or_like('happy_story.description', $search);
+							$this->db->group_end();
+							$this->db->limit($limit, $start);
+							$this->db->order_by($order, $dir);
+							$rows = $this->db->get()->result();
+						} else {
+							$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+							$rows = $this->Crud_model->story_search($table, $limit, $start, $search, $order, $dir);
+						}
+						$this->db->reset_query();
+						if (!method_exists($this->Crud_model, 'story_search_count')) {
+							$this->db->from($table);
+							$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+							$this->db->group_start();
+							$this->db->like('happy_story.title', $search);
+							$this->db->or_like('happy_story.description', $search);
+							$this->db->group_end();
+							$totalFiltered = $this->db->count_all_results();
+						} else {
+							$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+							$totalFiltered = $this->Crud_model->story_search_count($table, $search);
+						}
+					}
+					log_message('debug', 'Data query: ' . $this->db->last_query());
+					log_message('debug', 'Fetched ' . (is_array($rows) ? count($rows) : 0) . ' stories for legion_id: ' . $legion_info['legion_id']);
+				} else {
+					log_message('debug', 'No legion assigned for list_data | Message: ' . ($legion_info['message'] ?? 'Unknown error'));
+					ob_end_clean();
+					header('Content-Type: application/json');
+					echo json_encode($json_data);
+					return;
+				}
+
+				$data = array();
+				if (!empty($rows) && is_array($rows)) {
+					foreach ($rows as $row) {
+						$story_image = $row->activity_photo && file_exists('uploads/happy_story_image/' . $row->activity_photo) ?
+							"<img src='" . base_url('uploads/happy_story_image/' . $row->activity_photo) . "' class='img-sm' height='30' width='30' alt='story image'>" :
+							"<img src='" . base_url('uploads/happy_story_image/default_image.jpg') . "' class='img-sm' height='30' width='30' alt='default image'>";
+
+						$role_id = $this->session->userdata('role_id') ?? 0;
+						$national_role_ids = [1, 3, 4, 5, 6];
+						$is_national_role = in_array((int)$role_id, $national_role_ids);
+						$approve_button = '';
+						if ($is_national_role) {
+							if ($row->approval_status == 1) {
+								$approve_button = "
                                 <button data-target='#approval_modal' data-toggle='modal' class='btn btn-dark btn-xs add-tooltip'
                                     title='" . translate('unpublish') . "'
                                     onclick='approval(0, {$row->happy_story_id})'>
                                     <i class='fa fa-close'></i>
                                 </button>";
-                        } elseif ($row->approval_status == 0) {
-                            $approve_button = "
+							} elseif ($row->approval_status == 0) {
+								$approve_button = "
                                 <button data-target='#approval_modal' data-toggle='modal' class='btn btn-success btn-xs add-tooltip'
                                     title='" . translate('approve') . "'
                                     onclick='approval(1, {$row->happy_story_id})'>
                                     <i class='fa fa-check'></i>
                                 </button>";
-                        }
-                    }
+							}
+						}
 
-                    $nestedData = [];
-                    $nestedData['partner_name'] = $row->partner_name ?? '';
-                    $nestedData['image'] = $story_image;
-                    $nestedData['title'] = $row->title ?? '';
-                    $nestedData['date'] = $row->date ?? '';
-                    $nestedData['description'] = $row->description ?? '';
-                    $nestedData['options'] = $approve_button . "
+						$nestedData = [];
+						$nestedData['partner_name'] = $row->partner_name ?? '';
+						$nestedData['image'] = $story_image;
+						$nestedData['title'] = $row->title ?? '';
+						$nestedData['date'] = $row->date ?? '';
+						$nestedData['description'] = $row->description ?? '';
+						$nestedData['options'] = $approve_button . "
                         <a href='" . base_url('admin/stories/view_story/' . $row->happy_story_id) . "' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('view') . "'><i class='fa fa-eye'></i></a>
                         <a href='" . base_url('admin/stories/edit_story/' . $row->happy_story_id) . "' class='btn btn-primary btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('edit') . "'><i class='fa fa-edit'></i></a>
                         <button data-target='#delete_modal' data-toggle='modal' class='btn btn-danger btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('delete') . "' onclick='delete_story(" . $row->happy_story_id . ")'><i class='fa fa-trash'></i></button>";
 
-                    $data[] = $nestedData;
-                }
-            }
+						$data[] = $nestedData;
+					}
+				}
 
-            $json_data = array(
-                'draw' => intval($this->input->post('draw')),
-                'recordsTotal' => intval($totalData),
-                'recordsFiltered' => intval($totalFiltered),
-                'data' => $data
-            );
+				$json_data = array(
+					'draw' => intval($this->input->post('draw')),
+					'recordsTotal' => intval($totalData),
+					'recordsFiltered' => intval($totalFiltered),
+					'data' => $data
+				);
 
-            ob_end_clean();
-            header('Content-Type: application/json');
-            echo json_encode($json_data);
-        } catch (Exception $e) {
-            log_message('error', 'Exception in list_data: ' . $e->getMessage());
-            ob_end_clean();
-            header('Content-Type: application/json');
-            echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
-        }
-    }
-    elseif ($para1 == "approval") {
-        if ($legion_info['status']) {
-            if ($para2 == 0) {
-                $data['approval_status'] = 1;
-                $this->session->set_flashdata('alert', 'approve');
-            } elseif ($para2 == 1) {
-                $data['approval_status'] = 0;
-                $this->session->set_flashdata('alert', 'unpublish');
-            }
-            $this->db->where('happy_story_id', $para3);
-            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-            $this->db->update('happy_story', $data);
-            log_message('debug', 'Approval query: ' . $this->db->last_query());
-            $result = $this->db->affected_rows();
-            if ($result > 0) {
-                log_message('debug', 'Approval status updated for happy_story_id: ' . $para3);
-            } else {
-                log_message('debug', 'Failed to update approval status for happy_story_id: ' . $para3);
-            }
-            ob_end_clean();
-            recache();
-        } else {
-            log_message('debug', 'No legion assigned for approval | Message: ' . $legion_info['message']);
-            $this->session->set_flashdata('failed', $legion_info['message']);
-            ob_end_clean();
-            redirect(base_url() . 'admin/stories');
-        }
-    }
-    elseif ($para1 == "view_story") {
-        $page_data['top'] = "stories/stories.php";
-        $page_data['folder'] = "stories";
-        $page_data['file'] = "view_story.php";
-        $page_data['bottom'] = "stories/stories.php";
-        if ($legion_info['status']) {
-            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-            $page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->result();
-            log_message('debug', 'View story query: ' . $this->db->last_query());
-            if (empty($page_data['get_story'])) {
-                log_message('debug', 'Story not found or unauthorized for happy_story_id: ' . $para2 . ', legion_id: ' . $legion_info['legion_id']);
-                $this->session->set_flashdata('failed', 'Story not found or not authorized.');
-                ob_end_clean();
-                redirect(base_url() . 'admin/stories');
-            }
-        } else {
-            log_message('debug', 'No legion assigned for view_story | Message: ' . $legion_info['message']);
-            $this->session->set_flashdata('failed', $legion_info['message']);
-            ob_end_clean();
-            redirect(base_url() . 'admin/stories');
-        }
-        $page_data['page_name'] = "stories";
-        ob_end_clean();
-        $this->load->view('back/index', $page_data);
-    }
-    elseif ($para1 == "delete") {
-        if (demo()) {
-            $this->session->set_flashdata('alert', 'demo_msg');
-            ob_end_clean();
-            return false;
-        }
-        if ($legion_info['status']) {
-            $this->db->where('happy_story_id', $para2);
-            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-            $story = $this->db->get('happy_story')->row();
-            log_message('debug', 'Delete story query: ' . $this->db->last_query());
-            if ($story) {
-                if ($story->image && file_exists('uploads/happy_story_image/' . $story->image)) {
-                    unlink('uploads/happy_story_image/' . $story->image);
-                }
-                if ($story->activity_photo && file_exists('uploads/happy_story_image/' . $story->activity_photo)) {
-                    unlink('uploads/happy_story_image/' . $story->activity_photo);
-                }
-                if ($story->press_coverage && file_exists('uploads/happy_story_image/' . $story->press_coverage)) {
-                    unlink('uploads/happy_story_image/' . $story->press_coverage);
-                }
-                $video_exist = $this->db->get_where("story_video", array("story_id" => $para2))->result();
-                if ($video_exist) {
-                    $vid_type = $this->db->get_where("story_video", array("story_id" => $para2))->row()->type;
-                    if ($vid_type == 'upload') {
-                        $video_src = $this->db->get_where("story_video", array("story_id" => $para2))->row()->video_src;
-                        if (file_exists($video_src)) {
-                            unlink($video_src);
-                        }
-                    }
-                    $this->db->where('story_id', $para2);
-                    $this->db->delete('story_video');
-                }
-                $this->db->where('happy_story_id', $para2);
-                $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
-                $result = $this->db->delete('happy_story');
-                log_message('debug', 'Delete query: ' . $this->db->last_query());
-                recache();
-                if ($result) {
-                    log_message('debug', 'Story deleted successfully for happy_story_id: ' . $para2);
-                    $this->session->set_flashdata('alert', 'delete');
-                } else {
-                    log_message('debug', 'Failed to delete story for happy_story_id: ' . $para2);
-                    $this->session->set_flashdata('alert', 'failed_delete');
-                }
-            } else {
-                log_message('debug', 'Story not found or unauthorized for deletion, happy_story_id: ' . $para2);
-                $this->session->set_flashdata('alert', 'failed_delete');
-            }
-        } else {
-            log_message('debug', 'No legion assigned for delete | Message: ' . $legion_info['message']);
-            $this->session->set_flashdata('failed', $legion_info['message']);
-        }
-        ob_end_clean();
-        redirect(base_url() . 'admin/stories');
-    }
-    elseif ($para1 == "add_story") {
-        $page_data['top'] = "stories/index.php";
-        $page_data['folder'] = "stories";
-        $page_data['file'] = "add_story.php";
-        $page_data['bottom'] = "stories/index.php";
-        $page_data['page_name'] = "stories";
-        $admin_name = $this->session->userdata('name');
-        if (!$legion_info['status']) {
-            log_message('debug', 'No legion assigned for add_story | Message: ' . $legion_info['message']);
-            $this->session->set_flashdata('failed', $legion_info['message']);
-            ob_end_clean();
-            redirect('admin/stories');
-        }
-        $page_data['legion'] = $legion_info;
-        $page_data['legion']['admin_name'] = $admin_name;
-        ob_end_clean();
-        $this->load->view('back/index', $page_data);
-    }
-}
+				ob_end_clean();
+				header('Content-Type: application/json');
+				echo json_encode($json_data);
+			} catch (Exception $e) {
+				log_message('error', 'Exception in list_data: ' . $e->getMessage());
+				ob_end_clean();
+				header('Content-Type: application/json');
+				echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
+			}
+		} elseif ($para1 == "approval") {
+			if ($legion_info['status']) {
+				if ($para2 == 0) {
+					$data['approval_status'] = 1;
+					$this->session->set_flashdata('alert', 'approve');
+				} elseif ($para2 == 1) {
+					$data['approval_status'] = 0;
+					$this->session->set_flashdata('alert', 'unpublish');
+				}
+				$this->db->where('happy_story_id', $para3);
+				$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+				$this->db->update('happy_story', $data);
+				log_message('debug', 'Approval query: ' . $this->db->last_query());
+				$result = $this->db->affected_rows();
+				if ($result > 0) {
+					log_message('debug', 'Approval status updated for happy_story_id: ' . $para3);
+				} else {
+					log_message('debug', 'Failed to update approval status for happy_story_id: ' . $para3);
+				}
+				ob_end_clean();
+				recache();
+			} else {
+				log_message('debug', 'No legion assigned for approval | Message: ' . $legion_info['message']);
+				$this->session->set_flashdata('failed', $legion_info['message']);
+				ob_end_clean();
+				redirect(base_url() . 'admin/stories');
+			}
+		} elseif ($para1 == "view_story") {
+			$page_data['top'] = "stories/stories.php";
+			$page_data['folder'] = "stories";
+			$page_data['file'] = "view_story.php";
+			$page_data['bottom'] = "stories/stories.php";
+			if ($legion_info['status']) {
+				$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+				$page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->result();
+				log_message('debug', 'View story query: ' . $this->db->last_query());
+				if (empty($page_data['get_story'])) {
+					log_message('debug', 'Story not found or unauthorized for happy_story_id: ' . $para2 . ', legion_id: ' . $legion_info['legion_id']);
+					$this->session->set_flashdata('failed', 'Story not found or not authorized.');
+					ob_end_clean();
+					redirect(base_url() . 'admin/stories');
+				}
+			} else {
+				log_message('debug', 'No legion assigned for view_story | Message: ' . $legion_info['message']);
+				$this->session->set_flashdata('failed', $legion_info['message']);
+				ob_end_clean();
+				redirect(base_url() . 'admin/stories');
+			}
+			$page_data['page_name'] = "stories";
+			ob_end_clean();
+			$this->load->view('back/index', $page_data);
+		} elseif ($para1 == "delete") {
+			if (demo()) {
+				$this->session->set_flashdata('alert', 'demo_msg');
+				ob_end_clean();
+				return false;
+			}
+			if ($legion_info['status']) {
+				$this->db->where('happy_story_id', $para2);
+				$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+				$story = $this->db->get('happy_story')->row();
+				log_message('debug', 'Delete story query: ' . $this->db->last_query());
+				if ($story) {
+					if ($story->image && file_exists('uploads/happy_story_image/' . $story->image)) {
+						unlink('uploads/happy_story_image/' . $story->image);
+					}
+					if ($story->activity_photo && file_exists('uploads/happy_story_image/' . $story->activity_photo)) {
+						unlink('uploads/happy_story_image/' . $story->activity_photo);
+					}
+					if ($story->press_coverage && file_exists('uploads/happy_story_image/' . $story->press_coverage)) {
+						unlink('uploads/happy_story_image/' . $story->press_coverage);
+					}
+					$video_exist = $this->db->get_where("story_video", array("story_id" => $para2))->result();
+					if ($video_exist) {
+						$vid_type = $this->db->get_where("story_video", array("story_id" => $para2))->row()->type;
+						if ($vid_type == 'upload') {
+							$video_src = $this->db->get_where("story_video", array("story_id" => $para2))->row()->video_src;
+							if (file_exists($video_src)) {
+								unlink($video_src);
+							}
+						}
+						$this->db->where('story_id', $para2);
+						$this->db->delete('story_video');
+					}
+					$this->db->where('happy_story_id', $para2);
+					$this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+					$result = $this->db->delete('happy_story');
+					log_message('debug', 'Delete query: ' . $this->db->last_query());
+					recache();
+					if ($result) {
+						log_message('debug', 'Story deleted successfully for happy_story_id: ' . $para2);
+						$this->session->set_flashdata('alert', 'delete');
+					} else {
+						log_message('debug', 'Failed to delete story for happy_story_id: ' . $para2);
+						$this->session->set_flashdata('alert', 'failed_delete');
+					}
+				} else {
+					log_message('debug', 'Story not found or unauthorized for deletion, happy_story_id: ' . $para2);
+					$this->session->set_flashdata('alert', 'failed_delete');
+				}
+			} else {
+				log_message('debug', 'No legion assigned for delete | Message: ' . $legion_info['message']);
+				$this->session->set_flashdata('failed', $legion_info['message']);
+			}
+			ob_end_clean();
+			redirect(base_url() . 'admin/stories');
+		} elseif ($para1 == "add_story") {
+			$page_data['top'] = "stories/index.php";
+			$page_data['folder'] = "stories";
+			$page_data['file'] = "add_story.php";
+			$page_data['bottom'] = "stories/index.php";
+			$page_data['page_name'] = "stories";
+			$admin_name = $this->session->userdata('name');
+			if (!$legion_info['status']) {
+				log_message('debug', 'No legion assigned for add_story | Message: ' . $legion_info['message']);
+				$this->session->set_flashdata('failed', $legion_info['message']);
+				ob_end_clean();
+				redirect('admin/stories');
+			}
+			$page_data['legion'] = $legion_info;
+			$page_data['legion']['admin_name'] = $admin_name;
+			ob_end_clean();
+			$this->load->view('back/index', $page_data);
+		}
+	}
 
 
 
@@ -4413,7 +4374,7 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 	// 	$data['posted_by'] = $this->input->post('member_name');
 	// 	$data['partner_name'] = $this->input->post('partner_name');
 	// 	$data['description'] = $this->input->post('description');
-    //    // Get admin_id from session
+	//    // Get admin_id from session
 	// 	// $admin_id = $this->session->userdata('admin_id');
 	// 	$admin_id = 26
 	// 	// Fetch legion_id from admin_legion table
@@ -4437,37 +4398,37 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 
 	// 	error_reporting(E_ALL);
 	// 	ini_set('display_errors', 1);
-	
+
 	// 	$config = $this->set_upload_happy_story_image();
 	// 	$this->load->library('upload');
 	// 	$this->upload->initialize($config);
-	
+
 	// 	if (!empty($_FILES['story_photo']['name'])) {
 	// 		$id = uniqid();
 	// 		$path = $_FILES['story_photo']['name'];
 	// 		$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
 	// 		$allowed_ext = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
-	
+
 	// 		if (in_array($ext, $allowed_ext)) {
 	// 			// Save original image
 	// 			$image_name = 'happy_story_' . $id . $ext;
 	// 			$config['file_name'] = $image_name;
-	
+
 	// 			if (!$this->upload->do_upload('story_photo')) {
 	// 				$this->session->set_flashdata('alert', 'failed_upload');
 	// 				redirect(base_url('admin/stories'), 'refresh');
 	// 			}
-	
+
 	// 			// Get upload data
 	// 			$upload_data = $this->upload->data();
 	// 			$source_image = $upload_data['full_path'];
-	
+
 	// 			// Now generate the thumbnail
 	// 			$thumb_name = 'happy_story_' . $id . '_thumb' . $ext;
 	// 			$thumb_path = $upload_data['file_path'] . $thumb_name;
-	
+
 	// 			$this->load->library('image_lib');
-	
+
 	// 			$thumb_config = array(
 	// 				'image_library' => 'gd2',
 	// 				'source_image'  => $source_image,
@@ -4476,14 +4437,14 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 	// 				'width'         => 200,
 	// 				'height'        => 200
 	// 			);
-	
+
 	// 			$this->image_lib->initialize($thumb_config);
-	
+
 	// 			if (!$this->image_lib->resize()) {
 	// 				log_message('error', 'Thumbnail creation failed: ' . $this->image_lib->display_errors());
 	// 				$this->image_lib->clear();
 	// 			}
-	
+
 	// 			$images[] = array(
 	// 				'image' => $image_name,
 	// 				'thumb' => $thumb_name
@@ -4494,7 +4455,7 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 	// 			redirect(base_url('admin/stories'), 'refresh');
 	// 		}
 	// 	}
-	
+
 	// 	// Insert into DB
 	// 	// $this->db->insert('happy_story', $data);
 	// 	// $result = $this->db->affected_rows();
@@ -4507,179 +4468,185 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 	// 	redirect('admin/stories');
 	// }
 
-	public function add_story_details() 
-{
-	try {
-		$this->load->library('form_validation');
-		$this->load->library('upload');
+	public function add_story_details()
+	{
+		try {
+			$this->load->library('form_validation');
+			$this->load->library('upload');
 
-		$admin_id = $this->session->userdata('admin_id');
-		$role_id = $this->session->userdata('role_id');
+			$admin_id = $this->session->userdata('admin_id');
+			$role_id = $this->session->userdata('role_id');
 
-		if (!$role_id || !in_array($role_id, [2, 8])) {
-			$this->session->set_flashdata('failed', ['general' => 'Only Presidents and Secretaries can add stories.']);
-			redirect(base_url('admin/stories'), 'refresh');
-			return;
-		}
-		if ($role_id == 2) {
-    $partner_name = 'President';
-} elseif ($role_id == 8) {
-    $partner_name = 'Secretary';
-} else {
-    $partner_name = NULL;
-}
+			if (!$role_id || !in_array($role_id, [2, 8])) {
+				$this->session->set_flashdata('failed', ['general' => 'Only Presidents and Secretaries can add stories.']);
+				redirect(base_url('admin/stories'), 'refresh');
+				return;
+			}
+			if ($role_id == 2) {
+				$partner_name = 'President';
+			} elseif ($role_id == 8) {
+				$partner_name = 'Secretary';
+			} else {
+				$partner_name = NULL;
+			}
 
-		$this->db->select('legion_id');
-		$this->db->from('admin_legion');
-		$this->db->where('admin_id', $admin_id);
-		$query = $this->db->get();
+			$this->db->select('legion_id');
+			$this->db->from('admin_legion');
+			$this->db->where('admin_id', $admin_id);
+			$query = $this->db->get();
 
-		if ($query->num_rows() > 0) {
-			$result = $query->row();
-			$legion_id = $result->legion_id;
-		} else {
-			$this->session->set_flashdata('failed', ['general' => 'Legion ID not found for this admin.']);
-			redirect('admin/stories/add_story');
-			return;
-		}
+			if ($query->num_rows() > 0) {
+				$result = $query->row();
+				$legion_id = $result->legion_id;
+			} else {
+				$this->session->set_flashdata('failed', ['general' => 'Legion ID not found for this admin.']);
+				redirect('admin/stories/add_story');
+				return;
+			}
 
-		// ✅ Form validation including program_date
-		$this->form_validation->set_rules('program_name', 'Program Name', 'required', ['required' => 'Program Name is required.']);
-		$this->form_validation->set_rules('program_area', 'Program Area', 'required', ['required' => 'Program Area is required.']);
-		$this->form_validation->set_rules('date', 'Date', 'required', ['required' => 'Date is required.']);
-		$this->form_validation->set_rules('program_date', 'Program Date', 'required', ['required' => 'Program Date is required.']);
-		$this->form_validation->set_rules('program_details', 'Program Details', 'required|min_length[10]', 
-			[
-				'required' => 'Program Details is required.',
-				'min_length' => 'Program Details must be at least 10 characters long.'
-			]);
+			// ✅ Form validation including program_date
+			$this->form_validation->set_rules('program_name', 'Program Name', 'required', ['required' => 'Program Name is required.']);
+			$this->form_validation->set_rules('program_area', 'Program Area', 'required', ['required' => 'Program Area is required.']);
+			$this->form_validation->set_rules('date', 'Date', 'required', ['required' => 'Date is required.']);
+			$this->form_validation->set_rules('program_date', 'Program Date', 'required', ['required' => 'Program Date is required.']);
+			$this->form_validation->set_rules(
+				'program_details',
+				'Program Details',
+				'required|min_length[10]',
+				[
+					'required' => 'Program Details is required.',
+					'min_length' => 'Program Details must be at least 10 characters long.'
+				]
+			);
 
-		$errors = [];
+			$errors = [];
 
-		if ($this->form_validation->run() == FALSE) {
-			$errors['program_name'] = form_error('program_name');
-			$errors['program_area'] = form_error('program_area');
-			$errors['date'] = form_error('date');
-			$errors['program_date'] = form_error('program_date');
-			$errors['program_details'] = form_error('program_details');
-			$this->session->set_flashdata('failed', $errors);
-			redirect('admin/stories/add_story');
-			return;
-		}
+			if ($this->form_validation->run() == FALSE) {
+				$errors['program_name'] = form_error('program_name');
+				$errors['program_area'] = form_error('program_area');
+				$errors['date'] = form_error('date');
+				$errors['program_date'] = form_error('program_date');
+				$errors['program_details'] = form_error('program_details');
+				$this->session->set_flashdata('failed', $errors);
+				redirect('admin/stories/add_story');
+				return;
+			}
 
-		$upload_path = FCPATH . 'uploads/happy_story_image/';
-		if (!is_dir($upload_path)) {
-			mkdir($upload_path, 0755, true);
-		}
+			$upload_path = FCPATH . 'uploads/happy_story_image/';
+			if (!is_dir($upload_path)) {
+				mkdir($upload_path, 0755, true);
+			}
 
-		$config = [
-			'upload_path' => $upload_path,
-			'allowed_types' => 'jpg|jpeg|png|pdf',
-			'max_size' => 10240,
-			'file_ext_tolower' => TRUE
-		];
+			$config = [
+				'upload_path' => $upload_path,
+				'allowed_types' => 'jpg|jpeg|png|pdf',
+				'max_size' => 10240,
+				'file_ext_tolower' => TRUE
+			];
 
-		$this->upload->initialize($config);
-		if (!$this->upload->do_upload('activity_photo')) {
-			$errors['activity_photo'] = $this->upload->display_errors('', '');
-			$this->session->set_flashdata('failed', $errors);
-			redirect('admin/stories/add_story');
-			return;
-		}
-		$activity_photo = $this->upload->data('file_name');
-		$activity_photo_size = $this->upload->data('file_size');
-		$activity_photo_ext = strtolower($this->upload->data('file_ext'));
-
-		if ($activity_photo_size < 10 || ($activity_photo_size > 5120 && $activity_photo_ext != '.pdf')) {
-			$errors['activity_photo'] = 'Activity Photo size must be between 10KB and 5MB.';
-			unlink($upload_path . $activity_photo);
-			$this->session->set_flashdata('failed', $errors);
-			redirect('admin/stories/add_story');
-			return;
-		}
-
-		$press_coverage = NULL;
-		if (!empty($_FILES['press_coverage']['name'])) {
 			$this->upload->initialize($config);
-			if (!$this->upload->do_upload('press_coverage')) {
-				$errors['press_coverage'] = $this->upload->display_errors('', '');
+			if (!$this->upload->do_upload('activity_photo')) {
+				$errors['activity_photo'] = $this->upload->display_errors('', '');
+				$this->session->set_flashdata('failed', $errors);
+				redirect('admin/stories/add_story');
+				return;
+			}
+			$activity_photo = $this->upload->data('file_name');
+			$activity_photo_size = $this->upload->data('file_size');
+			$activity_photo_ext = strtolower($this->upload->data('file_ext'));
+
+			if ($activity_photo_size < 10 || ($activity_photo_size > 5120 && $activity_photo_ext != '.pdf')) {
+				$errors['activity_photo'] = 'Activity Photo size must be between 10KB and 5MB.';
 				unlink($upload_path . $activity_photo);
 				$this->session->set_flashdata('failed', $errors);
 				redirect('admin/stories/add_story');
 				return;
 			}
-			$press_coverage = $this->upload->data('file_name');
-			$press_coverage_size = $this->upload->data('file_size');
-			$press_coverage_ext = strtolower($this->upload->data('file_ext'));
 
-			if ($press_coverage_size < 10 
-				|| ($press_coverage_size > 10240 && $press_coverage_ext == '.pdf') 
-				|| ($press_coverage_size > 5120 && $press_coverage_ext != '.pdf')) {
-				$errors['press_coverage'] = 'Press Coverage size must be between 10KB and 5MB for images or 50KB and 10MB for PDFs.';
+			$press_coverage = NULL;
+			if (!empty($_FILES['press_coverage']['name'])) {
+				$this->upload->initialize($config);
+				if (!$this->upload->do_upload('press_coverage')) {
+					$errors['press_coverage'] = $this->upload->display_errors('', '');
+					unlink($upload_path . $activity_photo);
+					$this->session->set_flashdata('failed', $errors);
+					redirect('admin/stories/add_story');
+					return;
+				}
+				$press_coverage = $this->upload->data('file_name');
+				$press_coverage_size = $this->upload->data('file_size');
+				$press_coverage_ext = strtolower($this->upload->data('file_ext'));
+
+				if (
+					$press_coverage_size < 10
+					|| ($press_coverage_size > 10240 && $press_coverage_ext == '.pdf')
+					|| ($press_coverage_size > 5120 && $press_coverage_ext != '.pdf')
+				) {
+					$errors['press_coverage'] = 'Press Coverage size must be between 10KB and 5MB for images or 50KB and 10MB for PDFs.';
+					unlink($upload_path . $activity_photo);
+					unlink($upload_path . $press_coverage);
+					$this->session->set_flashdata('failed', $errors);
+					redirect('admin/stories/add_story');
+					return;
+				}
+
+				if ($press_coverage_ext == '.pdf' && $press_coverage_size < 50) {
+					$errors['press_coverage'] = 'Press Coverage PDF size must be at least 50KB.';
+					unlink($upload_path . $activity_photo);
+					unlink($upload_path . $press_coverage);
+					$this->session->set_flashdata('failed', $errors);
+					redirect('admin/stories/add_story');
+					return;
+				}
+			}
+
+			$admin_name = $this->session->userdata('name');
+			log_message('info', 'Admin Name: ' . $admin_name);
+
+			// ✅ Add program_date to the data array
+			$story_data = [
+				'legion_id' => $legion_id,
+				'date' => $this->input->post('date'),
+				'program_date' => $this->input->post('program_date'),
+				'title' => $this->input->post('program_name'),
+				'description' => $this->input->post('program_details'),
+				'image' => '',
+				'activity_photo' => $activity_photo,
+				'press_coverage' => $press_coverage,
+				'partner_name' => NULL,
+				'posted_by' => $admin_id,
+				'member_name' => $admin_name,
+				'legion_name' => $this->input->post('legion_name'),
+				'area_name' => $this->input->post('area'),
+				'program_area' => $this->input->post('program_area'),
+				'partner_name'   => $partner_name,
+				'approval_status' => 0
+			];
+
+			log_message('info', '$story_data ' . $admin_name);
+
+			if ($this->db->insert('happy_story', $story_data)) {
+				$this->session->set_flashdata('success', 'Story added successfully!');
+				redirect('admin/stories');
+				return;
+			} else {
+				$errors['general'] = 'Failed to add story to database.';
 				unlink($upload_path . $activity_photo);
-				unlink($upload_path . $press_coverage);
+				if ($press_coverage) {
+					unlink($upload_path . $press_coverage);
+				}
 				$this->session->set_flashdata('failed', $errors);
-				redirect('admin/stories/add_story');
+				redirect('admin/stories');
 				return;
 			}
-
-			if ($press_coverage_ext == '.pdf' && $press_coverage_size < 50) {
-				$errors['press_coverage'] = 'Press Coverage PDF size must be at least 50KB.';
-				unlink($upload_path . $activity_photo);
-				unlink($upload_path . $press_coverage);
-				$this->session->set_flashdata('failed', $errors);
-				redirect('admin/stories/add_story');
-				return;
-			}
-		}
-
-		$admin_name = $this->session->userdata('name');
-		log_message('info', 'Admin Name: ' . $admin_name);
-
-		// ✅ Add program_date to the data array
-		$story_data = [
-			'legion_id' => $legion_id,
-			'date' => $this->input->post('date'),
-			'program_date' => $this->input->post('program_date'),
-			'title' => $this->input->post('program_name'),
-			'description' => $this->input->post('program_details'),
-			'image' => '',
-			'activity_photo' => $activity_photo,
-			'press_coverage' => $press_coverage,
-			'partner_name' => NULL,
-			'posted_by' => $admin_id,
-			'member_name' => $admin_name,
-			'legion_name' => $this->input->post('legion_name'),
-			'area_name' => $this->input->post('area'),
-			'program_area' => $this->input->post('program_area'),
-			 'partner_name'   => $partner_name,
-			'approval_status' => 0
-		];
-
-		log_message('info', '$story_data ' . $admin_name);
-
-		if ($this->db->insert('happy_story', $story_data)) {
-			$this->session->set_flashdata('success', 'Story added successfully!');
-			redirect('admin/stories');
-			return;
-		} else {
-			$errors['general'] = 'Failed to add story to database.';
-			unlink($upload_path . $activity_photo);
-			if ($press_coverage) {
-				unlink($upload_path . $press_coverage);
-			}
+		} catch (Exception $e) {
+			$errors['general'] = 'An unexpected error occurred. Please try again.';
 			$this->session->set_flashdata('failed', $errors);
-			redirect('admin/stories');
-			return;
+			redirect('admin/stories/add_story');
 		}
-	} catch (Exception $e) {
-		$errors['general'] = 'An unexpected error occurred. Please try again.';
-		$this->session->set_flashdata('failed', $errors);
-		redirect('admin/stories/add_story');
 	}
-}
 
-	
+
 	function send_sms($para1 = "", $para2 = "")
 	{
 		if ($this->admin_permission() == FALSE) {
@@ -4776,8 +4743,7 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 					$page_data['danger_alert'] = translate("something_went_wrong!");
 				}
 				$this->load->view('back/index', $page_data);
-			} elseif ($para1 == "list_data")
-			 {
+			} elseif ($para1 == "list_data") {
 
 				log_message('debug', "Earnings list_data called at line 4700 in Admin.php");
 
@@ -4866,81 +4832,76 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 					"recordsFiltered" => intval($totalFiltered),
 					"data"            => $data
 				);
-log_message('debug', 'Earnings list_data response: ' . print_r($json_data, true));
+				log_message('debug', 'Earnings list_data response: ' . print_r($json_data, true));
 				echo json_encode($json_data);
-			} 
-		elseif ($para1 == "view_detail") {
-    // Get payment record
-    $payment_details = $this->db->get_where('package_payment', [
-        'package_payment_id' => $para2
-    ])->row();
+			} elseif ($para1 == "view_detail") {
+				// Get payment record
+				$payment_details = $this->db->get_where('package_payment', [
+					'package_payment_id' => $para2
+				])->row();
 
-    // Get related member
-    $member_details = $this->db->get_where('member', [
-        'member_id' => $payment_details->member_id
-    ])->row();
+				// Get related member
+				$member_details = $this->db->get_where('member', [
+					'member_id' => $payment_details->member_id
+				])->row();
 
-    // Get related plan
-    $plan_details = $this->db->get_where('plan', [
-        'plan_id' => $payment_details->plan_id
-    ])->row();
-	
-
-    // Pass all data to the view
-    $data['payment'] = $payment_details;
-    $data['member']  = $member_details;
-    $data['plan']    = $plan_details;
-	$data['payment_id'] = $para2;
-	
-
-    log_message('debug', 'View Detail Called | payment_id: ' . $para2);
-    log_message('debug', 'Payment Data: ' . print_r($payment_details, true));
-    log_message('debug', 'Member Data: ' . print_r($member_details, true));
-    log_message('debug', 'Plan Data: ' . print_r($plan_details, true));
-
-    return $this->load->view('back/earnings/custom_payment_method_details', $data);
-}
-
-elseif ($para1 == "download_payment_pdf") {
-    $payment_id = (int) $para2;
-
-    $payment = $this->db->get_where('package_payment', ['package_payment_id' => $payment_id])->row();
-    if (!$payment) { show_error('Payment not found'); }
-
-    $member  = $this->db->get_where('member', ['member_id' => $payment->member_id])->row();
-    $plan    = $this->db->get_where('plan',   ['plan_id'   => $payment->plan_id])->row();
-
-    // --- Make logo dompdf-proof (no path issues)
-    $logo_path = FCPATH . 'uploads/logo1.jpg';
-    $logo_src  = file_exists($logo_path)
-        ? 'data:image/'.pathinfo($logo_path, PATHINFO_EXTENSION).';base64,'.base64_encode(file_get_contents($logo_path))
-        : '';
-
-    $data = [
-        'payment' => $payment,
-        'member'  => $member,
-        'plan'    => $plan,
-        'logoSrc' => $logo_src,      // pass base64 to the view
-        'system_title' => $this->system_title ?? 'YOUR COMPANY NAME',
-    ];
-
-    // Render HTML
-    $html = $this->load->view('back/earnings/payment_pdf', $data, true);
-
-    // Optional: drop a copy so you can open it in the browser if needed
-    // file_put_contents(FCPATH.'tmp/last_receipt.html', $html);
-
-    // Generate + stream
-    $this->load->library('pdf');
-    $this->pdf->loadHtml($html);
-    $this->pdf->setPaper('A4', 'portrait');
-    $this->pdf->render();
-    $this->pdf->stream("payment_receipt_{$payment_id}.pdf", ["Attachment" => 1]);
-}
+				// Get related plan
+				$plan_details = $this->db->get_where('plan', [
+					'plan_id' => $payment_details->plan_id
+				])->row();
 
 
+				// Pass all data to the view
+				$data['payment'] = $payment_details;
+				$data['member']  = $member_details;
+				$data['plan']    = $plan_details;
+				$data['payment_id'] = $para2;
 
-			elseif ($para1 == "download_cpm_bill_copy") {
+
+				log_message('debug', 'View Detail Called | payment_id: ' . $para2);
+				log_message('debug', 'Payment Data: ' . print_r($payment_details, true));
+				log_message('debug', 'Member Data: ' . print_r($member_details, true));
+				log_message('debug', 'Plan Data: ' . print_r($plan_details, true));
+
+				return $this->load->view('back/earnings/custom_payment_method_details', $data);
+			} elseif ($para1 == "download_payment_pdf") {
+				$payment_id = (int) $para2;
+
+				$payment = $this->db->get_where('package_payment', ['package_payment_id' => $payment_id])->row();
+				if (!$payment) {
+					show_error('Payment not found');
+				}
+
+				$member  = $this->db->get_where('member', ['member_id' => $payment->member_id])->row();
+				$plan    = $this->db->get_where('plan',   ['plan_id'   => $payment->plan_id])->row();
+
+				// --- Make logo dompdf-proof (no path issues)
+				$logo_path = FCPATH . 'uploads/logo1.jpg';
+				$logo_src  = file_exists($logo_path)
+					? 'data:image/' . pathinfo($logo_path, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($logo_path))
+					: '';
+
+				$data = [
+					'payment' => $payment,
+					'member'  => $member,
+					'plan'    => $plan,
+					'logoSrc' => $logo_src,      // pass base64 to the view
+					'system_title' => $this->system_title ?? 'YOUR COMPANY NAME',
+				];
+
+				// Render HTML
+				$html = $this->load->view('back/earnings/payment_pdf', $data, true);
+
+				// Optional: drop a copy so you can open it in the browser if needed
+				// file_put_contents(FCPATH.'tmp/last_receipt.html', $html);
+
+				// Generate + stream
+				$this->load->library('pdf');
+				$this->pdf->loadHtml($html);
+				$this->pdf->setPaper('A4', 'portrait');
+				$this->pdf->render();
+				$this->pdf->stream("payment_receipt_{$payment_id}.pdf", ["Attachment" => 1]);
+			} elseif ($para1 == "download_cpm_bill_copy") {
 				$cpm_bill_copy = $this->db->get_where('package_payment', array('package_payment_id' => $para2))->row()->custom_payment_method_bill_copy;
 				$this->load->helper('download');
 				$link = 'uploads/custom_payment_method_bill_image/' . $cpm_bill_copy;
@@ -5010,8 +4971,7 @@ elseif ($para1 == "download_payment_pdf") {
 	{
 		if ($this->admin_permission() == FALSE) {
 			redirect(base_url() . 'admin/login', 'refresh');
-		}
-		 else {
+		} else {
 			$page_data['title'] = "Admin || " . $this->system_title;
 			if ($para1 == "") {
 				$page_data['top'] = "contact_messages/index.php";
@@ -5029,12 +4989,12 @@ elseif ($para1 == "download_payment_pdf") {
 				} elseif ($this->session->flashdata('alert') == "demo_msg") {
 					$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
 				}
-  				
+
 
 				$this->load->view('back/index', $page_data);
 			} elseif ($para1 == "list_data") {
 
-				log_message('debug'," the list parta called");
+				log_message('debug', " the list parta called");
 				$columns = array(
 					0 => 'contact_message_id',
 					1 => 'name',
@@ -6472,152 +6432,152 @@ elseif ($para1 == "download_payment_pdf") {
 
 	function packages($para1 = "", $para2 = "")
 	{
-	     //ini_set('display_errors',1);
-	    // error_reporting(E_ALL);
+		//ini_set('display_errors',1);
+		// error_reporting(E_ALL);
 		if ($this->admin_permission() == FALSE) {
 			redirect(base_url() . 'admin/login', 'refresh');
 		} else {
 			$page_data['title'] = "Admin || " . $this->system_title;
-if ($para1 == "") {
-	$page_data['top'] = "packages/index.php";
-	$page_data['folder'] = "packages";
-	$page_data['file'] = "index.php";
-	$page_data['bottom'] = "packages/index.php";
-	$plans = $this->db->where('contribution', 0)->get("plan")->result();
-	// Calculate total_amount = amount + gst for each plan
-	foreach ($plans as $plan) {
-		$gst_amount = ($plan->amount * $plan->gst) / 100;
-		$plan->total_amount = $plan->amount + $gst_amount;
-	}
-	$page_data['all_plans'] = $plans;
-	//echo '<pre>';print_r($page_data);exit;
-	if ($this->session->flashdata('alert') == "edit") {
-		$page_data['success_alert'] = translate("you_have_successfully_edited_the_package!");
-	} elseif ($this->session->flashdata('alert') == "add") {
-		$page_data['success_alert'] = translate("you_have_successfully_added_the_package!");
-	} elseif ($this->session->flashdata('alert') == "delete") {
-		$page_data['danger_alert'] = translate("you_have_successfully_deleted_the_package!");
-	} elseif ($this->session->flashdata('alert') == "failed_image") {
-		$page_data['danger_alert'] = translate("failed_to_upload_your_image._make_sure_the_image_is_JPG,_JPEG_or_PNG!");
-	} elseif ($this->session->flashdata('alert') == "demo_msg") {
-		$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
-	}
-} elseif ($para1 == "add_package") {
-	$page_data['top'] = "packages/packages.php";
-	$page_data['folder'] = "packages";
-	$page_data['file'] = "add_package.php";
-	$page_data['bottom'] = "packages/packages.php";
-} elseif ($para1 == "do_add") {
-	$data['name'] = $this->input->post('name');
-	$data['amount'] = $this->input->post('amount');
-	$data['gst'] = $this->input->post('gst');
-	$data['start_date'] = $this->input->post('start_date');
-	$data['end_date'] = $this->input->post('end_date');
-	$data['contribution'] = 0;
+			if ($para1 == "") {
+				$page_data['top'] = "packages/index.php";
+				$page_data['folder'] = "packages";
+				$page_data['file'] = "index.php";
+				$page_data['bottom'] = "packages/index.php";
+				$plans = $this->db->where('contribution', 0)->get("plan")->result();
+				// Calculate total_amount = amount + gst for each plan
+				foreach ($plans as $plan) {
+					$gst_amount = ($plan->amount * $plan->gst) / 100;
+					$plan->total_amount = $plan->amount + $gst_amount;
+				}
+				$page_data['all_plans'] = $plans;
+				//echo '<pre>';print_r($page_data);exit;
+				if ($this->session->flashdata('alert') == "edit") {
+					$page_data['success_alert'] = translate("you_have_successfully_edited_the_package!");
+				} elseif ($this->session->flashdata('alert') == "add") {
+					$page_data['success_alert'] = translate("you_have_successfully_added_the_package!");
+				} elseif ($this->session->flashdata('alert') == "delete") {
+					$page_data['danger_alert'] = translate("you_have_successfully_deleted_the_package!");
+				} elseif ($this->session->flashdata('alert') == "failed_image") {
+					$page_data['danger_alert'] = translate("failed_to_upload_your_image._make_sure_the_image_is_JPG,_JPEG_or_PNG!");
+				} elseif ($this->session->flashdata('alert') == "demo_msg") {
+					$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
+				}
+			} elseif ($para1 == "add_package") {
+				$page_data['top'] = "packages/packages.php";
+				$page_data['folder'] = "packages";
+				$page_data['file'] = "add_package.php";
+				$page_data['bottom'] = "packages/packages.php";
+			} elseif ($para1 == "do_add") {
+				$data['name'] = $this->input->post('name');
+				$data['amount'] = $this->input->post('amount');
+				$data['gst'] = $this->input->post('gst');
+				$data['start_date'] = $this->input->post('start_date');
+				$data['end_date'] = $this->input->post('end_date');
+				$data['contribution'] = 0;
 
-	if (!empty($_POST['exp_int_status'])) {
-		$data['exp_int_status'] = 1;
-	} else {
-		$data['exp_int_status'] = 0;
-	}
+				if (!empty($_POST['exp_int_status'])) {
+					$data['exp_int_status'] = 1;
+				} else {
+					$data['exp_int_status'] = 0;
+				}
 
-	if (!empty($_POST['dir_msg_status'])) {
-		$data['dir_msg_status'] = 1;
-	} else {
-		$data['dir_msg_status'] = 0;
-	}
+				if (!empty($_POST['dir_msg_status'])) {
+					$data['dir_msg_status'] = 1;
+				} else {
+					$data['dir_msg_status'] = 0;
+				}
 
-	$this->db->insert('plan', $data);
-	$plan_id = $this->db->insert_id();
+				$this->db->insert('plan', $data);
+				$plan_id = $this->db->insert_id();
 
-	log_message('info', 'Package added: plan_id=' . $plan_id . ', data=' . json_encode($data));
+				log_message('info', 'Package added: plan_id=' . $plan_id . ', data=' . json_encode($data));
 
-	if (!demo()) {
-		if ($_FILES['image']['name'] !== '') {
-			$id = $plan_id;
-			$path = $_FILES['image']['name'];
-			$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
-			if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
-				$this->Crud_model->file_up("image", "plan", $id, '', '', $ext);
-				$images[] = array('image' => 'plan_' . $id . $ext, 'thumb' => 'plan_' . $id . '_thumb' . $ext);
-				$data['image'] = json_encode($images);
-			} else {
-				$this->session->set_flashdata('alert', 'failed_image');
-				redirect(base_url() . 'admin/packages', 'refresh');
-			}
-		}
-	}
+				if (!demo()) {
+					if ($_FILES['image']['name'] !== '') {
+						$id = $plan_id;
+						$path = $_FILES['image']['name'];
+						$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
+						if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
+							$this->Crud_model->file_up("image", "plan", $id, '', '', $ext);
+							$images[] = array('image' => 'plan_' . $id . $ext, 'thumb' => 'plan_' . $id . '_thumb' . $ext);
+							$data['image'] = json_encode($images);
+						} else {
+							$this->session->set_flashdata('alert', 'failed_image');
+							redirect(base_url() . 'admin/packages', 'refresh');
+						}
+					}
+				}
 
-	$this->db->where('plan_id', $plan_id);
-	$result = $this->db->update('plan', $data);
-	recache();
-	if ($result) {
-		$this->session->set_flashdata('alert', 'add');
-		redirect(base_url() . 'admin/packages', 'refresh');
-	} else {
-		echo "Data Failed to Add!";
-	}
-	exit;
-} elseif ($para1 == "edit_package") {
-	$page_data['top'] = "packages/packages.php";
-	$page_data['folder'] = "packages";
-	$page_data['file'] = "edit_package.php";
-	$page_data['bottom'] = "packages/packages.php";
-	$page_data['get_plan'] = $this->db->get_where("plan", array("plan_id" => $para2))->result();
-} elseif ($para1 == "update") {
-	/* echo '<pre>';print_r($_POST);
+				$this->db->where('plan_id', $plan_id);
+				$result = $this->db->update('plan', $data);
+				recache();
+				if ($result) {
+					$this->session->set_flashdata('alert', 'add');
+					redirect(base_url() . 'admin/packages', 'refresh');
+				} else {
+					echo "Data Failed to Add!";
+				}
+				exit;
+			} elseif ($para1 == "edit_package") {
+				$page_data['top'] = "packages/packages.php";
+				$page_data['folder'] = "packages";
+				$page_data['file'] = "edit_package.php";
+				$page_data['bottom'] = "packages/packages.php";
+				$page_data['get_plan'] = $this->db->get_where("plan", array("plan_id" => $para2))->result();
+			} elseif ($para1 == "update") {
+				/* echo '<pre>';print_r($_POST);
 	echo '<br />'; 
 	echo '<pre>';print_r($_FILES);exit;*/
-	$plan_id = $this->input->post('plan_id');
-	$data['name'] = $this->input->post('name');
-	$data['amount'] = $this->input->post('amount');
-	$data['gst'] = $this->input->post('gst');
-	$data['start_date'] = $this->input->post('start_date');
-	$data['end_date'] = $this->input->post('end_date');
-	//	$data['express_interest'] = (!empty($this->input->post('express_interest'))?$this->input->post('express_interest'):'');
-	//	$data['direct_messages'] = $this->input->post('direct_messages');
-	//	$data['photo_gallery'] = $this->input->post('photo_gallery');
+				$plan_id = $this->input->post('plan_id');
+				$data['name'] = $this->input->post('name');
+				$data['amount'] = $this->input->post('amount');
+				$data['gst'] = $this->input->post('gst');
+				$data['start_date'] = $this->input->post('start_date');
+				$data['end_date'] = $this->input->post('end_date');
+				//	$data['express_interest'] = (!empty($this->input->post('express_interest'))?$this->input->post('express_interest'):'');
+				//	$data['direct_messages'] = $this->input->post('direct_messages');
+				//	$data['photo_gallery'] = $this->input->post('photo_gallery');
 
-	if (!empty($_POST['exp_int_status'])) {
-		$data['exp_int_status'] = 1;
-	} else {
-		$data['exp_int_status'] = 0;
-	}
+				if (!empty($_POST['exp_int_status'])) {
+					$data['exp_int_status'] = 1;
+				} else {
+					$data['exp_int_status'] = 0;
+				}
 
-	if (!empty($_POST['dir_msg_status'])) {
-		$data['dir_msg_status'] = 1;
-	} else {
-		$data['dir_msg_status'] = 0;
-	}
+				if (!empty($_POST['dir_msg_status'])) {
+					$data['dir_msg_status'] = 1;
+				} else {
+					$data['dir_msg_status'] = 0;
+				}
 
-	if (!demo()) {
-		if ($_FILES['image']['name'] !== '') {
-			$id = $plan_id;
-			$path = $_FILES['image']['name'];
-			$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
-			if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
-				$this->Crud_model->file_up("image", "plan", $id, '', '', $ext);
-				$images[] = array('image' => 'plan_' . $id . $ext, 'thumb' => 'plan_' . $id . '_thumb' . $ext);
-				$data['image'] = json_encode($images);
-			} else {
-				$this->session->set_flashdata('alert', 'failed_image');
-				redirect(base_url() . 'admin/packages', 'refresh');
-			}
-		}
-	}
-	$this->db->where('plan_id', $plan_id);
-	$result = $this->db->update('plan', $data);
+				if (!demo()) {
+					if ($_FILES['image']['name'] !== '') {
+						$id = $plan_id;
+						$path = $_FILES['image']['name'];
+						$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
+						if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
+							$this->Crud_model->file_up("image", "plan", $id, '', '', $ext);
+							$images[] = array('image' => 'plan_' . $id . $ext, 'thumb' => 'plan_' . $id . '_thumb' . $ext);
+							$data['image'] = json_encode($images);
+						} else {
+							$this->session->set_flashdata('alert', 'failed_image');
+							redirect(base_url() . 'admin/packages', 'refresh');
+						}
+					}
+				}
+				$this->db->where('plan_id', $plan_id);
+				$result = $this->db->update('plan', $data);
 
-	log_message('info', 'Package updated: plan_id=' . $plan_id . ', data=' . json_encode($data));
+				log_message('info', 'Package updated: plan_id=' . $plan_id . ', data=' . json_encode($data));
 
-	recache();
-	if ($result) {
-		$this->session->set_flashdata('alert', 'edit');
-		redirect(base_url() . 'admin/packages', 'refresh');
-	} else {
-		echo "Data Failed to Edit!";
-	}
-	exit;
+				recache();
+				if ($result) {
+					$this->session->set_flashdata('alert', 'edit');
+					redirect(base_url() . 'admin/packages', 'refresh');
+				} else {
+					echo "Data Failed to Edit!";
+				}
+				exit;
 			} elseif ($para1 == "delete") {
 				if (demo()) {
 					$this->session->set_flashdata('alert', 'demo_msg');
@@ -6642,8 +6602,8 @@ if ($para1 == "") {
 
 	function general_settings($para1 = "")
 	{
-	   // ini_set('display_errors',1);
-	   // error_reporting(E_ALL);
+		// ini_set('display_errors',1);
+		// error_reporting(E_ALL);
 		if ($this->admin_permission() == FALSE) {
 			redirect(base_url() . 'admin/login', 'refresh');
 		} else {
@@ -9744,8 +9704,8 @@ if ($para1 == "") {
 	// **************************** Member profile details formate Module Start ****************************
 	public function download_member_profile_format()
 	{
-	     error_reporting(E_ALL);
-	     ini_set('display_errors',1);
+		error_reporting(E_ALL);
+		ini_set('display_errors', 1);
 		// Load library
 		$this->load->library('pdf');
 		// Load all views as normal
@@ -9764,25 +9724,25 @@ if ($para1 == "") {
 	}
 	public function download_member_profile_format2()
 	{
-	    // Get output html
-        $html = $this->output->get_output();
-        
-        // Load pdf library
-        $this->load->library('pdf');
-        
-        // Load HTML content
-        $this->pdf->loadHtml($html);
-        
-        // (Optional) Setup the paper size and orientation
-        $this->pdf->setPaper('A4', 'landscape');
-        
-        // Render the HTML as PDF
-        $this->pdf->render();
-        $fileName = 'Member_Profile_Format';
+		// Get output html
+		$html = $this->output->get_output();
+
+		// Load pdf library
+		$this->load->library('pdf');
+
+		// Load HTML content
+		$this->pdf->loadHtml($html);
+
+		// (Optional) Setup the paper size and orientation
+		$this->pdf->setPaper('A4', 'landscape');
+
+		// Render the HTML as PDF
+		$this->pdf->render();
+		$fileName = 'Member_Profile_Format';
 		$dompdf->stream($fileName . ".pdf", array("Attachment" => 0));
 	}
-	
-	
+
+
 
 	// **************************** Member profile details formate Module Start ****************************
 
@@ -10174,8 +10134,6 @@ if ($para1 == "") {
 			$page_data['page_name'] = "blog_page";
 			$this->load->view('back/index', $page_data);
 		}
-
-	
 	}
 
 
@@ -18753,81 +18711,84 @@ if ($para1 == "") {
 		}
 	}
 
-          /*-------Refer and Earn End-----------*/
-          
-    /*-------new code-----------*/
+	/*-------Refer and Earn End-----------*/
+
+	/*-------new code-----------*/
 	/* network start*/
 	public function network()
 	{
-		
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "profile";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "network";
-			$this->load->view('back/index', $page_data);
-		
-			
+
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "profile";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "network";
+		$this->load->view('back/index', $page_data);
 	}
-	
+
 	public function bio()
 	{
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "profile";
-			$page_data['file'] = "bio.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "network";
-			$this->load->view('back/index', $page_data);
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "profile";
+		$page_data['file'] = "bio.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "network";
+		$this->load->view('back/index', $page_data);
 	}
 	public function connection()
 	{
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "profile";
-			$page_data['file'] = "connection.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "network";
-			$this->load->view('back/index', $page_data);
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "profile";
+		$page_data['file'] = "connection.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "network";
+		$this->load->view('back/index', $page_data);
 	}
-	public function group(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "profile";
-			$page_data['file'] = "group.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "network";
-			$this->load->view('back/index', $page_data);
+	public function group()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "profile";
+		$page_data['file'] = "group.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "network";
+		$this->load->view('back/index', $page_data);
 	}
-	public function photos(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "profile";
-			$page_data['file'] = "photos.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "network";
-			$this->load->view('back/index', $page_data);
+	public function photos()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "profile";
+		$page_data['file'] = "photos.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "network";
+		$this->load->view('back/index', $page_data);
 	}
-	public function training(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "profile";
-			$page_data['file'] = "training.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "network";
-			$this->load->view('back/index', $page_data);
+	public function training()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "profile";
+		$page_data['file'] = "training.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "network";
+		$this->load->view('back/index', $page_data);
 	}
-	public function testimonials(){
+	public function testimonials()
+	{
 		$page_data['top'] = "new-Code/index.php";
 		$page_data['folder'] = "profile";
 		$page_data['file'] = "testimonials.php";
 		$page_data['bottom'] = "marriage_application_details/index.php";
 		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
 		$page_data['page_name'] = "network";
-		$this->load->view('back/index', $page_data);		
+		$this->load->view('back/index', $page_data);
 	}
-	public function network_picture(){
+	public function network_picture()
+	{
 		$page_data['top'] = "new-Code/index.php";
 		$page_data['folder'] = "picture";
 		$page_data['file'] = "index.php";
@@ -18836,34 +18797,38 @@ if ($para1 == "") {
 		$page_data['page_name'] = "network";
 		$this->load->view('back/index', $page_data);
 	}
-	public function network_group(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "group";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "network";
-			$this->load->view('back/index', $page_data);
+	public function network_group()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "group";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "network";
+		$this->load->view('back/index', $page_data);
 	}
-	public function my_group(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "group";
-			$page_data['file'] = "myGroup.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function my_group()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "group";
+		$page_data['file'] = "myGroup.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function group_content(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "group";
-			$page_data['file'] = "groupContent.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
-		}
-		public function view_topic(){
+	public function group_content()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "group";
+		$page_data['file'] = "groupContent.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
+	}
+	public function view_topic()
+	{
 		$page_data['top'] = "new-Code/index.php";
 		$page_data['folder'] = "group";
 		$page_data['file'] = "viewContent.php";
@@ -18871,55 +18836,59 @@ if ($para1 == "") {
 		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
 		$page_data['page_name'] = "marriage_application_details";
 		$this->load->view('back/index', $page_data);
-
 	}
-	public function inbox(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "inbox";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function inbox()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "inbox";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function composeMessage(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "inbox";
-			$page_data['file'] = "compose_msg.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function composeMessage()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "inbox";
+		$page_data['file'] = "compose_msg.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function sendMessage(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "inbox";
-			$page_data['file'] = "send_msg.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
-		}
-	public function readMessage(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "inbox";
-			$page_data['file'] = "read_msg.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
-
+	public function sendMessage()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "inbox";
+		$page_data['file'] = "send_msg.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function replayMessage(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "inbox";
-			$page_data['file'] = "reply_msg.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function readMessage()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "inbox";
+		$page_data['file'] = "read_msg.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function sentMessage(){
+	public function replayMessage()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "inbox";
+		$page_data['file'] = "reply_msg.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
+	}
+	public function sentMessage()
+	{
 		$page_data['top'] = "new-Code/index.php";
 		$page_data['folder'] = "inbox";
 		$page_data['file'] = "sent_msg.php";
@@ -18927,81 +18896,90 @@ if ($para1 == "") {
 		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
 		$page_data['page_name'] = "marriage_application_details";
 		$this->load->view('back/index', $page_data);
-}
-	public function add_group(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "group";
-			$page_data['file'] = "addGroup.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
 	}
-	public function network_connection(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "connection";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "network";
-			$this->load->view('back/index', $page_data);
+	public function add_group()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "group";
+		$page_data['file'] = "addGroup.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function network_msg(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "connection";
-			$page_data['file'] = "msg.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function network_connection()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "connection";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "network";
+		$this->load->view('back/index', $page_data);
 	}
-	public function add_connection(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "connection";
-			$page_data['file'] = "add_connection.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function network_msg()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "connection";
+		$page_data['file'] = "msg.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function network_testimonials(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "testimonials";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function add_connection()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "connection";
+		$page_data['file'] = "add_connection.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	
-	public function operations(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "operation";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "operation";
-			$this->load->view('back/index', $page_data);
+	public function network_testimonials()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "testimonials";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function event(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "event";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+
+	public function operations()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "operation";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "operation";
+		$this->load->view('back/index', $page_data);
 	}
-	public function registerEvent(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "event";
-			$page_data['file'] = "register_event.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function event()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "event";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function document(){
+	public function registerEvent()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "event";
+		$page_data['file'] = "register_event.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
+	}
+	public function document()
+	{
 		$page_data['top'] = "new-Code/index.php";
 		$page_data['folder'] = "document";
 		$page_data['file'] = "index.php";
@@ -19010,400 +18988,418 @@ if ($para1 == "") {
 		$page_data['page_name'] = "marriage_application_details";
 		$this->load->view('back/index', $page_data);
 	}
-	public function email_invition(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "email";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function email_invition()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "email";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function  palms_summary(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "palms";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function  palms_summary()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "palms";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function email_visitors(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "email";
-			$page_data['file'] = "visitor.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function email_visitors()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "email";
+		$page_data['file'] = "visitor.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function operation_mentor(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "email";
-			$page_data['file'] = "mentor.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function operation_mentor()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "email";
+		$page_data['file'] = "mentor.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function registration_portal(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "operation";
-			$page_data['file'] = "registration_portal.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function registration_portal()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "operation";
+		$page_data['file'] = "registration_portal.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function registration_add(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "operation";
-			$page_data['file'] = "registration_add.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "marriage_application_details";
-			$this->load->view('back/index', $page_data);
+	public function registration_add()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "operation";
+		$page_data['file'] = "registration_add.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "marriage_application_details";
+		$this->load->view('back/index', $page_data);
 	}
-	public function my_business(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "myBussiness";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "my_bussiness";
-			$this->load->view('back/index', $page_data);
+	public function my_business()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "myBussiness";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "my_bussiness";
+		$this->load->view('back/index', $page_data);
 	}
-	public function tracked(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "myBussiness";
-			$page_data['file'] = "track.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "my_bussiness";
-			$this->load->view('back/index', $page_data);
+	public function tracked()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "myBussiness";
+		$page_data['file'] = "track.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "my_bussiness";
+		$this->load->view('back/index', $page_data);
+	}
+	public function edit_delete_slip_one()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "myBussiness";
+		$page_data['file'] = "edit-one.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "my_bussiness";
+		$this->load->view('back/index', $page_data);
+	}
+	public function report()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "report";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "report";
+		$this->load->view('back/index', $page_data);
+	}
+	public function my_network()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "my_network";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "my_network";
+		$this->load->view('back/index', $page_data);
+	}
+	public function shortcuts()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "shortcuts";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$page_data['page_name'] = "shortcuts";
+		$this->load->view('back/index', $page_data);
+	}
+	public function otherUser()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "other";
+		$page_data['file'] = "index.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$this->load->view('back/index', $page_data);
+	}
+	public function otherGroup()
+	{
+		$page_data['top'] = "new-Code/index.php";
+		$page_data['folder'] = "other";
+		$page_data['file'] = "group.php";
+		$page_data['bottom'] = "marriage_application_details/index.php";
+		// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
+		$this->load->view('back/index', $page_data);
+	}
+	/*-------new End-----------*/
+
+	public function get_projects_by_date()
+	{
+		$range = $this->input->post('date_range');
+
+		if ($range) {
+			list($start_date, $end_date) = explode('|', $range);
+
+			// Fetch records where date is between selected range
+			$this->db->where('date >=', $start_date);
+			$this->db->where('date <=', $end_date);
+			$projects = $this->db->get('happy_story')->result();
+
+			// Load view and pass projects and date range
+			$this->load->library('pdf'); // assuming you use a PDF lib
+			$data['projects'] = $projects;
+			$data['start_date'] = $start_date;
+			$data['end_date'] = $end_date;
+
+			// Load view as HTML and convert to PDF
+			$html = $this->load->view('pdf/project_report', $data, true);
+			$this->pdf->create($html, 'project_report_' . date('YmdHis')); // see step 3 below
+		} else {
+			redirect('your_controller/form_page'); // fallback
 		}
-	public function edit_delete_slip_one(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "myBussiness";
-			$page_data['file'] = "edit-one.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "my_bussiness";
-			$this->load->view('back/index', $page_data);
+	}
+
+
+	public function generate_pdf()
+	{
+		// Get admin ID from session
+		$admin_id = $this->session->userdata('user_id');
+		log_message('debug', 'Admin ID from session: ' . ($admin_id ? $admin_id : 'Not set'));
+
+		if (!$admin_id) {
+			show_error('No admin is logged in.', 403);
+			return;
 		}
-	public function report(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "report";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "report";
-			$this->load->view('back/index', $page_data);
+
+		// Get posted date range
+		$date_range = $this->input->post('date_range');
+		log_message('debug', 'Date range received: ' . ($date_range ? $date_range : 'Not set'));
+		if (!$date_range) {
+			show_error('Date range is required', 400);
+			return;
 		}
-	 public function my_network(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "my_network";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "my_network";
-			$this->load->view('back/index', $page_data);
-	 }
-	 public function shortcuts(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "shortcuts";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$page_data['page_name'] = "shortcuts";
-			$this->load->view('back/index', $page_data);
-	 }
-	 public function otherUser(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "other";
-			$page_data['file'] = "index.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$this->load->view('back/index', $page_data);
-	 }
-	 public function otherGroup(){
-			$page_data['top'] = "new-Code/index.php";
-			$page_data['folder'] = "other";
-			$page_data['file'] = "group.php";
-			$page_data['bottom'] = "marriage_application_details/index.php";
-			// $page_data['application_data'] = $this->db->get_where("marriage_application_form", array("application_id" => $para2))->result();
-			$this->load->view('back/index', $page_data);
-	 }
-          /*-------new End-----------*/
 
-public function get_projects_by_date()
-{
-    $range = $this->input->post('date_range');
+		list($start_date, $end_date) = explode('|', $date_range);
+		log_message('debug', 'Date range parsed - Start: ' . $start_date . ', End: ' . $end_date);
 
-    if ($range) {
-        list($start_date, $end_date) = explode('|', $range);
+		// Load model and fetch project data from happy_story table
+		$this->load->model('HappyStory_model');
+		$data['projects'] = $this->HappyStory_model->get_projects_by_date($start_date, $end_date);
+		log_message('debug', 'Fetched ' . count($data['projects']) . ' project records');
 
-        // Fetch records where date is between selected range
-        $this->db->where('date >=', $start_date);
-        $this->db->where('date <=', $end_date);
-        $projects = $this->db->get('happy_story')->result();
+		// Fetch admin details
+		$this->db->select('member_name, legion_name, area_name');
+		$this->db->from('happy_story');
+		$this->db->where('posted_by', $admin_id);
+		$this->db->order_by('post_time', 'DESC');
+		$this->db->limit(1);
+		$query = $this->db->get();
+		log_message('debug', 'Admin query executed: ' . $this->db->last_query());
 
-        // Load view and pass projects and date range
-        $this->load->library('pdf'); // assuming you use a PDF lib
-        $data['projects'] = $projects;
-        $data['start_date'] = $start_date;
-        $data['end_date'] = $end_date;
+		if ($query->num_rows() > 0) {
+			$row = $query->row_array();
+			$data['member_name'] = htmlspecialchars($row['member_name'] ?? 'N/A');
+			$data['legion_name'] = htmlspecialchars($row['legion_name'] ?? 'N/A');
+			$data['area_name'] = htmlspecialchars($row['area_name'] ?? 'N/A');
+			log_message('debug', 'Admin data: ' . json_encode($row));
+		} else {
+			$data['member_name'] = 'N/A';
+			$data['legion_name'] = 'N/A';
+			$data['area_name'] = 'N/A';
+			log_message('debug', 'No admin data found for posted_by: ' . $admin_id);
+		}
 
-        // Load view as HTML and convert to PDF
-        $html = $this->load->view('pdf/project_report', $data, true);
-        $this->pdf->create($html, 'project_report_' . date('YmdHis')); // see step 3 below
-    } else {
-        redirect('your_controller/form_page'); // fallback
-    }
-}
+		// Set title and company
+		$formatted_start = date('d-m-Y', strtotime($start_date));
+		$formatted_end = date('d-m-Y', strtotime($end_date));
+		$data['title'] = "Report - $formatted_start to $formatted_end";
+		$data['company'] = 'Senior Chamber International';
 
+		// Load PDF library
+		$this->load->library('pdf');
 
-public function generate_pdf() {
-    // Get admin ID from session
-    $admin_id = $this->session->userdata('user_id');
-    log_message('debug', 'Admin ID from session: ' . ($admin_id ? $admin_id : 'Not set'));
+		// Load HTML content from view
+		$html = $this->load->view('pdf/project_report', $data, true);
 
-    if (!$admin_id) {
-        show_error('No admin is logged in.', 403);
-        return;
-    }
-
-    // Get posted date range
-    $date_range = $this->input->post('date_range');
-    log_message('debug', 'Date range received: ' . ($date_range ? $date_range : 'Not set'));
-    if (!$date_range) {
-        show_error('Date range is required', 400);
-        return;
-    }
-
-    list($start_date, $end_date) = explode('|', $date_range);
-    log_message('debug', 'Date range parsed - Start: ' . $start_date . ', End: ' . $end_date);
-
-    // Load model and fetch project data from happy_story table
-    $this->load->model('HappyStory_model');
-    $data['projects'] = $this->HappyStory_model->get_projects_by_date($start_date, $end_date);
-    log_message('debug', 'Fetched ' . count($data['projects']) . ' project records');
-
-    // Fetch admin details
-    $this->db->select('member_name, legion_name, area_name');
-    $this->db->from('happy_story');
-    $this->db->where('posted_by', $admin_id);
-    $this->db->order_by('post_time', 'DESC');
-    $this->db->limit(1);
-    $query = $this->db->get();
-    log_message('debug', 'Admin query executed: ' . $this->db->last_query());
-
-    if ($query->num_rows() > 0) {
-        $row = $query->row_array();
-        $data['member_name'] = htmlspecialchars($row['member_name'] ?? 'N/A');
-        $data['legion_name'] = htmlspecialchars($row['legion_name'] ?? 'N/A');
-        $data['area_name'] = htmlspecialchars($row['area_name'] ?? 'N/A');
-        log_message('debug', 'Admin data: ' . json_encode($row));
-    } else {
-        $data['member_name'] = 'N/A';
-        $data['legion_name'] = 'N/A';
-        $data['area_name'] = 'N/A';
-        log_message('debug', 'No admin data found for posted_by: ' . $admin_id);
-    }
-
-    // Set title and company
-    $formatted_start = date('d-m-Y', strtotime($start_date));
-    $formatted_end = date('d-m-Y', strtotime($end_date));
-    $data['title'] = "Report - $formatted_start to $formatted_end";
-    $data['company'] = 'Senior Chamber International';
-
-    // Load PDF library
-    $this->load->library('pdf');
-
-    // Load HTML content from view
-    $html = $this->load->view('pdf/project_report', $data, true);
-
-    // Create and render PDF
-    $this->pdf->create($html, 'project_report_' . date('dmY_His'));
-}
+		// Create and render PDF
+		$this->pdf->create($html, 'project_report_' . date('dmY_His'));
+	}
 
 
 
-public function generate() {
+	public function generate()
+	{
 
-   $admin_id = $this->session->userdata('admin_id'); // Get admin ID from session
-    log_message('debug', 'Admin ID from session: ' . ($admin_id ? $admin_id : 'Not set'));
-    log_message('debug', 'Session data: ' . json_encode($this->session->userdata()));
-
-
-    // Rest of the method remains the same
-    $range = $this->input->get('range');
-    log_message('debug', 'generate() called with date_range: ' . ($range ? $range : 'Not set'));
-    if (!$range) {
-        show_error('Date range is required', 400);
-        return;
-    }
-
-    list($start_date, $end_date) = explode('|', $range);
-    log_message('debug', 'Date range parsed - Start: ' . $start_date . ', End: ' . $end_date);
-
-    $this->load->model('Crud_model');
-    $data['report_data'] = $this->Crud_model->get_report_by_range($start_date, $end_date);
-    log_message('debug', 'Fetched ' . count($data['report_data']) . ' records for date range');
-
-    foreach ($data['report_data'] as $row) {
-        log_message('debug', 'Row: ' . json_encode($row));
-    }
-
-    if ($admin_id) {
-        $this->db->select('member_name, legion_name, area_name');
-        $this->db->from('happy_story');
-        $this->db->where('posted_by', $admin_id);
-        $this->db->order_by('post_time', 'DESC');
-        $this->db->limit(1);
-        $query = $this->db->get();
-        log_message('debug', 'Admin query executed: ' . $this->db->last_query());
-
-        if ($query->num_rows() > 0) {
-            $row = $query->row_array();
-            $data['member_name'] = htmlspecialchars($row['member_name'] ?? 'N/A');
-            $data['legion_name'] = htmlspecialchars($row['legion_name'] ?? 'N/A');
-            $data['area_name'] = htmlspecialchars($row['area_name'] ?? 'N/A');
-            log_message('debug', 'Admin data: ' . json_encode($row));
-        } else {
-            $data['member_name'] = 'N/A';
-            $data['legion_name'] = 'N/A';
-            $data['area_name'] = 'N/A';
-            log_message('debug', 'No admin data found for posted_by: ' . $admin_id);
-        }
-    } else {
-        $data['member_name'] = 'N/A';
-        $data['legion_name'] = 'N/A';
-        $data['area_name'] = 'N/A';
-        log_message('debug', 'No admin ID set, defaulting to N/A for admin data');
-    }
-
-    $formatted_start = date('d-m-Y', strtotime($start_date));
-    $formatted_end = date('d-m-Y', strtotime($end_date));
-    $data['title'] = "Report - $formatted_start to $formatted_end";
-    $data['company'] = "Senior Chamber International";
-
-    $this->load->library('pdf');
-    $html = $this->load->view('pdf/report_template', $data, true);
-    $this->pdf->create($html, 'Report_' . date('dmY_His'));
-}
-
-public function update_story($id)
-{
-    $this->load->model('Crud_model');
-
-    // Collect the POST data safely
-    $data = array(
-        'title'         => $this->input->post('story_name', true),
-        'date'          => $this->input->post('dated', true),
-        'program_date'  => $this->input->post('program_date', true), // ✅ New line added
-        'description'   => $this->input->post('description', true),
-        'program_area'  => $this->input->post('program_area', true),
-    );
-
-    // Handle file uploads for photos (if any)
-    if (!empty($_FILES['activity_photo']['name'])) {
-        $upload = $this->do_upload('activity_photo');
-        if ($upload['status'] === 'success') {
-            $data['activity_photo'] = $upload['file_name'];
-        } else {
-            $this->session->set_flashdata('error', $upload['error']);
-            redirect('admin/stories/edit_story/' . $id);
-            return;
-        }
-    }
-
-    if (!empty($_FILES['press_coverage']['name'])) {
-        $upload = $this->do_upload('press_coverage');
-        if ($upload['status'] === 'success') {
-            $data['press_coverage'] = $upload['file_name'];
-        } else {
-            $this->session->set_flashdata('error', $upload['error']);
-            redirect('admin/stories/edit_story/' . $id);
-            return;
-        }
-    }
-
-    log_message('debug', 'Update data: ' . print_r($data, true));
-
-    $update = $this->Crud_model->update_story($id, $data);
-
-    if ($update) {
-        $this->session->set_flashdata('success', 'Project updated successfully!');
-    } else {
-        $this->session->set_flashdata('error', 'Failed to update the project.');
-    }
-
-    redirect('admin/stories');
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-private function getLegionPrefix($legionId) {
-    // Define legion prefixes based on your legion system
-    $legionPrefixes = array(
-        1 => "LEG1",    // Legion 1
-        2 => "LEG2",    // Legion 2  
-        3 => "LEG3",    // Legion 3
-        4 => "LEG4",    // Legion 4
-        5 => "NATL",    // National Legion
-        6 => "PREM",    // Premium Legion
-        // Add more legion mappings as needed
-    );
-    
-    return isset($legionPrefixes[$legionId]) ? $legionPrefixes[$legionId] : "MEM";
-}
+		$admin_id = $this->session->userdata('admin_id'); // Get admin ID from session
+		log_message('debug', 'Admin ID from session: ' . ($admin_id ? $admin_id : 'Not set'));
+		log_message('debug', 'Session data: ' . json_encode($this->session->userdata()));
 
 
-public function get_areas_ajax() {
-    // Set JSON header
-    header('Content-Type: application/json');
-    
-    // Load model
-    $this->load->model('Crud_model');
-    
-    try {
-        // Get areas with legions including prefix
-        $areas = $this->Crud_model->get_areas_with_legions();
-        
-        log_message('debug', 'AJAX areas data: ' . json_encode($areas));
-        
-        echo json_encode([
-            'success' => true,
-            'data' => $areas
-        ]);
-    } catch (Exception $e) {
-        log_message('error', 'AJAX get_areas error: ' . $e->getMessage());
-        echo json_encode([
-            'success' => false,
-            'message' => 'Failed to load areas data'
-        ]);
-    }
-}
+		// Rest of the method remains the same
+		$range = $this->input->get('range');
+		log_message('debug', 'generate() called with date_range: ' . ($range ? $range : 'Not set'));
+		if (!$range) {
+			show_error('Date range is required', 400);
+			return;
+		}
+
+		list($start_date, $end_date) = explode('|', $range);
+		log_message('debug', 'Date range parsed - Start: ' . $start_date . ', End: ' . $end_date);
+
+		$this->load->model('Crud_model');
+		$data['report_data'] = $this->Crud_model->get_report_by_range($start_date, $end_date);
+		log_message('debug', 'Fetched ' . count($data['report_data']) . ' records for date range');
+
+		foreach ($data['report_data'] as $row) {
+			log_message('debug', 'Row: ' . json_encode($row));
+		}
+
+		if ($admin_id) {
+			$this->db->select('member_name, legion_name, area_name');
+			$this->db->from('happy_story');
+			$this->db->where('posted_by', $admin_id);
+			$this->db->order_by('post_time', 'DESC');
+			$this->db->limit(1);
+			$query = $this->db->get();
+			log_message('debug', 'Admin query executed: ' . $this->db->last_query());
+
+			if ($query->num_rows() > 0) {
+				$row = $query->row_array();
+				$data['member_name'] = htmlspecialchars($row['member_name'] ?? 'N/A');
+				$data['legion_name'] = htmlspecialchars($row['legion_name'] ?? 'N/A');
+				$data['area_name'] = htmlspecialchars($row['area_name'] ?? 'N/A');
+				log_message('debug', 'Admin data: ' . json_encode($row));
+			} else {
+				$data['member_name'] = 'N/A';
+				$data['legion_name'] = 'N/A';
+				$data['area_name'] = 'N/A';
+				log_message('debug', 'No admin data found for posted_by: ' . $admin_id);
+			}
+		} else {
+			$data['member_name'] = 'N/A';
+			$data['legion_name'] = 'N/A';
+			$data['area_name'] = 'N/A';
+			log_message('debug', 'No admin ID set, defaulting to N/A for admin data');
+		}
+
+		$formatted_start = date('d-m-Y', strtotime($start_date));
+		$formatted_end = date('d-m-Y', strtotime($end_date));
+		$data['title'] = "Report - $formatted_start to $formatted_end";
+		$data['company'] = "Senior Chamber International";
+
+		$this->load->library('pdf');
+		$html = $this->load->view('pdf/report_template', $data, true);
+		$this->pdf->create($html, 'Report_' . date('dmY_His'));
+	}
+
+	public function update_story($id)
+	{
+		$this->load->model('Crud_model');
+
+		// Collect the POST data safely
+		$data = array(
+			'title'         => $this->input->post('story_name', true),
+			'date'          => $this->input->post('dated', true),
+			'program_date'  => $this->input->post('program_date', true), // ✅ New line added
+			'description'   => $this->input->post('description', true),
+			'program_area'  => $this->input->post('program_area', true),
+		);
+
+		// Handle file uploads for photos (if any)
+		if (!empty($_FILES['activity_photo']['name'])) {
+			$upload = $this->do_upload('activity_photo');
+			if ($upload['status'] === 'success') {
+				$data['activity_photo'] = $upload['file_name'];
+			} else {
+				$this->session->set_flashdata('error', $upload['error']);
+				redirect('admin/stories/edit_story/' . $id);
+				return;
+			}
+		}
+
+		if (!empty($_FILES['press_coverage']['name'])) {
+			$upload = $this->do_upload('press_coverage');
+			if ($upload['status'] === 'success') {
+				$data['press_coverage'] = $upload['file_name'];
+			} else {
+				$this->session->set_flashdata('error', $upload['error']);
+				redirect('admin/stories/edit_story/' . $id);
+				return;
+			}
+		}
+
+		log_message('debug', 'Update data: ' . print_r($data, true));
+
+		$update = $this->Crud_model->update_story($id, $data);
+
+		if ($update) {
+			$this->session->set_flashdata('success', 'Project updated successfully!');
+		} else {
+			$this->session->set_flashdata('error', 'Failed to update the project.');
+		}
+
+		redirect('admin/stories');
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	private function getLegionPrefix($legionId)
+	{
+		// Define legion prefixes based on your legion system
+		$legionPrefixes = array(
+			1 => "LEG1",    // Legion 1
+			2 => "LEG2",    // Legion 2  
+			3 => "LEG3",    // Legion 3
+			4 => "LEG4",    // Legion 4
+			5 => "NATL",    // National Legion
+			6 => "PREM",    // Premium Legion
+			// Add more legion mappings as needed
+		);
+
+		return isset($legionPrefixes[$legionId]) ? $legionPrefixes[$legionId] : "MEM";
+	}
 
 
-// File upload helper function
-private function do_upload($field_name)
-{
-    $config['upload_path'] = './uploads/happy_story_image/';
-    $config['allowed_types'] = 'gif|jpg|png|jpeg';
-    $config['max_size'] = 2048; // 2MB max
-    $config['encrypt_name'] = TRUE;
+	public function get_areas_ajax()
+	{
+		// Set JSON header
+		header('Content-Type: application/json');
 
-    $this->load->library('upload', $config);
+		// Load model
+		$this->load->model('Crud_model');
 
-    if (!$this->upload->do_upload($field_name)) {
-        return ['status' => 'error', 'error' => $this->upload->display_errors()];
-    } else {
-        return ['status' => 'success', 'file_name' => $this->upload->data('file_name')];
-    }
-}
+		try {
+			// Get areas with legions including prefix
+			$areas = $this->Crud_model->get_areas_with_legions();
 
-// PhonePe admin endpoints removed as requested
+			log_message('debug', 'AJAX areas data: ' . json_encode($areas));
+
+			echo json_encode([
+				'success' => true,
+				'data' => $areas
+			]);
+		} catch (Exception $e) {
+			log_message('error', 'AJAX get_areas error: ' . $e->getMessage());
+			echo json_encode([
+				'success' => false,
+				'message' => 'Failed to load areas data'
+			]);
+		}
+	}
+
+
+	// File upload helper function
+	private function do_upload($field_name)
+	{
+		$config['upload_path'] = './uploads/happy_story_image/';
+		$config['allowed_types'] = 'gif|jpg|png|jpeg';
+		$config['max_size'] = 2048; // 2MB max
+		$config['encrypt_name'] = TRUE;
+
+		$this->load->library('upload', $config);
+
+		if (!$this->upload->do_upload($field_name)) {
+			return ['status' => 'error', 'error' => $this->upload->display_errors()];
+		} else {
+			return ['status' => 'success', 'file_name' => $this->upload->data('file_name')];
+		}
+	}
+
+	// PhonePe admin endpoints removed as requested
 
 
 }
