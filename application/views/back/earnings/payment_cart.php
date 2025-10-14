@@ -1,274 +1,709 @@
 <!--CONTENT CONTAINER-->
-<!--===================================================-->
 <div id="content-container">
-	<div id="page-head">
-		<!--Page Title-->
-		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-		<div id="page-title">
-			<h1 class="page-header text-overflow">
-				<i class="fa fa-shopping-cart"></i> <?php echo translate('payment_cart')?>
-			</h1>
-		</div>
-		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-		<!--End page title-->
-		<!--Breadcrumb-->
-		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-		<ol class="breadcrumb">
-			<li><a href="<?=base_url()?>admin"><?php echo translate('home')?></a></li>
-			<li><a href="<?=base_url()?>admin/earnings"><?php echo translate('earnings')?></a></li>
-			<li class="active"><?php echo translate('payment_cart')?></li>
-		</ol>
-		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-		<!--End breadcrumb-->
-	</div>
-	
-	<!--Page content-->
-	<!--===================================================-->
-	<div id="page-content">
-		<div class="row">
-			<!-- Cart Items -->
-			<div class="col-md-8">
-				<div class="panel">
-					<div class="panel-heading">
-						<h3 class="panel-title">
-							<i class="fa fa-list"></i> Selected Payments 
-							<span class="badge badge-primary"><?php echo count($cart_items); ?> Items</span>
-						</h3>
-					</div>
-					<div class="panel-body">
-						<div class="table-responsive">
-							<table class="table table-striped table-bordered">
-								<thead>
-									<tr>
-										<th width="5%">#</th>
-										<th>Member Name</th>
-										<th>Package</th>
-										<th>Amount</th>
-										<th width="10%">Action</th>
-									</tr>
-								</thead>
-								<tbody id="cart_items_body">
-									<?php 
-									$sl = 1;
-									$total = 0;
-									foreach($cart_items as $item): 
-										$total += $item['amount'];
-									?>
-									<tr data-item-id="<?php echo $item['id']; ?>">
-										<td><?php echo $sl++; ?></td>
-										<td><?php echo $item['memberName']; ?></td>
-										<td><?php echo $item['packageName']; ?></td>
-										<td class="item-amount">
-											<strong><?php echo currency('', 'def') . number_format($item['amount'], 2); ?></strong>
-										</td>
-										<td>
-											<button class="btn btn-danger btn-xs remove-item" data-id="<?php echo $item['id']; ?>">
-												<i class="fa fa-trash"></i> Remove
-											</button>
-										</td>
-									</tr>
-									<?php endforeach; ?>
-								</tbody>
-							</table>
-						</div>
-					</div>
-				</div>
-			</div>
-			
-			<!-- Cart Summary -->
-			<div class="col-md-4">
-				<div class="panel panel-primary">
-					<div class="panel-heading">
-						<h3 class="panel-title">
-							<i class="fa fa-calculator"></i> Payment Summary
-						</h3>
-					</div>
-					<div class="panel-body">
-						<div class="row">
-							<div class="col-xs-12">
-								<h4>Order Details</h4>
-								<hr style="margin: 10px 0;">
-							</div>
-						</div>
-						
-						<div class="row" style="margin-bottom: 10px;">
-							<div class="col-xs-6">
-								<strong>Total Items:</strong>
-							</div>
-							<div class="col-xs-6 text-right">
-								<span id="total_items"><?php echo count($cart_items); ?></span>
-							</div>
-						</div>
-						
-						<div class="row" style="margin-bottom: 10px;">
-							<div class="col-xs-6">
-								<strong>Subtotal:</strong>
-							</div>
-							<div class="col-xs-6 text-right">
-								<span id="subtotal"><?php echo currency('', 'def') . number_format($total, 2); ?></span>
-							</div>
-						</div>
-						
-						<hr style="margin: 15px 0;">
-						
-						<div class="row" style="margin-bottom: 20px;">
-							<div class="col-xs-6">
-								<h4 style="margin: 0;"><strong>Total Amount:</strong></h4>
-							</div>
-							<div class="col-xs-6 text-right">
-								<h4 style="margin: 0; color: #28a745;">
-									<strong id="grand_total"><?php echo currency('', 'def') . number_format($total, 2); ?></strong>
-								</h4>
-							</div>
-						</div>
-						
-						<div class="row">
-							<div class="col-xs-12">
-								<button class="btn btn-success btn-block btn-lg" id="proceed_to_payment">
-									<i class="fa fa-credit-card"></i> Proceed to PhonePe Payment
-								</button>
-								<a href="<?php echo base_url('admin/earnings'); ?>" class="btn btn-default btn-block" style="margin-top: 10px;">
-									<i class="fa fa-arrow-left"></i> Back to Earnings
-								</a>
-							</div>
-						</div>
-					</div>
-				</div>
-				
-				<!-- Payment Info -->
-				<div class="panel panel-info">
-					<div class="panel-heading">
-						<h3 class="panel-title">
-							<i class="fa fa-info-circle"></i> Payment Information
-						</h3>
-					</div>
-					<div class="panel-body">
-						<p><i class="fa fa-check-circle text-success"></i> Secure Payment via PhonePe</p>
-						<p><i class="fa fa-check-circle text-success"></i> All payments are encrypted</p>
-						<p><i class="fa fa-check-circle text-success"></i> Instant payment confirmation</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<!--===================================================-->
-	<!--End page content-->
+    <div id="page-head">
+        <div id="page-title">
+            <h1 class="page-header text-overflow">
+                <i class="fa fa-shopping-cart"></i> Payment Cart
+            </h1>
+        </div>
+        <ol class="breadcrumb">
+            <li><a href="<?=base_url()?>admin"><i class="fa fa-home"></i> Home</a></li>
+            <li><a href="<?=base_url()?>admin/bulkpayment"><i class="fa fa-money"></i> Bulk Payment</a></li>
+            <li class="active">Payment Cart</li>
+        </ol>
+    </div>
+    
+    <div id="page-content">
+        <!-- Toast Container -->
+        <div id="toast-container"></div>
+        
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-8">
+                <!-- Package Selection -->
+                <div class="card">
+                    <div class="card-header bg-purple">
+                        <i class="fa fa-gift"></i> Step 1: Choose Membership Package
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Select Package <span class="text-danger">*</span></label>
+                            <select id="package-select" class="form-control" required>
+                                <option value="">-- Choose Package --</option>
+                                <?php 
+                                if (isset($packages) && !empty($packages)) {
+                                    foreach ($packages as $pkg): 
+                                        $total = $pkg->amount + $pkg->gst;
+                                ?>
+                                <option value="<?php echo $pkg->plan_id; ?>" 
+                                        data-name="<?php echo htmlspecialchars($pkg->name); ?>"
+                                        data-price="<?php echo $total; ?>"
+                                        data-amount="<?php echo $pkg->amount; ?>"
+                                        data-gst="<?php echo $pkg->gst; ?>">
+                                    <?php echo $pkg->name; ?> - ₹<?php echo number_format($total, 2); ?>
+                                </option>
+                                <?php endforeach; } ?>
+                            </select>
+                        </div>
+                        
+                        <!-- Package Details -->
+                        <div id="package-details" style="display: none;">
+                            <div class="package-info">
+                                <div class="detail-header">
+                                    <i class="fa fa-check-circle"></i> Package Details
+                                </div>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <small>Package Name</small>
+                                        <strong id="pkg-name">-</strong>
+                                    </div>
+                                    <div class="info-item">
+                                        <small>Base Amount</small>
+                                        <strong>₹<span id="pkg-amount">0</span></strong>
+                                    </div>
+                                    <div class="info-item">
+                                        <small>GST</small>
+                                        <strong>₹<span id="pkg-gst">0</span></strong>
+                                    </div>
+                                    <div class="info-item highlight">
+                                        <small>Price per Member</small>
+                                        <strong class="price-large">₹<span id="pkg-price">0</span></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Members List -->
+                <!-- Members List -->
+<div class="card">
+    <div class="card-header bg-pink">
+        <i class="fa fa-users"></i> Step 2: Review Selected Members (<?php echo count($cart_items); ?>)
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th width="50">#</th>
+                    <th>Member Name</th>
+                    <th width="100">Gender</th>
+                    <th width="200">Package</th>
+                    <th width="120">Amount</th>
+                    <th width="80"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php 
+                $sl = 1;
+                foreach($cart_items as $item): 
+                    // Get member name
+                    $memberName = isset($item['member_name']) ? $item['member_name'] : 
+                                  (isset($item['memberName']) ? $item['memberName'] : 'Unknown');
+                    
+                    // Convert gender number to text
+                    $gender = 'N/A';
+                    if (isset($item['gender'])) {
+                        if ($item['gender'] == 1 || strtolower($item['gender']) == 'male' || strtolower($item['gender']) == 'm') {
+                            $gender = 'Male';
+                        } elseif ($item['gender'] == 2 || strtolower($item['gender']) == 'female' || strtolower($item['gender']) == 'f') {
+                            $gender = 'Female';
+                        } else {
+                            $gender = $item['gender'];
+                        }
+                    }
+                ?>
+                <tr data-member-id="<?php echo $item['member_id']; ?>">
+                    <td class="text-center"><?php echo $sl++; ?></td>
+                    <td><strong><?php echo htmlspecialchars($memberName); ?></strong></td>
+                    <td>
+                        <?php if ($gender == 'Male'): ?>
+                            <span class="gender-badge male">
+                                <i class="fa fa-male"></i> Male
+                            </span>
+                        <?php elseif ($gender == 'Female'): ?>
+                            <span class="gender-badge female">
+                                <i class="fa fa-female"></i> Female
+                            </span>
+                        <?php else: ?>
+                            <span class="gender-badge"><?php echo $gender; ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="pkg-cell">
+                        <span class="badge badge-warning">Not Selected</span>
+                    </td>
+                    <td class="amt-cell">
+                        <strong>₹0.00</strong>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn-delete remove-btn" data-id="<?php echo $item['member_id']; ?>" title="Remove">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-md-4">
+                <!-- Summary -->
+                <div class="card">
+                    <div class="card-header bg-cyan">
+                        <i class="fa fa-calculator"></i> Payment Summary
+                    </div>
+                    <div class="card-body">
+                        <div class="summary-row">
+                            <span>Total Members</span>
+                            <strong id="total-members"><?php echo count($cart_items); ?></strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Package Selected</span>
+                            <strong id="summary-pkg" class="text-muted">Not Selected</strong>
+                        </div>
+                        <hr>
+                        <div class="summary-row">
+                            <span class="total-label">Grand Total</span>
+                            <strong class="total-value" id="grand-total">₹0.00</strong>
+                        </div>
+                        
+                        <button class="btn-primary-custom" id="proceed-btn" disabled>
+                            <i class="fa fa-credit-card"></i> Proceed to Payment
+                        </button>
+                        
+                        <a href="<?php echo base_url('admin/bulkpayment'); ?>" class="btn-secondary-custom">
+                            <i class="fa fa-arrow-left"></i> Back to Selection
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Info -->
+                <div class="card">
+                    <div class="card-header bg-orange">
+                        <i class="fa fa-info-circle"></i> Payment Information
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <i class="fa fa-shield text-success"></i>
+                            <span>Secure encrypted payment</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fa fa-bolt text-warning"></i>
+                            <span>Instant confirmation</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fa fa-file-text text-info"></i>
+                            <span>GST invoice included</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
-	.panel-primary {
-		border-color: #337ab7;
-	}
-	.panel-primary > .panel-heading {
-		background-color: #337ab7;
-		border-color: #337ab7;
-		color: white;
-	}
-	.panel-info > .panel-heading {
-		background-color: #5bc0de;
-		border-color: #5bc0de;
-		color: white;
-	}
-	.item-amount {
-		font-size: 16px;
-		color: #28a745;
-	}
-	#grand_total {
-		font-size: 24px;
-	}
+/* Card Styles */
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 15px 20px;
+    font-weight: 600;
+    font-size: 15px;
+    color: white;
+}
+
+.bg-purple {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-pink {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.bg-cyan {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.bg-orange {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.card-body.p-0 {
+    padding: 0;
+}
+
+/* Form */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-control {
+    width: 100%;
+    height: 85px;
+    padding: 8px 15px;
+    border: 2px solid #e1e8ed;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+select.form-control {
+    height: 43px !important;
+}
+
+
+
+/* Gender Badge Styles */
+.gender-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.gender-badge.male {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.gender-badge.female {
+    background: #fce4ec;
+    color: #c2185b;
+}
+
+.gender-badge i {
+    margin-right: 4px;
+}
+
+
+
+/* Package Info */
+.package-info {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-radius: 8px;
+    margin-top: 20px;
+    overflow: hidden;
+    animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.detail-header {
+    background: rgba(76, 175, 80, 0.15);
+    padding: 12px 20px;
+    font-weight: 600;
+    color: #2e7d32;
+    border-bottom: 2px solid #4caf50;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    padding: 20px;
+}
+
+.info-item {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.info-item small {
+    display: block;
+    color: #666;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.info-item strong {
+    font-size: 16px;
+    color: #333;
+}
+
+.info-item.highlight {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+    border: 2px solid #4caf50;
+}
+
+.price-large {
+    color: #2e7d32 !important;
+    font-size: 24px !important;
+}
+
+/* Table */
+.table {
+    width: 100%;
+    margin: 0;
+}
+
+.table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.table thead th {
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    padding: 12px;
+    border: none;
+}
+
+.table tbody tr {
+    border-bottom: 1px solid #eee;
+    transition: all 0.2s;
+}
+
+.table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.table tbody td {
+    padding: 12px;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* Buttons */
+.btn-delete {
+    background: white;
+    border: 2px solid #e74c3c;
+    color: #e74c3c;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-primary-custom {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary-custom:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-primary-custom:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-secondary-custom {
+    display: block;
+    width: 100%;
+    background: white;
+    color: #333;
+    border: 2px solid #ddd;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    margin-top: 12px;
+    transition: all 0.3s;
+}
+
+.btn-secondary-custom:hover {
+    background: #f5f5f5;
+    border-color: #333;
+    text-decoration: none;
+}
+
+/* Summary */
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.total-label {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.total-value {
+    font-size: 28px;
+    color: #27ae60;
+    font-weight: 700;
+}
+
+hr {
+    border: none;
+    border-top: 2px solid #eee;
+    margin: 15px 0;
+}
+
+/* Info Rows */
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.info-row:last-child {
+    border: none;
+}
+
+.info-row i {
+    font-size: 20px;
+}
+
+/* Toast */
+#toast-container {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.toast {
+    background: white;
+    border-left: 4px solid;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 300px;
+    animation: slideIn 0.3s;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.toast.success { border-left-color: #27ae60; }
+.toast.error { border-left-color: #e74c3c; }
+.toast.info { border-left-color: #3498db; }
+
+.toast strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 15px;
+}
+
+.toast span {
+    font-size: 13px;
+    color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    .info-item.highlight {
+        grid-column: 1;
+    }
+}
 </style>
 
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script>
-    var cartData = <?php echo json_encode($cart_items); ?>;
+var cartData = <?php echo json_encode($cart_items); ?>;
+var selectedPackage = null;
+
+function showToast(type, title, message) {
+    var toast = $('<div class="toast ' + type + '"><strong>' + title + '</strong><span>' + message + '</span></div>');
+    $('#toast-container').append(toast);
+    setTimeout(function() {
+        toast.fadeOut(300, function() { $(this).remove(); });
+    }, 3500);
+}
+
+$(document).ready(function() {
     
-    $(document).ready(function() {
-        // Remove item from cart
-        $(document).on('click', '.remove-item', function() {
-            var itemId = $(this).data('id');
-            
-            if (confirm('Are you sure you want to remove this item from cart?')) {
-                cartData = cartData.filter(function(item) {
-                    return item.id !== itemId;
-                });
-                
-                $.ajax({
-                    url: "<?=base_url()?>admin/earnings/store_cart_items",
-                    type: "POST",
-                    data: {
-                        items: JSON.stringify(cartData),
-                        '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
-                    },
-                    success: function(response) {
-                        $('tr[data-item-id="' + itemId + '"]').fadeOut(300, function() {
-                            $(this).remove();
-                            updateCartSummary();
-                            
-                            if (cartData.length === 0) {
-                                alert('Cart is empty!');
-                                window.location.href = "<?=base_url()?>admin/earnings";
-                            }
-                        });
-                    },
-                    error: function(xhr, status, error) {
-                        console.log('Error:', error);
-                        console.log('Response:', xhr.responseText);
-                        alert('Error removing item from cart!');
-                    }
-                });
-            }
-        });
+    // Package selection
+    $('#package-select').change(function() {
+        var opt = $(this).find(':selected');
+        var pkgId = $(this).val();
+        var pkgName = opt.data('name');
+        var pkgPrice = parseFloat(opt.data('price'));
+        var pkgAmount = parseFloat(opt.data('amount'));
+        var pkgGst = parseFloat(opt.data('gst'));
         
-        // Proceed to payment - Fixed version
-        $(document).on('click', '#proceed_to_payment', function() {
-            if (cartData.length === 0) {
-                alert('Cart is empty!');
-                return;
-            }
-            
-            var btn = $(this);
-            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
-            
-            $.ajax({
-                url: "<?=base_url()?>admin/earnings/process_bulk_payment",
-                type: "POST",
-                data: {
-                    '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
-                },
-                dataType: 'json',
-                success: function(response) {
-                    console.log('Response:', response);
-                    if (response.status === 'success') {
-                        window.location.href = response.redirect_url;
-                    } else {
-                        alert(response.message || 'Payment processing failed!');
-                        btn.prop('disabled', false).html('<i class="fa fa-credit-card"></i> Proceed to PhonePe Payment');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.log('Error:', error);
-                    console.log('Response:', xhr.responseText);
-                    alert('Error processing payment! Check console for details.');
-                    btn.prop('disabled', false).html('<i class="fa fa-credit-card"></i> Proceed to PhonePe Payment');
+        if (!pkgId) {
+            $('#package-details').slideUp();
+            $('.pkg-cell').html('<span class="badge badge-warning">Not Selected</span>');
+            $('.amt-cell').html('<strong>₹0.00</strong>');
+            $('#summary-pkg').text('Not Selected').removeClass('text-success').addClass('text-muted');
+            $('#grand-total').text('₹0.00');
+            $('#proceed-btn').prop('disabled', true);
+            selectedPackage = null;
+            return;
+        }
+        
+        $.ajax({
+            url: '<?=base_url()?>admin/bulkpayment/update_cart_package',
+            type: 'POST',
+            data: { package_id: pkgId },
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    selectedPackage = { id: pkgId, name: pkgName, price: pkgPrice };
+                    
+                    $('#pkg-name').text(pkgName);
+                    $('#pkg-amount').text(pkgAmount.toFixed(2));
+                    $('#pkg-gst').text(pkgGst.toFixed(2));
+                    $('#pkg-price').text(pkgPrice.toFixed(2));
+                    $('#package-details').slideDown();
+                    
+                    $('.pkg-cell').html('<span class="badge badge-success">' + pkgName + '</span>');
+                    $('.amt-cell').html('<strong style="color: #27ae60;">₹' + pkgPrice.toFixed(2) + '</strong>');
+                    
+                    var grandTotal = pkgPrice * cartData.length;
+                    $('#summary-pkg').html('<span style="color: #27ae60; font-weight: 600;">' + pkgName + '</span>');
+                    $('#grand-total').text('₹' + grandTotal.toFixed(2));
+                    $('#proceed-btn').prop('disabled', false);
+                    
+                    showToast('success', 'Success!', 'Package applied to all members');
+                } else {
+                    showToast('error', 'Error', res.message || 'Failed to select package');
                 }
-            });
+            },
+            error: function() {
+                showToast('error', 'Error', 'Failed to update package');
+            }
         });
     });
     
-    function updateCartSummary() {
-        var total = 0;
-        var count = cartData.length;
+    // Remove member
+    $('.remove-btn').click(function() {
+        var memberId = $(this).data('id');
+        var memberName = $(this).closest('tr').find('td:eq(1)').text();
         
-        cartData.forEach(function(item) {
-            total += parseFloat(item.amount);
+        if (confirm('Remove ' + memberName + ' from cart?')) {
+            cartData = cartData.filter(item => item.member_id !== memberId);
+            
+            $.ajax({
+                url: '<?=base_url()?>admin/bulkpayment/store_cart_items',
+                type: 'POST',
+                data: { items: JSON.stringify(cartData) },
+                success: function() {
+                    $('tr[data-member-id="' + memberId + '"]').fadeOut(300, function() {
+                        $(this).remove();
+                        
+                        if (cartData.length === 0) {
+                            showToast('info', 'Cart Empty', 'Redirecting...');
+                            setTimeout(function() {
+                                window.location.href = '<?=base_url()?>admin/bulkpayment';
+                            }, 1500);
+                        } else {
+                            $('#total-members').text(cartData.length);
+                            if (selectedPackage) {
+                                var newTotal = selectedPackage.price * cartData.length;
+                                $('#grand-total').text('₹' + newTotal.toFixed(2));
+                            }
+                            showToast('info', 'Removed', memberName + ' removed');
+                        }
+                    });
+                }
+            });
+        }
+    });
+    
+    // Proceed to payment
+    $('#proceed-btn').click(function() {
+        if (!selectedPackage) {
+            showToast('error', 'Error', 'Please select a package first');
+            $('#package-select').focus();
+            return;
+        }
+        
+        var btn = $(this);
+        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
+        
+        $.ajax({
+            url: '<?=base_url()?>admin/earnings/process_bulk_payment',
+            type: 'POST',
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    showToast('success', 'Payment Initiated', 'Redirecting...');
+                    setTimeout(function() {
+                        window.location.href = res.redirect_url;
+                    }, 1000);
+                } else {
+                    showToast('error', 'Failed', res.message || 'Payment processing failed');
+                    btn.prop('disabled', false).html('<i class="fa fa-credit-card"></i> Proceed to Payment');
+                }
+            },
+            error: function() {
+                showToast('error', 'Error', 'Unable to process payment');
+                btn.prop('disabled', false).html('<i class="fa fa-credit-card"></i> Proceed to Payment');
+            }
         });
-        
-        $('#total_items').text(count);
-        $('#subtotal').text('<?php echo currency("", "def"); ?>' + total.toFixed(2));
-        $('#grand_total').text('<?php echo currency("", "def"); ?>' + total.toFixed(2));
-        
-        $('#cart_items_body tr').each(function(index) {
-            $(this).find('td:first').text(index + 1);
-        });
-    }
+    });
+});
 </script>

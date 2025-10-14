@@ -37,7 +37,7 @@ class Phonepe_admin extends CI_Controller
             if (empty($amount) || empty($payment_type) || empty($payment_ids)) {
                 log_message('error', 'Invalid payment data received');
                 $this->session->set_flashdata('danger_alert', 'Invalid payment data');
-                redirect($cancel_url ?: base_url('admin/earnings/payment_cart'));
+                redirect($cancel_url ?: base_url('admin/earnings/bulk_payment_success.php'));
                 return;
             }
 
@@ -62,7 +62,7 @@ class Phonepe_admin extends CI_Controller
             $phonepe_data = [
                 'merchant_transaction_id' => $merchant_transaction_id,
                 'amount' => $amount * 100, // in paise
-                'redirect_url' => base_url('phonepe_admin/bulk_payment_return'),
+                'redirect_url' => base_url('admin/earnings/bulk_payment_success_page'),
                 'callback_url' => base_url('phonepe_admin/bulk_payment_callback'),
                 'mobile_number' => $mobile_number,
                 'user_id' => 'ADMIN_' . $admin_id
@@ -101,28 +101,44 @@ class Phonepe_admin extends CI_Controller
     /**
      * Return URL - User is redirected here after payment
      */
-    public function bulk_payment_return()
-    {
-        log_message('debug', '=== PhonePe Return URL Called ===');
+public function bulk_payment_return()
+{
+    log_message('debug', '=== PhonePe Return URL Called ===');
 
-        $merchant_transaction_id = $this->input->get('id') ??
-                                   $this->input->post('transactionId') ??
-                                   $this->input->get('transactionId');
+    $merchant_transaction_id = $this->input->get('id') ??
+                               $this->input->post('transactionId') ??
+                               $this->input->get('transactionId');
 
-        if (!$merchant_transaction_id) {
-            $bulk_data = $this->session->userdata('bulk_payment_pending');
-            $merchant_transaction_id = $bulk_data['merchant_transaction_id'] ?? null;
-        }
-
-        if (!$merchant_transaction_id) {
-            log_message('error', 'No transaction ID found in return URL');
-            $this->session->set_flashdata('danger_alert', 'Invalid payment response');
-            redirect(base_url('admin/earnings'));
-            return;
-        }
-
-        $this->verify_and_process_bulk_payment($merchant_transaction_id);
+    if (!$merchant_transaction_id) {
+        $bulk_data = $this->session->userdata('bulk_payment_pending');
+        $merchant_transaction_id = $bulk_data['merchant_transaction_id'] ?? null;
     }
+
+    if (!$merchant_transaction_id) {
+        log_message('error', 'No transaction ID found in return URL');
+        $this->session->set_flashdata('danger_alert', 'Invalid payment response');
+        redirect(base_url('admin/earnings'));
+        return;
+    }
+
+    log_message('debug', '=== SESSION DATA (AFTER PAYMENT) ===');
+    if (isset($_SESSION)) {
+        log_message('debug', json_encode($_SESSION, JSON_PRETTY_PRINT));
+    }
+
+    // Verify and process payment
+    $status = $this->verify_and_process_bulk_payment($merchant_transaction_id);
+
+    if ($status === 'SUCCESS') {
+        // ✅ FIX: Redirect to the Admin earnings controller method, NOT direct view
+        redirect(base_url('admin/earnings/bulk_payment_success_page'));
+    } else {
+        // ❌ Redirect to failure page
+        $this->session->set_flashdata('danger_alert', 'Payment failed or cancelled.');
+        redirect(base_url('admin/earnings/payment_cart'));
+    }
+}
+
 
     /**
      * Callback URL - called by PhonePe server
@@ -148,137 +164,153 @@ class Phonepe_admin extends CI_Controller
     /**
      * Verify and process bulk payment result
      */
-    private function verify_and_process_bulk_payment($merchant_transaction_id, $is_callback = false)
-    {
-        try {
-            log_message('debug', '=== Verifying Bulk Payment: ' . $merchant_transaction_id . ' ===');
+private function verify_and_process_bulk_payment($merchant_transaction_id, $is_callback = false)
+{
+    try {
+        log_message('debug', '=== Verifying Bulk Payment: ' . $merchant_transaction_id . ' ===');
 
-            $response = $this->phonepe->verify_payment($merchant_transaction_id);
-            log_message('debug', 'Verification Response: ' . json_encode($response));
+        $response = $this->phonepe->verify_payment($merchant_transaction_id);
+        log_message('debug', 'Verification Response: ' . json_encode($response));
 
-            $is_success = isset($response['success'], $response['data']['state']) &&
-                          $response['success'] === true &&
-                          $response['data']['state'] === 'COMPLETED';
+        $is_success = isset($response['success'], $response['data']['state']) &&
+                      $response['success'] === true &&
+                      $response['data']['state'] === 'COMPLETED';
 
-            if ($is_success) {
-                log_message('debug', 'Payment verified as COMPLETED');
+        if ($is_success) {
+            log_message('debug', 'Payment verified as COMPLETED');
 
-                $bulk_payment_data = $this->session->userdata('bulk_payment_pending');
-                if (!$bulk_payment_data) {
-                    log_message('error', 'No session bulk payment data');
-                    if (!$is_callback) {
-                        $this->session->set_flashdata('danger_alert', 'Payment session expired');
-                        redirect(base_url('admin/earnings'));
-                    }
-                    return;
-                }
-
-                $payment_ids = json_decode($bulk_payment_data['payment_ids'], true);
-                log_message('debug', 'Processing ' . count($payment_ids) . ' payments');
-
-                $this->db->trans_start();
-                $success_count = 0;
-                $generated_invoices = [];
-
-                foreach ($payment_ids as $payment_id) {
-                    $payment = $this->db->get_where('package_payment', ['package_payment_id' => $payment_id])->row();
-                    if (!$payment) continue;
-
-                    $member = $this->db->get_where('member', ['member_id' => $payment->member_id])->row();
-                    $plan = $this->db->get_where('plan', ['plan_id' => $payment->plan_id])->row();
-                    if (!$member || !$plan) continue;
-
-                    $validity_start = date('Y-m-d');
-                    $validity_end = date('Y-m-d', strtotime('+1 year'));
-                    $invoice_year = date('Y');
-
-                    $invoice_number = $this->generate_invoice_number($invoice_year);
-
-                    // Update member details
-                    $member_data = [
-                        'membership' => ($plan->plan_id == '1') ? 1 : 2,
-                        'express_interest' => $member->express_interest + $plan->express_interest,
-                        'direct_messages' => $member->direct_messages + $plan->direct_messages,
-                        'photo_gallery' => $member->photo_gallery + $plan->photo_gallery,
-                        'package_info' => json_encode([[
-                            'current_package' => $plan->name,
-                            'package_price' => $payment->amount,
-                            'payment_type' => 'PhonePe Bulk',
-                            'invoice_number' => $invoice_number,
-                            'validity_start' => $validity_start,
-                            'validity_end' => $validity_end
-                        ]])
-                    ];
-                    $this->db->where('member_id', $payment->member_id)->update('member', $member_data);
-
-                    // Update payment record
-                    $payment_update = [
-                        'payment_status' => 'paid',
-                        'payment_type' => 'PhonePe',
-                        'payment_code' => $merchant_transaction_id,
-                        'invoice_number' => $invoice_number,
-                        'invoice_generated' => 1,
-                        'invoice_year' => $invoice_year,
-                        'validity_start_date' => $validity_start,
-                        'validity_end_date' => $validity_end,
-                        'validity_period' => '1 Year',
-                        'bulk_payment_reference' => $merchant_transaction_id,
-                        'payment_details' => json_encode($response),
-                        'purchase_datetime' => time(),
-                        'payment_timestamp' => time()
-                    ];
-                    $this->db->where('package_payment_id', $payment_id)->update('package_payment', $payment_update);
-
-                    $generated_invoices[] = [
-                        'payment_id' => $payment_id,
-                        'invoice_number' => $invoice_number,
-                        'member_name' => $member->first_name . ' ' . $member->last_name,
-                        'amount' => $payment->amount,
-                        'validity_start' => $validity_start,
-                        'validity_end' => $validity_end,
-                        'invoice_year' => $invoice_year
-                    ];
-
-                    $success_count++;
-                    log_message('debug', 'Invoice ' . $invoice_number . ' generated for payment: ' . $payment_id);
-                }
-
-                $this->db->trans_complete();
-                log_message('debug', "Generated $success_count invoices successfully");
-
-                if (function_exists('recache')) recache();
-
-                $this->session->set_userdata('bulk_payment_invoices', $generated_invoices);
-                $this->session->unset_userdata(['cart_items', 'bulk_payment_data', 'bulk_payment_pending']);
-
+            $bulk_payment_data = $this->session->userdata('bulk_payment_pending');
+            if (!$bulk_payment_data) {
+                log_message('error', 'No session bulk payment data');
                 if (!$is_callback) {
-                    $this->session->set_flashdata('alert', 'bulk_payment_success');
-                    redirect(base_url('admin/earnings/bulk_payment_success_page'));
-                } else {
-                    echo json_encode(['status' => 'success', 'message' => 'Payment processed']);
+                    $this->session->set_flashdata('danger_alert', 'Payment session expired');
+                    redirect(base_url('admin/earnings'));
                 }
-            } else {
-                $error_message = $response['message'] ?? 'Payment verification failed';
-                log_message('error', 'Payment not completed: ' . $error_message);
-
-                if (!$is_callback) {
-                    $this->session->set_flashdata('danger_alert', 'Payment failed: ' . $error_message);
-                    redirect(base_url('admin/earnings/payment_cart'));
-                } else {
-                    echo json_encode(['status' => 'failed', 'message' => $error_message]);
-                }
+                return 'FAILED';
             }
 
-        } catch (Exception $e) {
-            log_message('error', 'Verification Exception: ' . $e->getMessage());
+            $payment_ids = json_decode($bulk_payment_data['payment_ids'], true);
+            log_message('debug', 'Processing ' . count($payment_ids) . ' payments');
+
+            $this->db->trans_start();
+            $success_count = 0;
+            $generated_invoices = [];
+
+            foreach ($payment_ids as $payment_id) {
+                $payment = $this->db->get_where('package_payment', ['package_payment_id' => $payment_id])->row();
+                if (!$payment) continue;
+
+                $member = $this->db->get_where('member', ['member_id' => $payment->member_id])->row();
+                $plan = $this->db->get_where('plan', ['plan_id' => $payment->plan_id])->row();
+                if (!$member || !$plan) continue;
+
+                $validity_start = date('Y-m-d');
+                $validity_end = date('Y-m-d', strtotime('+1 year'));
+                $invoice_year = date('Y');
+
+                $invoice_number = $this->generate_invoice_number($invoice_year);
+
+                // Update member details
+                $member_data = [
+                    'membership' => ($plan->plan_id == '1') ? 1 : 2,
+                    'express_interest' => $member->express_interest + $plan->express_interest,
+                    'direct_messages' => $member->direct_messages + $plan->direct_messages,
+                    'photo_gallery' => $member->photo_gallery + $plan->photo_gallery,
+                    'package_info' => json_encode([[
+                        'current_package' => $plan->name,
+                        'package_price' => $payment->amount,
+                        'payment_type' => 'PhonePe Bulk',
+                        'invoice_number' => $invoice_number,
+                        'validity_start' => $validity_start,
+                        'validity_end' => $validity_end
+                    ]])
+                ];
+                $this->db->where('member_id', $payment->member_id)->update('member', $member_data);
+
+                // Update payment record
+                $payment_update = [
+                    'payment_status' => 'paid',
+                    'payment_type' => 'PhonePe',
+                    'payment_code' => $merchant_transaction_id,
+                    'invoice_number' => $invoice_number,
+                    'invoice_generated' => 1,
+                    'invoice_year' => $invoice_year,
+                    'validity_start_date' => $validity_start,
+                    'validity_end_date' => $validity_end,
+                    'validity_period' => '1 Year',
+                    'bulk_payment_reference' => $merchant_transaction_id,
+                    'payment_details' => json_encode($response),
+                    'purchase_datetime' => time(),
+                    'payment_timestamp' => time()
+                ];
+                $this->db->where('package_payment_id', $payment_id)->update('package_payment', $payment_update);
+
+                $generated_invoices[] = [
+                    'payment_id' => $payment_id,
+                    'invoice_number' => $invoice_number,
+                    'member_name' => $member->first_name . ' ' . $member->last_name,
+                    'amount' => $payment->amount,
+                    'validity_start' => $validity_start,
+                    'validity_end' => $validity_end,
+                    'invoice_year' => $invoice_year
+                ];
+
+                $success_count++;
+                log_message('debug', 'Invoice ' . $invoice_number . ' generated for payment: ' . $payment_id);
+            }
+
+            $this->db->trans_complete();
+            log_message('debug', "Generated $success_count invoices successfully");
+
+            if (function_exists('recache')) recache();
+
+            // ✅ FIX: Set invoices in session BEFORE redirect
+            $this->session->set_userdata('bulk_payment_invoices', $generated_invoices);
+            $this->session->unset_userdata(['cart_items', 'bulk_payment_data', 'bulk_payment_pending']);
+
             if (!$is_callback) {
-                $this->session->set_flashdata('danger_alert', 'Payment verification error');
-                redirect(base_url('admin/earnings'));
+                log_message('debug', 'Setting flash and returning SUCCESS');
+                return 'SUCCESS';
             } else {
-                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+                echo json_encode(['status' => 'success', 'message' => 'Payment processed']);
+                exit;
+            }
+        } else {
+            $error_message = $response['message'] ?? 'Payment verification failed';
+            log_message('error', 'Payment not completed: ' . $error_message);
+
+            if (!$is_callback) {
+                return 'FAILED';
+            } else {
+                echo json_encode(['status' => 'failed', 'message' => $error_message]);
+                exit;
             }
         }
+
+    } catch (Exception $e) {
+        log_message('error', 'Verification Exception: ' . $e->getMessage());
+        if (!$is_callback) {
+            return 'FAILED';
+        } else {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+            exit;
+        }
     }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Generate unique invoice number (year-wise)

@@ -132,6 +132,29 @@
                         </li>
                         <?php } ?>
 
+
+
+                        <?php if ($this->Crud_model->admin_permission('bulkpayment')) { ?>
+                        <li <?php if($page_name=="bulkpayment") echo 'class="active-link"'; ?>>
+                            <a href="<?=base_url()?>admin/bulkpayment">
+                                <i class="fa fa-money"></i>
+                                <span class="menu-title"><?php echo translate('bulk_payment')?></span>
+                            </a>
+                        </li>
+                        <?php } ?>
+
+
+
+
+
+
+
+
+
+
+
+
+
                         <?php if ($this->Crud_model->admin_permission('contact_messages')) { ?>
                         <li <?php if(in_array($page_name, ['contact_messages', 'newsletter'])) echo 'class="active-sub active"'; ?>>
                             <a href="#">
