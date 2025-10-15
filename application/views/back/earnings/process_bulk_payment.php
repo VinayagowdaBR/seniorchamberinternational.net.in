@@ -38,7 +38,7 @@
                         <div class="well" style="margin-bottom: 30px; background-color: #f9f9f9;">
                             <div class="row" style="margin-bottom: 15px;">
                                 <div class="col-xs-6 text-left">
-                                    <strong style="font-size: 16px;">Total Items:</strong>
+                                    <strong style="font-size: 16px;">Total Members:</strong>
                                 </div>
                                 <div class="col-xs-6 text-right">
                                     <span style="font-size: 16px;">
@@ -49,6 +49,24 @@
                                     </span>
                                 </div>
                             </div>
+                            
+                            <?php if ($this->session->userdata('selected_package_id')): ?>
+                            <?php 
+                            $selected_plan = $this->db->get_where('plan', [
+                                'plan_id' => $this->session->userdata('selected_package_id')
+                            ])->row();
+                            ?>
+                            <div class="row" style="margin-bottom: 15px;">
+                                <div class="col-xs-6 text-left">
+                                    <strong style="font-size: 16px;">Package:</strong>
+                                </div>
+                                <div class="col-xs-6 text-right">
+                                    <span style="font-size: 16px; color: #5f259f;">
+                                        <?php echo $selected_plan->name; ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                             
                             <hr style="margin: 15px 0; border-color: #ddd;">
                             
@@ -66,12 +84,12 @@
                         
                         <!-- Payment Form -->
                         <div id="payment_form_container">
-						<form id="phonepe_payment_form" method="POST" action="<?php echo base_url('phonepe_admin/initiate_payment'); ?>">
-
+                            <form id="phonepe_payment_form" method="POST" action="<?php echo base_url('phonepe_admin/initiate_payment'); ?>">
                                 <input type="hidden" name="amount" value="<?php echo $bulk_payment_data['total_amount']; ?>">
                                 <input type="hidden" name="payment_type" value="bulk_payment">
                                 <input type="hidden" name="payment_ids" value='<?php echo $bulk_payment_data['payment_ids']; ?>'>
-                                <input type="hidden" name="return_url" value="<?php echo base_url('admin/earnings/bulk_payment_success'); ?>">
+                                <input type="hidden" name="plan_id" value="<?php echo $this->session->userdata('selected_package_id'); ?>">
+                                <input type="hidden" name="return_url" value="<?php echo base_url('phonepe_admin/bulk_payment_return'); ?>">
                                 <input type="hidden" name="cancel_url" value="<?php echo base_url('admin/earnings/payment_cart'); ?>">
                                 <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
                                 
@@ -187,92 +205,5 @@
             // Allow form to submit normally
             return true;
         });
-        
-        /* 
-        ============================================
-        ALTERNATIVE: AJAX-based Payment Initiation
-        ============================================
-        Uncomment this section if your PhonePe controller 
-        returns JSON response instead of direct redirect
-        
-        $('#phonepe_payment_form').submit(function(e) {
-            e.preventDefault();
-            
-            // Show processing state
-            $('#payment_form_container').fadeOut(300, function() {
-                $('#processing_container').fadeIn(300);
-            });
-            
-            var formData = $(this).serialize();
-            
-            $.ajax({
-                url: "<?php echo base_url('phonepe/initiate_payment'); ?>",
-                type: "POST",
-                data: formData,
-                dataType: 'json',
-                timeout: 30000, // 30 second timeout
-                success: function(response) {
-                    console.log('PhonePe Response:', response);
-                    
-                    if (response.status === 'success' && response.payment_url) {
-                        // Redirect to PhonePe payment page
-                        window.location.href = response.payment_url;
-                    } else {
-                        // Show error message
-                        alert('Payment Error: ' + (response.message || 'Unable to initiate payment'));
-                        
-                        // Reset form
-                        $('#processing_container').fadeOut(300, function() {
-                            $('#payment_form_container').fadeIn(300);
-                        });
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Payment Gateway Error:', {
-                        status: status,
-                        error: error,
-                        response: xhr.responseText
-                    });
-                    
-                    alert('Error connecting to payment gateway! Please try again or contact support.');
-                    
-                    // Reset form
-                    $('#processing_container').fadeOut(300, function() {
-                        $('#payment_form_container').fadeIn(300);
-                    });
-                }
-            });
-            
-            return false;
-        });
-        */
     });
 </script>
-
-<!-- 
-=============================================
-PHONEPE INTEGRATION NOTES
-=============================================
-
-This form submits to 'phonepe/initiate_payment' which should:
-
-1. Create a PhonePe payment request with transaction ID
-2. Generate payment URL from PhonePe API
-3. Redirect user to PhonePe payment page
-4. Handle callback after payment completion
-
-PhonePe Integration Flow:
-- Merchant initiates payment with amount and unique transaction ID
-- PhonePe generates secure payment link
-- User completes payment on PhonePe platform
-- PhonePe redirects back to return_url with payment status
-- Verify payment status via PhonePe API
-- Update database with payment confirmation
-
-Required in your PhonePe controller:
-- Merchant ID
-- Salt Key/Salt Index
-- Transaction ID generation
-- Callback URL handling
-- Payment verification
--->

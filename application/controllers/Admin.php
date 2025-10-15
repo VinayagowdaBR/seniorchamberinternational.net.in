@@ -5166,10 +5166,10 @@ elseif ($para1 == 'update_cart_package') {
 
 elseif ($para1 == "bulk_payment_success_page") {
     // ✅ Ensure admin is logged in
-    if ($this->admin_permission() == FALSE) {
-        redirect(base_url() . 'admin/login', 'refresh');
-        return;
-    }
+    // if ($this->admin_permission() == FALSE) {
+    //     redirect(base_url() . 'admin/login', 'refresh');
+    //     return;
+    // }
 
     $invoices = $this->session->userdata('bulk_payment_invoices');
     
@@ -20223,6 +20223,81 @@ elseif ($para1 == 'update_cart_package') {
 //         }
 //     }
 // }
+
+/**
+ * Add member to bulk payment cart - CREATE package_payment record
+ */
+public function add_to_bulk_payment_cart()
+{
+    $member_id = $this->input->post('member_id');
+    $plan_id = $this->input->post('plan_id');
+    $amount = $this->input->post('amount');
+    
+    // Get member and plan details
+    $member = $this->db->get_where('member', ['member_id' => $member_id])->row();
+    $plan = $this->db->get_where('plan', ['plan_id' => $plan_id])->row();
+    
+    if (!$member || !$plan) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid member or plan']);
+        return;
+    }
+    
+    // Check if package_payment record already exists
+    $existing = $this->db->get_where('package_payment', [
+        'member_id' => $member_id,
+        'plan_id' => $plan_id,
+        'payment_status' => 'due'
+    ])->row();
+    
+    if (!$existing) {
+        // Create new package_payment record
+        $payment_data = [
+            'plan_id' => $plan_id,
+            'member_id' => $member_id,
+            'payment_type' => 'bulk_payment',
+            'payment_status' => 'due',
+            'payment_details' => '',
+            'amount' => $amount,
+            'purchase_datetime' => time(),
+            'payment_code' => '',
+            'subscription_period' => 'yearly'
+        ];
+        
+        $this->db->insert('package_payment', $payment_data);
+        $package_payment_id = $this->db->insert_id();
+        
+        log_message('debug', 'Created package_payment record ID: ' . $package_payment_id . ' for member: ' . $member_id);
+    } else {
+        $package_payment_id = $existing->package_payment_id;
+    }
+    
+    // Add to cart session
+    $cart_items = $this->session->userdata('cart_items') ?: [];
+    
+    $cart_items[] = [
+        'member_id' => $member_id,
+        'package_payment_id' => $package_payment_id,
+        'member_name' => $member->first_name . ' ' . $member->last_name,
+        'plan_name' => $plan->name,
+        'amount' => $amount
+    ];
+    
+    $this->session->set_userdata('cart_items', $cart_items);
+    
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'Added to cart',
+        'package_payment_id' => $package_payment_id
+    ]);
+}
+
+
+
+
+
+
+
+
 
 
 

@@ -235,6 +235,31 @@
             color: #92400e;
         }
 
+        /* Gender Badge Styles */
+        .gender-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 1.30rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .gender-badge.male {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+        }
+
+        .gender-badge.female {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            color: #be185d;
+        }
+
+        .gender-badge i {
+            font-size: 1.125rem;
+        }
+
         .no-data {
             text-align: center;
             padding: 3rem;
@@ -384,20 +409,40 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($all_members as $member): ?>
+                        <?php foreach ($all_members as $member): 
+                            // Convert gender: 1 = Male, 2 = Female
+                            $genderDisplay = 'N/A';
+                            if ($member->gender == 1 || $member->gender == '1') {
+                                $genderDisplay = 'Male';
+                            } elseif ($member->gender == 2 || $member->gender == '2') {
+                                $genderDisplay = 'Female';
+                            }
+                        ?>
                         <tr>
                             <td style="text-align: center;">
                                 <input type="checkbox" class="member-checkbox" 
                                        data-id="<?php echo $member->member_id; ?>"
                                        data-member-id="<?php echo $member->member_profile_id; ?>"
                                        data-member-name="<?php echo $member->first_name . ' ' . $member->last_name; ?>"
-                                       data-gender="<?php echo $member->gender; ?>"
+                                       data-gender="<?php echo $genderDisplay; ?>"
                                        data-age="<?php echo isset($member->age) ? $member->age : 'N/A'; ?>">
                             </td>
                             <td>
                                 <span class="member-name"><?php echo $member->first_name . ' ' . $member->last_name; ?></span>
                             </td>
-                            <td><?php echo $member->gender; ?></td>
+                            <td>
+                                <?php if ($genderDisplay == 'Male'): ?>
+                                    <span class="gender-badge male">
+                                        <i class="fa fa-male"></i> Male
+                                    </span>
+                                <?php elseif ($genderDisplay == 'Female'): ?>
+                                    <span class="gender-badge female">
+                                        <i class="fa fa-female"></i> Female
+                                    </span>
+                                <?php else: ?>
+                                    <span><?php echo $genderDisplay; ?></span>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo isset($member->age) ? $member->age : 'N/A'; ?></td>
                             <td>
                                 <?php if ($member->membership == 1): ?>
