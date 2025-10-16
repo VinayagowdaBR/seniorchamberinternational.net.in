@@ -145,7 +145,7 @@
                 <div class="detail-value">
                     <strong><?php echo $member->first_name . ' ' . $member->last_name; ?></strong><br>
                     Email: <?php echo $member->email; ?><br>
-                    Phone: <?php echo $member->phone; ?><br>
+                    Phone: <?php echo $member->mobile; ?><br>
                     Member ID: <?php echo $member->member_id; ?>
                 </div>
             </div>

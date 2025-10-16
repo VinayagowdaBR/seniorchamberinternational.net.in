@@ -64,7 +64,7 @@
             </tr>
             <tr>
                 <th>Phone:</th>
-                <td><?php echo $member->phone; ?></td>
+                <td><?php echo $member->mobile; ?></td>
             </tr>
             <tr>
                 <th>Member ID:</th>

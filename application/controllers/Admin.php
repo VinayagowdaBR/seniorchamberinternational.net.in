@@ -4404,108 +4404,7 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 		$config['overwrite']     = FALSE;
 		return $config;
 	}
-	// public function add_story_details()
-	// {
-	// 	$data = array();
-	// 	$data['title'] = $this->input->post('story_name');
-	// 	$data['date'] = date('Y-m-d', strtotime($this->input->post('dated')));
-	// 	$data['member_name'] = $this->input->post('member_name');
-	// 	$data['posted_by'] = $this->input->post('member_name');
-	// 	$data['partner_name'] = $this->input->post('partner_name');
-	// 	$data['description'] = $this->input->post('description');
-    //    // Get admin_id from session
-	// 	// $admin_id = $this->session->userdata('admin_id');
-	// 	$admin_id = 26
-	// 	// Fetch legion_id from admin_legion table
-	// 	$this->db->select('legion_id');
-	// 	$this->db->from('admin_legion');
-	// 	$this->db->where('admin_id', $admin_id);
-	// 	$query = $this->db->get();
 
-	// 	if ($query->num_rows() > 0) {
-	// 		$result = $query->row();
-	// 		$legion_id = $result->legion_id;
-
-	// 		// Log the legion_id value
-	// 		log_message('debug', 'Fetched legion_id: ' . $legion_id);
-
-	// 		// Add to insert data
-	// 		// $data['legion_id'] = $legion_id;
-	// 	} else {
-	// 		log_message('debug', 'No legion_id found for admin_id: ' . $admin_id);
-	// 	}
-
-	// 	error_reporting(E_ALL);
-	// 	ini_set('display_errors', 1);
-	
-	// 	$config = $this->set_upload_happy_story_image();
-	// 	$this->load->library('upload');
-	// 	$this->upload->initialize($config);
-	
-	// 	if (!empty($_FILES['story_photo']['name'])) {
-	// 		$id = uniqid();
-	// 		$path = $_FILES['story_photo']['name'];
-	// 		$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
-	// 		$allowed_ext = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
-	
-	// 		if (in_array($ext, $allowed_ext)) {
-	// 			// Save original image
-	// 			$image_name = 'happy_story_' . $id . $ext;
-	// 			$config['file_name'] = $image_name;
-	
-	// 			if (!$this->upload->do_upload('story_photo')) {
-	// 				$this->session->set_flashdata('alert', 'failed_upload');
-	// 				redirect(base_url('admin/stories'), 'refresh');
-	// 			}
-	
-	// 			// Get upload data
-	// 			$upload_data = $this->upload->data();
-	// 			$source_image = $upload_data['full_path'];
-	
-	// 			// Now generate the thumbnail
-	// 			$thumb_name = 'happy_story_' . $id . '_thumb' . $ext;
-	// 			$thumb_path = $upload_data['file_path'] . $thumb_name;
-	
-	// 			$this->load->library('image_lib');
-	
-	// 			$thumb_config = array(
-	// 				'image_library' => 'gd2',
-	// 				'source_image'  => $source_image,
-	// 				'new_image'     => $thumb_path,
-	// 				'maintain_ratio'=> TRUE,
-	// 				'width'         => 200,
-	// 				'height'        => 200
-	// 			);
-	
-	// 			$this->image_lib->initialize($thumb_config);
-	
-	// 			if (!$this->image_lib->resize()) {
-	// 				log_message('error', 'Thumbnail creation failed: ' . $this->image_lib->display_errors());
-	// 				$this->image_lib->clear();
-	// 			}
-	
-	// 			$images[] = array(
-	// 				'image' => $image_name,
-	// 				'thumb' => $thumb_name
-	// 			);
-	// 			$data['image'] = json_encode($images);
-	// 		} else {
-	// 			$this->session->set_flashdata('alert', 'invalid_image_type');
-	// 			redirect(base_url('admin/stories'), 'refresh');
-	// 		}
-	// 	}
-	
-	// 	// Insert into DB
-	// 	// $this->db->insert('happy_story', $data);
-	// 	// $result = $this->db->affected_rows();
-	// 	$result = true;
-	// 	if ($result == true) {
-	// 		$this->session->set_flashdata('success', 'added successfully');
-	// 	} else {
-	// 		$this->session->set_flashdata('failed', 'Failed');
-	// 	}
-	// 	redirect('admin/stories');
-	// }
 
 	public function add_story_details() 
 {
@@ -4746,6 +4645,9 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 			}
 		}
 	}
+
+
+	// ============================== Earnings Section ==============================//////////////////////////////
 
 	function earnings($para1 = "", $para2 = "")
 	{
@@ -5134,108 +5036,6 @@ elseif ($para1 == 'bulkpayment' && $para2 == 'update_cart_package') {
 
 
 
-
-
-// Update cart with selected package
-// elseif ($para1 == 'update_cart_package') {
-//     log_message('debug', '=== UPDATE CART PACKAGE CALLED ===');
-    
-//     $package_id = $this->input->post('package_id');
-//     $cart_items = $this->session->userdata('cart_items');
-    
-//     log_message('debug', 'Package ID received: ' . $package_id);
-//     log_message('debug', 'Cart items count: ' . (is_array($cart_items) ? count($cart_items) : 0));
-    
-//     if (empty($package_id) || empty($cart_items)) {
-//         log_message('error', 'Validation failed - empty package_id or cart_items');
-//         echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
-//         exit;
-//     }
-    
-//     // Get package details from plan table
-//     $package = $this->db->get_where('plan', ['plan_id' => $package_id])->row();
-    
-//     if (!$package) {
-//         log_message('error', 'Package not found in database: ' . $package_id);
-//         echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
-//         exit;
-//     }
-    
-//     log_message('debug', 'Package found: ' . $package->name);
-    
-//     // ✅ CORRECT GST CALCULATION
-//     $base_amount = floatval($package->amount);           // 700
-//     $gst_percentage = floatval($package->gst);           // 18.00
-//     $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);  // 126
-//     $total_price = $base_amount + $gst_amount;           // 826
-    
-//     log_message('debug', 'Calculation: Base=' . $base_amount . ', GST%=' . $gst_percentage . ', GST Amount=' . $gst_amount . ', Total=' . $total_price);
-    
-//     // ✅ CRITICAL: Store package ID in session for PhonePe controller
-//     $this->session->set_userdata('selected_package_id', $package_id);
-    
-//     log_message('debug', 'Session package_id set to: ' . $this->session->userdata('selected_package_id'));
-    
-//     // Update all cart items with selected package
-//     foreach ($cart_items as &$item) {
-//         $item['packageName'] = $package->name;
-//         $item['packageId'] = $package->plan_id;
-//         $item['amount'] = $total_price;
-//         $item['base_amount'] = $base_amount;
-//         $item['gst_percentage'] = $gst_percentage;
-//         $item['gst_amount'] = $gst_amount;
-//     }
-//     unset($item); // Break the reference
-    
-//     $this->session->set_userdata('cart_items', $cart_items);
-    
-//     log_message('debug', 'Cart items and session updated successfully');
-    
-//     echo json_encode([
-//         'status' => 'success',
-//         'package_name' => $package->name,
-//         'package_price' => $total_price,
-//         'base_amount' => $base_amount,
-//         'gst_percentage' => $gst_percentage,
-//         'gst_amount' => $gst_amount,
-//         'total_amount' => $total_price * count($cart_items)
-//     ]);
-//     exit; // ✅ IMPORTANT: Stop execution
-// }
-
-
-
-
-
-
-// /// Payment Cart Page
-// elseif ($para1 == 'payment_cart') {
-//     $cart_items = $this->session->userdata('cart_items');
-    
-//     if (empty($cart_items)) {
-//         $this->session->set_flashdata('warning_alert', 'No items in cart');
-//         redirect(base_url('admin/bulkpayment'), 'refresh');
-//     }
-    
-//     // Get ALL packages from plan table
-//     $packages = $this->db->get('plan')->result();
-    
-//     // Debug log
-//     log_message('debug', 'Payment Cart - Packages count: ' . count($packages));
-    
-//     $page_data['title'] = 'Admin | ' . $this->system_title;
-//     $page_data['top'] = 'earnings/index.php';
-//     $page_data['folder'] = 'earnings';
-//     $page_data['file'] = 'payment_cart.php';
-//     $page_data['bottom'] = 'earnings/index.php';
-//     $page_data['page_name'] = 'bulkpayment';
-//     $page_data['cart_items'] = $cart_items;
-//     $page_data['packages'] = $packages; // IMPORTANT: Pass packages
-    
-//     $this->load->view('back/index', $page_data);
-// }
-
-
 elseif ($para1 == "bulk_payment_success_page") {
     // ✅ Ensure admin is logged in
     // if ($this->admin_permission() == FALSE) {
@@ -5267,12 +5067,116 @@ elseif ($para1 == "bulk_payment_success_page") {
 
 
 
+  // ============================================================
+        // ✅ NEW: View Individual Member Invoice
+        // ============================================================
+        if ($para1 == "view_invoice" && $para2) {
+            $invoice_number = $para2;
+            
+            $page_data['title'] = 'Admin | ' . $this->system_title;
+            $page_data['top'] = "dashboard.php";
+            $page_data['folder'] = "earnings";
+            $page_data['file'] = "individual_invoice.php";
+            $page_data['bottom'] = "dashboard.php";
+            $page_data['page_name'] = "earnings";
+            
+            // Get payment details by invoice number
+            $payment = $this->db
+                ->select('pp.*, m.*, p.name as plan_name, p.amount as plan_amount, p.gst as plan_gst')
+                ->from('package_payment pp')
+                ->join('member m', 'm.member_id = pp.member_id', 'left')
+                ->join('plan p', 'p.plan_id = pp.plan_id', 'left')
+                ->where('pp.invoice_number', $invoice_number)
+                ->get()
+                ->row();
+            
+            if (!$payment) {
+                $this->session->set_flashdata('danger_alert', 'Invoice not found');
+                redirect(base_url('admin/earnings'));
+                return;
+            }
+            
+            // Calculate amounts
+            $base_amount = floatval($payment->plan_amount);
+            $gst_percentage = floatval($payment->plan_gst);
+            $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);
+            $total_amount = $base_amount + $gst_amount;
+            
+            $page_data['payment'] = $payment;
+            $page_data['base_amount'] = $base_amount;
+            $page_data['gst_amount'] = $gst_amount;
+            $page_data['gst_percentage'] = $gst_percentage;
+            $page_data['total_amount'] = $total_amount;
+            
+            $this->load->view('back/index', $page_data);
+            return;
+        }
+        
+        // ============================================================
+        // ✅ NEW: Download Individual Invoice PDF
+        // ============================================================
+        if ($para1 == "download_invoice" && $para2) {
+            $invoice_number = $para2;
+            
+            // Load PDF helper
+            $this->load->helper('pdf');
+            
+            // Get payment details
+            $payment = $this->db
+                ->select('pp.*, m.*, p.name as plan_name, p.amount as plan_amount, p.gst as plan_gst')
+                ->from('package_payment pp')
+                ->join('member m', 'm.member_id = pp.member_id', 'left')
+                ->join('plan p', 'p.plan_id = pp.plan_id', 'left')
+                ->where('pp.invoice_number', $invoice_number)
+                ->get()
+                ->row();
+            
+            if (!$payment) {
+                $this->session->set_flashdata('danger_alert', 'Invoice not found');
+                redirect(base_url('admin/earnings'));
+                return;
+            }
+            
+            // Calculate amounts
+            $base_amount = floatval($payment->plan_amount);
+            $gst_percentage = floatval($payment->plan_gst);
+            $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);
+            $total_amount = $base_amount + $gst_amount;
+            
+            // Get organization details
+            $org_name = $this->db->get_where('general_settings', ['type' => 'system_name'])->row();
+            $org_email = $this->db->get_where('general_settings', ['type' => 'system_email'])->row();
+            $org_phone = $this->db->get_where('general_settings', ['type' => 'contact_phone'])->row();
+            
+            $data = [
+                'payment' => $payment,
+                'base_amount' => $base_amount,
+                'gst_amount' => $gst_amount,
+                'gst_percentage' => $gst_percentage,
+                'total_amount' => $total_amount,
+                'org_name' => $org_name ? $org_name->description : 'Your Organization',
+                'org_email' => $org_email ? $org_email->description : 'info@yourorg.com',
+                'org_phone' => $org_phone ? $org_phone->description : '+91 1234567890',
+                'generated_date' => date('d M Y, h:i A')
+            ];
+            
+            // Load PDF view
+            $html = $this->load->view('back/earnings/individual_invoice_pdf', $data, true);
+            
+            // Generate and download PDF
+            $filename = 'Invoice_' . $invoice_number . '.pdf';
+            generate_pdf($html, $filename, 'D');
+        }
 
 
-			elseif ($para1 == "download_invoice") {
-				$payment_id = (int) $para2;
-				$this->generate_member_invoice($payment_id);
-			}
+
+			// IT is old code for downloading invoice
+
+
+			// elseif ($para1 == "download_invoice") {
+			// 	$payment_id = (int) $para2;
+			// 	$this->generate_member_invoice($payment_id);
+			// }
 			
 
 
@@ -19968,6 +19872,129 @@ function bulkpayment($para1 = "", $para2 = "", $para3 = "")
 
             $this->load->view('back/index', $page_data);
         }
+
+
+// ============================================================
+// Delete Bulk Payment Invoice (COMPLETE FIX)
+// ============================================================
+elseif ($para1 == 'delete_invoice' && $para2) {
+    $invoice_id = intval($para2);
+    
+    log_message('debug', '=== DELETE INVOICE REQUEST ===');
+    log_message('debug', 'Invoice ID: ' . $invoice_id);
+    
+    // Get invoice BEFORE any checks
+    $invoice = $this->db->get_where('bulk_payment_invoices', ['invoice_id' => $invoice_id])->row();
+    
+    if (!$invoice) {
+        log_message('error', 'Invoice not found: ' . $invoice_id);
+        $this->session->set_flashdata('danger_alert', 'Invoice not found');
+        redirect(base_url('admin/bulkpayment/invoices'));
+        exit;
+    }
+    
+    $admin_id = $invoice->paid_by_admin_id;
+    $invoice_number = $invoice->invoice_number;
+    
+    log_message('debug', 'Found invoice: ' . $invoice_number);
+    log_message('debug', 'Admin ID: ' . $admin_id);
+    
+    try {
+        $this->db->trans_start();
+        
+        // Delete member invoices
+        $member_data = json_decode($invoice->member_ids, true);
+        if (!empty($member_data)) {
+            foreach ($member_data as $member) {
+                if (isset($member['invoice_number'])) {
+                    $this->db->where('invoice_number', $member['invoice_number'])
+                             ->delete('package_payment');
+                    log_message('debug', 'Deleted member invoice: ' . $member['invoice_number']);
+                }
+            }
+        }
+        
+        // Delete bulk invoice
+        $this->db->where('invoice_id', $invoice_id)->delete('bulk_payment_invoices');
+        log_message('debug', 'Deleted bulk invoice');
+        
+        $this->db->trans_complete();
+        
+        if ($this->db->trans_status() === FALSE) {
+            log_message('error', 'Transaction failed');
+            $this->session->set_flashdata('danger_alert', 'Failed to delete invoice');
+        } else {
+            log_message('info', 'SUCCESS: Invoice ' . $invoice_number . ' deleted');
+            $this->session->set_flashdata('success_alert', 'Invoice deleted successfully');
+        }
+        
+    } catch (Exception $e) {
+        log_message('error', 'Exception: ' . $e->getMessage());
+        $this->session->set_flashdata('danger_alert', 'Error: ' . $e->getMessage());
+    }
+    
+    // Redirect
+    log_message('debug', 'Redirecting to admin: ' . $admin_id);
+    redirect(base_url('admin/bulkpayment/invoices_by_admin/' . $admin_id));
+    exit;
+}
+
+// ============================================================
+// View invoices by admin (CHECK THIS PART)
+// ============================================================
+elseif ($para1 == 'invoices_by_admin' && $para2) {
+    $admin_id = $para2;
+    
+    log_message('debug', '=== LOADING ADMIN INVOICES ===');
+    log_message('debug', 'Admin ID: ' . $admin_id);
+    
+    $page_data['page_name'] = 'bulkpayment/admin_invoices';
+    $page_data['page_title'] = 'Admin Payment History';
+    $page_data['top'] = "dashboard.php";
+    $page_data['folder'] = "bulkpayment";
+    $page_data['file'] = "admin_invoices.php";
+    $page_data['bottom'] = "dashboard.php";
+    
+    // Get admin details
+    $admin = $this->db->get_where('admin', ['admin_id' => $admin_id])->row();
+    
+    if (!$admin) {
+        log_message('error', 'Admin not found: ' . $admin_id);
+        $this->session->set_flashdata('danger_alert', 'Admin not found');
+        redirect(base_url('admin/bulkpayment/invoices'));
+        exit;
+    }
+    
+    $page_data['admin'] = $admin;
+    
+    // Get all invoices for this admin
+    $invoices = $this->db
+        ->where('paid_by_admin_id', $admin_id)
+        ->order_by('payment_date', 'DESC')
+        ->get('bulk_payment_invoices')
+        ->result();
+    
+    log_message('debug', 'Found ' . count($invoices) . ' invoices');
+    
+    $page_data['invoices'] = $invoices;
+    
+    // ✅ IMPORTANT: Load view and STOP
+    $this->load->view('back/index', $page_data);
+    return; // ✅ Stop execution here
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
         
         // ============================================================
         // ✅ NEW: Invoice Listing Page
@@ -20089,6 +20116,60 @@ function bulkpayment($para1 = "", $para2 = "", $para3 = "")
             }
             return;
         }
+
+		// ============================================================
+		// Download Invoice PDF
+		// ============================================================
+		elseif ($para1 == 'download_invoice' && $para2) {
+			$invoice_id = $para2;
+			
+			// Load PDF helper
+			$this->load->helper('pdf');
+			
+			// Get invoice data
+			$invoice = $this->db->get_where('bulk_payment_invoices', ['invoice_id' => $invoice_id])->row();
+			
+			if (!$invoice) {
+				$this->session->set_flashdata('danger_alert', 'Invoice not found');
+				redirect(base_url('admin/bulkpayment/invoices'));
+				return;
+			}
+			
+			// Get admin details
+			$admin = $this->db->get_where('admin', ['admin_id' => $invoice->paid_by_admin_id])->row();
+			
+			// Get member details
+			$members = json_decode($invoice->member_ids, true);
+			
+			// Get plan details
+			$plan = $this->db->get_where('plan', ['plan_id' => $invoice->plan_id])->row();
+			
+			// Get organization details (from settings)
+			$org_name = $this->db->get_where('general_settings', ['type' => 'system_name'])->row();
+			$org_email = $this->db->get_where('general_settings', ['type' => 'system_email'])->row();
+			$org_phone = $this->db->get_where('general_settings', ['type' => 'contact_phone'])->row();
+			
+			// Prepare data for PDF
+			$data = [
+				'invoice' => $invoice,
+				'admin' => $admin,
+				'members' => $members,
+				'plan' => $plan,
+				'org_name' => $org_name ? $org_name->description : 'Your Organization',
+				'org_email' => $org_email ? $org_email->description : 'info@yourorg.com',
+				'org_phone' => $org_phone ? $org_phone->description : '+91 1234567890',
+				'generated_date' => date('d M Y, h:i A')
+			];
+			
+			// Load PDF view
+			$html = $this->load->view('back/bulkpayment/invoice_pdf', $data, true);
+			
+			// Generate and download PDF
+			$filename = 'Invoice_' . $invoice->invoice_number . '.pdf';
+			generate_pdf($html, $filename, 'D');
+		}
+
+
         
         // ============================================================
         // Update cart with selected package (AJAX)
@@ -20313,8 +20394,6 @@ function bulkpayment($para1 = "", $para2 = "", $para3 = "")
         }
     }
 }
-
-
 
 ////////////////////////////////////////////////////////////		Bulk payment methods  END 			///////////////////////////////////////////////////////////////////////
 

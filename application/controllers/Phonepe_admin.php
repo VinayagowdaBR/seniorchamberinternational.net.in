@@ -488,7 +488,7 @@ private function verify_and_process_bulk_payment($bulk_transaction_id, $is_callb
             $member_data_for_bulk_invoice[] = [
                 'member_id' => $payment->member_id,
                 'member_name' => $member->first_name . ' ' . $member->last_name,
-                'member_code' => $member->code ?? '',
+                'member_code' => $member->member_profile_id ?? '', 
                 'invoice_number' => $invoice_number,
                 'base_amount' => $base_amount,
                 'gst_percentage' => $gst_percentage,
