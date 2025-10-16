@@ -269,14 +269,24 @@ log_message('debug', 'Using backend calculated amount: ' . $calculated_total);
 
 
 
+/**
+ * PhonePe Bulk Payment Return Handler
+ * Integrates with existing bulk_payment_master and package_payment tables
+ * Also creates entries in bulk_payment_invoices for invoice listing
+ */
 public function bulk_payment_return()
 {
-    log_message('debug', '=== Return URL ===');
+    log_message('debug', '=== BULK PAYMENT RETURN URL CALLED ===');
     
-    $bulk_transaction_id = $this->input->get('id') ?? $this->input->post('transactionId') ?? $this->input->post('merchantTransactionId');
+    $bulk_transaction_id = $this->input->get('id') ?? 
+                          $this->input->post('transactionId') ?? 
+                          $this->input->post('merchantTransactionId');
+    
+    log_message('debug', 'Transaction ID: ' . $bulk_transaction_id);
     
     if (!$bulk_transaction_id) {
-        $this->session->set_flashdata('danger_alert', 'Invalid response');
+        log_message('error', 'No transaction ID received');
+        $this->session->set_flashdata('danger_alert', 'Invalid payment response');
         redirect(base_url('admin/earnings'));
         return;
     }
@@ -287,167 +297,271 @@ public function bulk_payment_return()
     $status = 'FAILED';
     
     while ($retry_count < $max_retries) {
-        log_message('debug', 'Status check attempt: ' . ($retry_count + 1));
+        log_message('debug', 'Payment status check - Attempt: ' . ($retry_count + 1));
         
         $status = $this->verify_and_process_bulk_payment($bulk_transaction_id);
         
+        log_message('debug', 'Status returned: ' . $status);
+        
         if ($status === 'SUCCESS') {
-            break; // Payment successful
+            break;
         }
         
         if ($status === 'PENDING') {
-            // Wait 2 seconds before next attempt
             sleep(2);
             $retry_count++;
         } else {
-            // Payment failed, stop retrying
             break;
         }
     }
     
+    // Handle success
     if ($status === 'SUCCESS') {
-        redirect(base_url('admin/earnings/bulk_payment_success_page'));
-    } else if ($status === 'PENDING') {
-        $this->session->set_flashdata('warning_alert', 'Payment is being processed. Please check status later.');
-        redirect(base_url('admin/earnings'));
-    } else {
-        $this->session->set_flashdata('danger_alert', 'Payment failed');
-        redirect(base_url('admin/earnings/payment_cart'));
+        $this->session->set_flashdata('success_alert', 'Payment successful! Invoices generated.');
+        redirect(base_url('admin/bulkpayment/payment_success/' . $bulk_transaction_id));
+        return;
     }
+    
+    // Handle pending
+    if ($status === 'PENDING') {
+        $this->session->set_flashdata('warning_alert', 'Payment is being processed.');
+        redirect(base_url('admin/earnings'));
+        return;
+    }
+    
+    // Handle failure
+    $this->session->set_flashdata('danger_alert', 'Payment failed!');
+    redirect(base_url('admin/earnings/payment_cart'));
 }
 
-    public function bulk_payment_callback()
-    {
-        $input = file_get_contents('php://input');
-        log_message('debug', '=== Callback: ' . $input);
+ 
+/**
+ * PhonePe Callback Handler
+ */
+public function bulk_payment_callback()
+{
+    $input = file_get_contents('php://input');
+    log_message('debug', '=== Callback received: ' . $input);
+    
+    $data = json_decode($input, true);
+    $bulk_transaction_id = $data['merchantTransactionId'] ?? null;
+    
+    if ($bulk_transaction_id) {
+        $status = $this->verify_and_process_bulk_payment($bulk_transaction_id, true);
         
-        $data = json_decode($input, true);
-        $bulk_transaction_id = $data['merchantTransactionId'] ?? null;
-        
-        if ($bulk_transaction_id) {
-            $this->verify_and_process_bulk_payment($bulk_transaction_id, true);
+        if ($status === 'SUCCESS' && is_callback === true) {
+            echo json_encode(['status' => 'success']);
+            exit;
         }
     }
+    
+    echo json_encode(['status' => 'failed']);
+    exit;
+}
 
+
+
+/**
+ * Verify and Process Bulk Payment
+ * Updates existing tables + creates bulk_payment_invoices entry
+ */
 private function verify_and_process_bulk_payment($bulk_transaction_id, $is_callback = false)
 {
     try {
-        log_message('debug', '=== Verify: ' . $bulk_transaction_id);
+        log_message('debug', '=== Verifying payment: ' . $bulk_transaction_id);
         
+        // Verify with PhonePe
         $response = $this->phonepe->verify_payment($bulk_transaction_id);
         
         log_message('debug', 'Payment State: ' . ($response['data']['state'] ?? 'UNKNOWN'));
         
-        // Check if payment is successful
         $is_success = isset($response['success'], $response['data']['state']) &&
                      $response['success'] === true &&
                      $response['data']['state'] === 'COMPLETED';
         
-        // Check if payment is pending
         $is_pending = isset($response['data']['state']) && 
                      $response['data']['state'] === 'PENDING';
         
         if ($is_pending) {
-            log_message('debug', 'Payment is still PENDING');
             return 'PENDING';
         }
         
-        if ($is_success) {
-            // ... existing success processing code ...
-            
-            $bulk_payment = $this->db->get_where('bulk_payment_master', [
-                'bulk_transaction_id' => $bulk_transaction_id
-            ])->row();
-            
-            if (!$bulk_payment) {
-                log_message('error', 'Bulk payment not found');
-                return 'FAILED';
-            }
-            
-            $phonepe_transaction_id = $response['data']['transactionId'] ?? null;
-            
-            $this->db->trans_begin();
-            
-            // Update bulk_payment_master
-            $this->db->where('bulk_payment_id', $bulk_payment->bulk_payment_id);
-            $this->db->update('bulk_payment_master', [
-                'payment_status' => 'paid',
-                'phonepe_transaction_id' => $phonepe_transaction_id,
-                'phonepe_response' => json_encode($response),
-                'paid_at' => date('Y-m-d H:i:s')
-            ]);
-            
-            // Get child payments
-            $child_payments = $this->db->get_where('package_payment', [
-                'bulk_payment_id' => $bulk_payment->bulk_payment_id
-            ])->result();
-            
-            $generated_invoices = [];
-            
-            foreach ($child_payments as $payment) {
-                $member = $this->db->get_where('member', ['member_id' => $payment->member_id])->row();
-                $plan = $this->db->get_where('plan', ['plan_id' => $payment->plan_id])->row();
-                
-                if (!$member || !$plan) continue;
-                
-                $validity_start = date('Y-m-d');
-                $validity_end = date('Y-m-d', strtotime('+1 year'));
-                $invoice_number = $this->generate_invoice_number(date('Y'));
-                
-                // Update member
-                $this->db->where('member_id', $payment->member_id);
-                $this->db->update('member', [
-                    'membership' => ($plan->plan_id == '1') ? 1 : 2,
-                    'express_interest' => $member->express_interest + $plan->express_interest,
-                    'direct_messages' => $member->direct_messages + $plan->direct_messages,
-                    'photo_gallery' => $member->photo_gallery + $plan->photo_gallery
-                ]);
-                
-                // Update payment
-                $this->db->where('package_payment_id', $payment->package_payment_id);
-                $this->db->update('package_payment', [
-                    'payment_status' => 'paid',
-                    'payment_type' => 'PhonePe',
-                    'payment_code' => $bulk_transaction_id,
-                    'invoice_number' => $invoice_number,
-                    'payment_details' => json_encode($response),
-                    'purchase_datetime' => time()
-                ]);
-                
-                $generated_invoices[] = [
-                    'invoice_number' => $invoice_number,
-                    'member_name' => $member->first_name . ' ' . $member->last_name,
-                    'amount' => $payment->amount
-                ];
-                
-                log_message('debug', 'Generated invoice: ' . $invoice_number . ' for member: ' . $payment->member_id);
-            }
-            
-            if ($this->db->trans_status() === FALSE) {
-                $this->db->trans_rollback();
-                log_message('error', 'Transaction rollback');
-                return 'FAILED';
-            }
-            
-            $this->db->trans_commit();
-            log_message('debug', 'Payment processing completed successfully');
-            
-            $this->session->set_userdata('bulk_payment_invoices', $generated_invoices);
-            $this->session->unset_userdata(['cart_items', 'bulk_payment_data']);
-            
-            if (!$is_callback) {
-                return 'SUCCESS';
-            } else {
-                echo json_encode(['status' => 'success']);
-                exit;
-            }
+        if (!$is_success) {
+            return 'FAILED';
         }
         
-        log_message('error', 'Payment verification failed');
-        return 'FAILED';
+        // ✅ PAYMENT SUCCESSFUL - Process it
+        
+        // Get bulk payment record
+        $bulk_payment = $this->db->get_where('bulk_payment_master', [
+            'bulk_transaction_id' => $bulk_transaction_id
+        ])->row();
+        
+        if (!$bulk_payment) {
+            log_message('error', 'Bulk payment master not found: ' . $bulk_transaction_id);
+            return 'FAILED';
+        }
+        
+        // Check if already processed
+        if ($bulk_payment->payment_status === 'paid') {
+            log_message('debug', 'Payment already processed');
+            return 'SUCCESS';
+        }
+        
+        $phonepe_transaction_id = $response['data']['transactionId'] ?? $bulk_transaction_id;
+        
+        // Start transaction
+        $this->db->trans_begin();
+        
+        // 1. Update bulk_payment_master (YOUR EXISTING TABLE)
+        $this->db->where('bulk_payment_id', $bulk_payment->bulk_payment_id);
+        $this->db->update('bulk_payment_master', [
+            'payment_status' => 'paid',
+            'phonepe_transaction_id' => $phonepe_transaction_id,
+            'phonepe_response' => json_encode($response),
+            'paid_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        log_message('debug', 'Updated bulk_payment_master');
+        
+        // 2. Get child payments (YOUR EXISTING TABLE)
+        $child_payments = $this->db->get_where('package_payment', [
+            'bulk_payment_id' => $bulk_payment->bulk_payment_id
+        ])->result();
+        
+        log_message('debug', 'Found ' . count($child_payments) . ' child payments');
+        
+        $generated_invoices = [];
+        $member_data_for_bulk_invoice = [];
+        $total_amount = 0;
+        $plan_id = null;
+        $plan_name = null;
+        
+        // 3. Process each member payment (YOUR EXISTING LOGIC)
+        foreach ($child_payments as $payment) {
+            $member = $this->db->get_where('member', ['member_id' => $payment->member_id])->row();
+            $plan = $this->db->get_where('plan', ['plan_id' => $payment->plan_id])->row();
+            
+            if (!$member || !$plan) {
+                log_message('warning', 'Member or plan not found: ' . $payment->member_id);
+                continue;
+            }
+            
+            // Store plan info for bulk invoice (use first member's plan)
+            if (!$plan_id) {
+                $plan_id = $plan->plan_id;
+                $plan_name = $plan->name;
+            }
+            
+            // Generate individual invoice number (YOUR EXISTING FORMAT)
+            $invoice_number = $this->generate_invoice_number(date('Y'));
+            
+            // Calculate amounts
+            $base_amount = floatval($plan->amount);
+            $gst_percentage = floatval($plan->gst);
+            $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);
+            $member_total = $base_amount + $gst_amount;
+            
+            $total_amount += $member_total;
+            
+            // Update member (YOUR EXISTING LOGIC)
+            $this->db->where('member_id', $payment->member_id);
+            $this->db->update('member', [
+                'membership' => ($plan->plan_id == '1') ? 1 : 2,
+                'express_interest' => $member->express_interest + $plan->express_interest,
+                'direct_messages' => $member->direct_messages + $plan->direct_messages,
+                'photo_gallery' => $member->photo_gallery + $plan->photo_gallery
+            ]);
+            
+            // Update package_payment (YOUR EXISTING LOGIC)
+            $this->db->where('package_payment_id', $payment->package_payment_id);
+            $this->db->update('package_payment', [
+                'payment_status' => 'paid',
+                'payment_type' => 'PhonePe',
+                'payment_code' => $bulk_transaction_id,
+                'invoice_number' => $invoice_number,
+                'payment_details' => json_encode($response),
+                'purchase_datetime' => time()
+            ]);
+            
+            // Store for bulk invoice
+            $member_data_for_bulk_invoice[] = [
+                'member_id' => $payment->member_id,
+                'member_name' => $member->first_name . ' ' . $member->last_name,
+                'member_code' => $member->code ?? '',
+                'invoice_number' => $invoice_number,
+                'base_amount' => $base_amount,
+                'gst_percentage' => $gst_percentage,
+                'gst_amount' => $gst_amount,
+                'total_amount' => $member_total
+            ];
+            
+            $generated_invoices[] = [
+                'invoice_number' => $invoice_number,
+                'member_name' => $member->first_name . ' ' . $member->last_name,
+                'amount' => $member_total
+            ];
+            
+            log_message('debug', 'Generated invoice: ' . $invoice_number . ' for member: ' . $payment->member_id);
+        }
+        
+        // ✅ 4. NEW: Create entry in bulk_payment_invoices for invoice listing feature
+        if (!empty($member_data_for_bulk_invoice)) {
+            
+            $bulk_invoice_number = $this->generate_bulk_invoice_number();
+            
+            $total_base = array_sum(array_column($member_data_for_bulk_invoice, 'base_amount'));
+            $total_gst = array_sum(array_column($member_data_for_bulk_invoice, 'gst_amount'));
+            
+            $admin_id = $this->session->userdata('admin_id') ?? 1;
+            
+            $bulk_invoice_data = [
+                'invoice_number' => $bulk_invoice_number,
+                'transaction_id' => $phonepe_transaction_id,
+                'payment_date' => date('Y-m-d H:i:s'),
+                'paid_by_admin_id' => $admin_id,
+                'total_amount' => $total_amount,
+                'base_amount' => $total_base,
+                'gst_amount' => $total_gst,
+                'gst_percentage' => $member_data_for_bulk_invoice[0]['gst_percentage'] ?? 18,
+                'total_members' => count($member_data_for_bulk_invoice),
+                'plan_id' => $plan_id,
+                'plan_name' => $plan_name,
+                'member_ids' => json_encode($member_data_for_bulk_invoice),
+                'payment_status' => 'completed',
+                'payment_method' => 'phonepe',
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            
+            $this->db->insert('bulk_payment_invoices', $bulk_invoice_data);
+            $bulk_invoice_id = $this->db->insert_id();
+            
+            log_message('debug', 'Created bulk invoice: ' . $bulk_invoice_number . ' (ID: ' . $bulk_invoice_id . ')');
+            
+            // Store for success page
+            $this->session->set_userdata('last_bulk_invoice_id', $bulk_invoice_id);
+        }
+        
+        // Check transaction status
+        if ($this->db->trans_status() === FALSE) {
+            $this->db->trans_rollback();
+            log_message('error', 'Transaction rollback');
+            return 'FAILED';
+        }
+        
+        $this->db->trans_commit();
+        log_message('debug', 'Payment processing completed successfully');
+        
+        // Store invoices in session (YOUR EXISTING LOGIC)
+        $this->session->set_userdata('bulk_payment_invoices', $generated_invoices);
+        $this->session->unset_userdata(['cart_items', 'bulk_payment_data', 'selected_package_id']);
+        
+        return 'SUCCESS';
         
     } catch (Exception $e) {
-        log_message('error', 'Verify exception: ' . $e->getMessage());
+        $this->db->trans_rollback();
+        log_message('error', 'Payment verification exception: ' . $e->getMessage());
+        log_message('error', 'Stack trace: ' . $e->getTraceAsString());
         return 'FAILED';
     }
 }
@@ -455,9 +569,15 @@ private function verify_and_process_bulk_payment($bulk_transaction_id, $is_callb
 
 
 
+
+
+
+/**
+ * Generate individual invoice number (YOUR EXISTING LOGIC)
+ * Format: INV-2025-00001
+ */
 private function generate_invoice_number($year)
 {
-    // Get last invoice number for this year from invoice_number format
     $last = $this->db->select('invoice_number')
         ->where('invoice_number IS NOT NULL')
         ->where('invoice_number LIKE', 'INV-' . $year . '-%')
@@ -469,17 +589,43 @@ private function generate_invoice_number($year)
     $number = 1;
     
     if ($last && $last->invoice_number) {
-        // Extract number from format: INV-2025-00001
         $parts = explode('-', $last->invoice_number);
         if (isset($parts[2])) {
             $number = intval($parts[2]) + 1;
         }
     }
     
-    // Format: INV-2025-00001
     return 'INV-' . $year . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
 }
 
+/**
+ * Generate bulk invoice number for bulk_payment_invoices table
+ * Format: BP-202510-0001
+ */
+private function generate_bulk_invoice_number()
+{
+    $prefix = 'BP';
+    $year = date('Y');
+    $month = date('m');
+    
+    $last_invoice = $this->db
+        ->select('invoice_number')
+        ->from('bulk_payment_invoices')
+        ->like('invoice_number', $prefix . '-' . $year . $month, 'after')
+        ->order_by('invoice_id', 'DESC')
+        ->limit(1)
+        ->get()
+        ->row();
+    
+    if ($last_invoice) {
+        $parts = explode('-', $last_invoice->invoice_number);
+        $sequence = intval(end($parts)) + 1;
+    } else {
+        $sequence = 1;
+    }
+    
+    return $prefix . '-' . $year . $month . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+}
 
 
 

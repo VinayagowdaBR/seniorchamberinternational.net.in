@@ -59,12 +59,6 @@
             <div class="panel-body">
                 <div class="row" style="margin-bottom: 15px;">
                     <div class="col-md-12">
-                        <button type="button" class="btn btn-primary" id="proceed_to_cart" disabled>
-                            <i class="fa fa-shopping-cart"></i> Proceed to Payment Cart (<span id="selected_count">0</span>)
-                        </button>
-                        <button type="button" class="btn btn-default" id="clear_selection" disabled>
-                            <i class="fa fa-times"></i> Clear Selection
-                        </button>
                         <!-- NEW INVOICE HISTORY BUTTON ADDED HERE -->
                         <a href="<?php echo base_url('admin/earnings/invoice_history'); ?>" class="btn btn-info">
                             <i class="fa fa-file-text"></i> View Invoice History
@@ -76,9 +70,6 @@
                     <table id="earnings_table" class="table table-striped table-bordered" cellspacing="0" width="100%">
                         <thead>
                         <tr>
-                            <th width="5%">
-                                <input type="checkbox" id="select_all">
-                            </th>
                             <th width="10%">#</th>
                             <th><?php echo translate('earning_name')?></th>
                             <th><?php echo translate('date')?></th>
@@ -113,16 +104,6 @@
     #button{
         margin-left: 29px;
         margin-top: 16px;
-    }
-    .earning-checkbox {
-        cursor: pointer;
-        width: 18px;
-        height: 18px;
-    }
-    #select_all {
-        cursor: pointer;
-        width: 18px;
-        height: 18px;
     }
 </style>
 
@@ -196,9 +177,6 @@
 
 
 <script>
-    // Store selected items
-    var selectedItems = [];
-    
     $(document).ready(function () {
         $('.container_radio').on('click',function(){
             $(this).closest("form").submit();
@@ -217,7 +195,6 @@
                 "data":{'<?php echo $this->security->get_csrf_token_name(); ?>' : '<?php echo $this->security->get_csrf_hash(); ?>' }
             },
             "columns": [
-                { "data": "checkbox", "orderable": false },
                 { "data": "#" },
                 { "data": "member_name" },
                 { "data": "date" },
@@ -229,121 +206,6 @@
             ],
             "drawCallback": function( settings ) {
                 $('.add-tooltip').tooltip();
-                updateCheckboxStates();
-            }
-        });
-    });
-
-
-    // Select All Checkbox
-    $(document).on('change', '#select_all', function() {
-        var isChecked = $(this).is(':checked');
-        $('.earning-checkbox:visible').prop('checked', isChecked);
-        
-        if (isChecked) {
-            $('.earning-checkbox:visible').each(function() {
-                addToSelection($(this));
-            });
-        } else {
-            selectedItems = [];
-        }
-        updateButtonStates();
-    });
-
-
-    // Individual Checkbox
-    $(document).on('change', '.earning-checkbox', function() {
-        if ($(this).is(':checked')) {
-            addToSelection($(this));
-        } else {
-            removeFromSelection($(this).data('id'));
-        }
-        updateButtonStates();
-    });
-
-
-    function addToSelection(checkbox) {
-        var id = checkbox.data('id');
-        var amount = checkbox.data('amount');
-        var memberName = checkbox.data('member');
-        var packageName = checkbox.data('package');
-        var status = checkbox.data('status');
-        
-        // Only add due payments
-        if (status !== 'due') {
-            checkbox.prop('checked', false);
-            alert('Only due payments can be selected for bulk payment!');
-            return;
-        }
-        
-        // Check if already exists
-        var exists = selectedItems.find(item => item.id === id);
-        if (!exists) {
-            selectedItems.push({
-                id: id,
-                amount: parseFloat(amount),
-                memberName: memberName,
-                packageName: packageName
-            });
-        }
-    }
-
-
-    function removeFromSelection(id) {
-        selectedItems = selectedItems.filter(item => item.id !== id);
-    }
-
-
-    function updateButtonStates() {
-        var count = selectedItems.length;
-        $('#selected_count').text(count);
-        
-        if (count > 0) {
-            $('#proceed_to_cart').prop('disabled', false);
-            $('#clear_selection').prop('disabled', false);
-        } else {
-            $('#proceed_to_cart').prop('disabled', true);
-            $('#clear_selection').prop('disabled', true);
-        }
-    }
-
-
-    function updateCheckboxStates() {
-        selectedItems.forEach(function(item) {
-            $('.earning-checkbox[data-id="' + item.id + '"]').prop('checked', true);
-        });
-    }
-
-
-    // Clear Selection
-    $('#clear_selection').click(function() {
-        selectedItems = [];
-        $('.earning-checkbox').prop('checked', false);
-        $('#select_all').prop('checked', false);
-        updateButtonStates();
-    });
-
-
-    // Proceed to Cart
-    $('#proceed_to_cart').click(function() {
-        if (selectedItems.length === 0) {
-            alert('Please select at least one payment!');
-            return;
-        }
-        
-        // Store in session and redirect
-        $.ajax({
-            url: "<?=base_url()?>admin/earnings/store_cart_items",
-            type: "POST",
-            data: {
-                items: JSON.stringify(selectedItems),
-                '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
-            },
-            success: function(response) {
-                window.location.href = "<?=base_url()?>admin/earnings/payment_cart";
-            },
-            error: function(error) {
-                alert('Error storing cart items!');
             }
         });
     });

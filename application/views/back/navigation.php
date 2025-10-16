@@ -132,21 +132,38 @@
                         </li>
                         <?php } ?>
 
+<!-- //////////////////////////////////////////// BULK PAYMETN  NAVEBAR CRATING START  /////////////////////////////////////////// -->
+
+                <?php if ($this->Crud_model->admin_permission('bulkpayment')) { ?>
+                    <!-- Bulk Payment Parent Menu with Dropdown -->
+                    <li class="parent <?php if($page_name=="bulkpayment" || $page_name=="bulkpayment/invoice_list" || $page_name=="bulkpayment/admin_invoices" || $page_name=="bulkpayment/invoice_detail") echo 'active-sub'; ?>">
+                        <a href="#">
+                            <i class="fa fa-money"></i>
+                            <span class="menu-title"><?php echo translate('bulk_payment'); ?></span>
+                        </a>
+                        <ul class="children">
+                            <!-- Make Bulk Payment -->
+                            <li <?php if($page_name=="bulkpayment") echo 'class="active-link"'; ?>>
+                                <a href="<?=base_url()?>admin/bulkpayment">
+                                    <i class="fa fa-credit-card"></i>
+                                    <span class="menu-title"><?php echo translate('make_payment'); ?></span>
+                                </a>
+                            </li>
+                            
+                            <!-- Bulk Payment Invoices -->
+                            <li <?php if($page_name=="bulkpayment/invoice_list" || $page_name=="bulkpayment/admin_invoices" || $page_name=="bulkpayment/invoice_detail") echo 'class="active-link"'; ?>>
+                                <a href="<?=base_url()?>admin/bulkpayment/invoices">
+                                    <i class="fa fa-file-text"></i>
+                                    <span class="menu-title"><?php echo translate('payment_invoices'); ?></span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                <?php } ?>
 
 
-                        <?php if ($this->Crud_model->admin_permission('bulkpayment')) { ?>
-                        <li <?php if($page_name=="bulkpayment") echo 'class="active-link"'; ?>>
-                            <a href="<?=base_url()?>admin/bulkpayment">
-                                <i class="fa fa-money"></i>
-                                <span class="menu-title"><?php echo translate('bulk_payment')?></span>
-                            </a>
-                        </li>
-                        <?php } ?>
 
-
-
-
-
+<!-- //////////////////////////////////////////// BULK PAYMETN  NAVEBAR CRATING  END /////////////////////////////////////////// -->
 
 
 

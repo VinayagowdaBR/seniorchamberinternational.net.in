@@ -19921,16 +19921,17 @@ private function generate_member_invoice($payment_id)
 
 ///////////////////////////////  Bulk payment methods //////////////////////////////////////
 
-
 // ============================== Bulk Payment Section ==============================
-function bulkpayment($para1 = "", $para2 = "")
+function bulkpayment($para1 = "", $para2 = "", $para3 = "")
 {
     if ($this->admin_permission() == FALSE) {
         redirect(base_url() . 'admin/login', 'refresh');
     } else {
         $page_data['title'] = "Admin || " . $this->system_title;
 
+        // ============================================================
         // Main bulk payment member selection page (default)
+        // ============================================================
         if ($para1 == "" || $para1 == "list") {
             $page_data['top'] = "dashboard.php";
             $page_data['folder'] = "bulkpayment";
@@ -19938,7 +19939,7 @@ function bulkpayment($para1 = "", $para2 = "")
             $page_data['bottom'] = "dashboard.php";
             $page_data['page_name'] = "bulkpayment";
             
-            // ✅ Get ALL members from database
+            // Get ALL members from database
             $this->db->select('m.member_id, m.member_profile_id, m.first_name, m.last_name, 
                               m.gender, m.date_of_birth, m.membership, m.status');
             $this->db->from('member m');
@@ -19946,7 +19947,7 @@ function bulkpayment($para1 = "", $para2 = "")
             $this->db->order_by('m.first_name', 'ASC');
             $members = $this->db->get()->result();
 
-            // ✅ Calculate age from Unix timestamp
+            // Calculate age from Unix timestamp
             foreach ($members as $member) {
                 if (!empty($member->date_of_birth) && is_numeric($member->date_of_birth)) {
                     $birth_year = date('Y', $member->date_of_birth);
@@ -19968,197 +19969,244 @@ function bulkpayment($para1 = "", $para2 = "")
             $this->load->view('back/index', $page_data);
         }
         
-        // Payment Cart Page
-        // elseif ($para1 == "payment_cart") {
-        //     $cart_items = $this->session->userdata('cart_items');
+        // ============================================================
+        // ✅ NEW: Invoice Listing Page
+        // ============================================================
+        elseif ($para1 == 'invoices') {
+            $page_data['page_name'] = 'bulkpayment/invoice_list';
+            $page_data['page_title'] = 'Bulk Payment Invoices';
+            $page_data['top'] = "dashboard.php";
+            $page_data['folder'] = "bulkpayment";
+            $page_data['file'] = "invoice_list.php";
+            $page_data['bottom'] = "dashboard.php";
             
-        //     if (empty($cart_items)) {
-        //         $this->session->set_flashdata('warning_alert', 'No items in cart');
-        //         redirect(base_url() . 'admin/bulkpayment', 'refresh');
-        //     }
-
-        //    $page_data['top'] = "dashboard.php";
-        //     $page_data['folder'] = "earnings";
-        //     $page_data['file'] = "payment_cart.php";
-        //     $page_data['bottom'] = "earnings/index.php";
-        //     $page_data['page_name'] = "bulkpayment";
-        //     $page_data['cart_items'] = $cart_items;
-
-        //     $this->load->view('back/index', $page_data);
-        // }
-
-
-
-
-
-
-
-
-// Update cart with selected package
-elseif ($para1 == 'bulkpayment' && $para2 == 'update_cart_package') {
-    header('Content-Type: application/json');  // ✅ Set JSON header
-    
-    log_message('debug', '=== UPDATE CART PACKAGE CALLED ===');
-    
-    $package_id = $this->input->post('package_id');
-    $cart_items = $this->session->userdata('cart_items');
-    
-    log_message('debug', 'Package ID received: ' . $package_id);
-    log_message('debug', 'Cart items: ' . print_r($cart_items, true));
-    
-    // Validate inputs
-    if (empty($package_id)) {
-        log_message('error', 'Package ID is empty');
-        echo json_encode(['status' => 'error', 'message' => 'No package selected']);
-        exit;
-    }
-    
-    if (empty($cart_items) || !is_array($cart_items)) {
-        log_message('error', 'Cart items empty or invalid');
-        echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
-        exit;
-    }
-    
-    // Get package details from database
-    $package = $this->db->get_where('plan', ['plan_id' => $package_id])->row();
-    
-    if (!$package) {
-        log_message('error', 'Package not found in database: ' . $package_id);
-        echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
-        exit;
-    }
-    
-    log_message('debug', 'Package found: ' . $package->name);
-    
-    // ✅ CORRECT GST CALCULATION
-    $base_amount = floatval($package->amount);                           // 700
-    $gst_percentage = floatval($package->gst);                           // 18.00
-    $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);     // 126
-    $total_price = $base_amount + $gst_amount;                           // 826
-    
-    log_message('debug', 'Calculation: Base=' . $base_amount . ', GST%=' . $gst_percentage . ', GST Amount=' . $gst_amount . ', Total=' . $total_price);
-    
-    // ✅ CRITICAL: Store package ID in session
-    $this->session->set_userdata('selected_package_id', $package_id);
-    
-    $verify_session = $this->session->userdata('selected_package_id');
-    log_message('debug', 'Session package_id set to: ' . $verify_session);
-    
-    // Update all cart items
-    foreach ($cart_items as &$item) {
-        $item['packageName'] = $package->name;
-        $item['packageId'] = $package->plan_id;
-        $item['amount'] = $total_price;
-        $item['base_amount'] = $base_amount;
-        $item['gst_percentage'] = $gst_percentage;
-        $item['gst_amount'] = $gst_amount;
-    }
-    unset($item);
-    
-    $this->session->set_userdata('cart_items', $cart_items);
-    
-    log_message('debug', 'Cart items updated successfully');
-    
-    // ✅ RETURN JSON RESPONSE
-    $response = [
-        'status' => 'success',
-        'message' => 'Package updated successfully',
-        'package_name' => $package->name,
-        'package_price' => $total_price,
-        'base_amount' => $base_amount,
-        'gst_percentage' => $gst_percentage,
-        'gst_amount' => $gst_amount,
-        'total_amount' => $total_price * count($cart_items)
-    ];
-    
-    log_message('debug', 'Sending response: ' . json_encode($response));
-    
-    echo json_encode($response);
-    exit;  // ✅ CRITICAL: Stop execution
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Payment Cart Page
-elseif ($para1 == "payment_cart") {
-    $cart_items = $this->session->userdata('cart_items');
-    
-    if (empty($cart_items)) {
-        $this->session->set_flashdata('warning_alert', 'No items in cart');
-        redirect(base_url() . 'admin/bulkpayment', 'refresh');
-    }
-    
-    // Get ALL packages from plan table
-    $packages = $this->db->get('plan')->result();
-    
-    // Debug log
-    log_message('debug', 'Payment Cart - Packages count: ' . count($packages));
-    
-    $page_data['title'] = 'Admin | ' . $this->system_title;
-    $page_data['top'] = "dashboard.php";
-    $page_data['folder'] = "earnings";
-    $page_data['file'] = "payment_cart.php";
-    $page_data['bottom'] = "earnings/index.php";
-    $page_data['page_name'] = "bulkpayment";
-    $page_data['cart_items'] = $cart_items;
-    $page_data['packages'] = $packages; // IMPORTANT: Add this line
-    
-    $this->load->view('back/index', $page_data);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            // Get all invoices grouped by paid_by_admin_id
+            $this->db->select('paid_by_admin_id, COUNT(*) as total_invoices, 
+                              SUM(total_amount) as total_paid, MAX(payment_date) as last_payment');
+            $this->db->from('bulk_payment_invoices');
+            $this->db->group_by('paid_by_admin_id');
+            $this->db->order_by('last_payment', 'DESC');
+            $invoice_summary = $this->db->get()->result();
+            
+            // Get admin details for each
+            foreach ($invoice_summary as &$summary) {
+                $admin = $this->db->get_where('admin', ['admin_id' => $summary->paid_by_admin_id])->row();
+                $summary->admin_name = $admin ? $admin->name : 'Unknown';
+                $summary->admin_email = $admin ? $admin->email : '';
+            }
+            
+            $page_data['invoice_summary'] = $invoice_summary;
+            
+            $this->load->view('back/index', $page_data);
+            return;
+        }
         
-        // Bulk Payment Success Page
+        // ============================================================
+        // ✅ NEW: View invoices by specific admin
+        // ============================================================
+        elseif ($para1 == 'invoices_by_admin' && $para2) {
+            $admin_id = $para2;
+            
+            $page_data['page_name'] = 'bulkpayment/admin_invoices';
+            $page_data['page_title'] = 'Admin Payment History';
+            $page_data['top'] = "dashboard.php";
+            $page_data['folder'] = "bulkpayment";
+            $page_data['file'] = "admin_invoices.php";
+            $page_data['bottom'] = "dashboard.php";
+            
+            // Get admin details
+            $page_data['admin'] = $this->db->get_where('admin', ['admin_id' => $admin_id])->row();
+            
+            // Get all invoices for this admin
+            $page_data['invoices'] = $this->db
+                ->where('paid_by_admin_id', $admin_id)
+                ->order_by('payment_date', 'DESC')
+                ->get('bulk_payment_invoices')
+                ->result();
+            
+            $this->load->view('back/index', $page_data);
+            return;
+        }
+        
+        // ============================================================
+        // ✅ NEW: View single invoice details
+        // ============================================================
+        elseif ($para1 == 'invoice_detail' && $para2) {
+            $invoice_id = $para2;
+            
+            $page_data['page_name'] = 'bulkpayment/invoice_detail';
+            $page_data['page_title'] = 'Invoice Details';
+            $page_data['top'] = "dashboard.php";
+            $page_data['folder'] = "bulkpayment";
+            $page_data['file'] = "invoice_detail.php";
+            $page_data['bottom'] = "dashboard.php";
+            
+            // Get invoice
+            $invoice = $this->db->get_where('bulk_payment_invoices', ['invoice_id' => $invoice_id])->row();
+            
+            if (!$invoice) {
+                $this->session->set_flashdata('danger_alert', 'Invoice not found');
+                redirect(base_url('admin/bulkpayment/invoices'));
+                return;
+            }
+            
+            $page_data['invoice'] = $invoice;
+            
+            // Get admin who paid
+            $page_data['paid_by'] = $this->db->get_where('admin', ['admin_id' => $invoice->paid_by_admin_id])->row();
+            
+            // Get member details
+            $member_data = json_decode($invoice->member_ids, true);
+            $page_data['members'] = $member_data;
+            
+            // Get plan details
+            $page_data['plan'] = $this->db->get_where('plan', ['plan_id' => $invoice->plan_id])->row();
+            
+            $this->load->view('back/index', $page_data);
+            return;
+        }
+        
+        // ============================================================
+        // ✅ NEW: Payment success redirect page
+        // ============================================================
+        elseif ($para1 == 'payment_success' && $para2) {
+            $transaction_id = $para2;
+            
+            // Get the bulk invoice by transaction ID
+            $bulk_invoice = $this->db
+                ->where('transaction_id', $transaction_id)
+                ->order_by('invoice_id', 'DESC')
+                ->limit(1)
+                ->get('bulk_payment_invoices')
+                ->row();
+            
+            if ($bulk_invoice) {
+                // Redirect to invoice detail page
+                redirect(base_url('admin/bulkpayment/invoice_detail/' . $bulk_invoice->invoice_id));
+            } else {
+                // Fallback to old success page if bulk invoice not found
+                $this->bulkpayment('bulk_payment_success_page');
+            }
+            return;
+        }
+        
+        // ============================================================
+        // Update cart with selected package (AJAX)
+        // ============================================================
+        elseif ($para1 == 'update_cart_package') {
+            header('Content-Type: application/json');
+            
+            log_message('debug', '=== UPDATE CART PACKAGE CALLED ===');
+            
+            $package_id = $this->input->post('package_id');
+            $cart_items = $this->session->userdata('cart_items');
+            
+            log_message('debug', 'Package ID received: ' . $package_id);
+            log_message('debug', 'Cart items count: ' . (is_array($cart_items) ? count($cart_items) : 0));
+            
+            // Validate inputs
+            if (empty($package_id)) {
+                log_message('error', 'Package ID is empty');
+                echo json_encode(['status' => 'error', 'message' => 'No package selected']);
+                exit;
+            }
+            
+            if (empty($cart_items) || !is_array($cart_items)) {
+                log_message('error', 'Cart items empty or invalid');
+                echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
+                exit;
+            }
+            
+            // Get package details from database
+            $package = $this->db->get_where('plan', ['plan_id' => $package_id])->row();
+            
+            if (!$package) {
+                log_message('error', 'Package not found in database: ' . $package_id);
+                echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
+                exit;
+            }
+            
+            log_message('debug', 'Package found: ' . $package->name);
+            
+            // CORRECT GST CALCULATION
+            $base_amount = floatval($package->amount);
+            $gst_percentage = floatval($package->gst);
+            $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);
+            $total_price = $base_amount + $gst_amount;
+            
+            log_message('debug', 'Calculation: Base=' . $base_amount . ', GST%=' . $gst_percentage . 
+                       ', GST Amount=' . $gst_amount . ', Total=' . $total_price);
+            
+            // CRITICAL: Store package ID in session
+            $this->session->set_userdata('selected_package_id', $package_id);
+            
+            $verify_session = $this->session->userdata('selected_package_id');
+            log_message('debug', 'Session package_id set to: ' . $verify_session);
+            
+            // Update all cart items
+            foreach ($cart_items as &$item) {
+                $item['packageName'] = $package->name;
+                $item['packageId'] = $package->plan_id;
+                $item['amount'] = $total_price;
+                $item['base_amount'] = $base_amount;
+                $item['gst_percentage'] = $gst_percentage;
+                $item['gst_amount'] = $gst_amount;
+            }
+            unset($item);
+            
+            $this->session->set_userdata('cart_items', $cart_items);
+            
+            log_message('debug', 'Cart items updated successfully');
+            
+            // RETURN JSON RESPONSE
+            $response = [
+                'status' => 'success',
+                'message' => 'Package updated successfully',
+                'package_name' => $package->name,
+                'package_price' => $total_price,
+                'base_amount' => $base_amount,
+                'gst_percentage' => $gst_percentage,
+                'gst_amount' => $gst_amount,
+                'total_amount' => $total_price * count($cart_items)
+            ];
+            
+            log_message('debug', 'Sending response: ' . json_encode($response));
+            
+            echo json_encode($response);
+            exit;
+        }
+
+        // ============================================================
+        // Payment Cart Page
+        // ============================================================
+        elseif ($para1 == "payment_cart") {
+            $cart_items = $this->session->userdata('cart_items');
+            
+            if (empty($cart_items)) {
+                $this->session->set_flashdata('warning_alert', 'No items in cart');
+                redirect(base_url() . 'admin/bulkpayment', 'refresh');
+            }
+            
+            // Get ALL packages from plan table
+            $packages = $this->db->get('plan')->result();
+            
+            log_message('debug', 'Payment Cart - Packages count: ' . count($packages));
+            
+            $page_data['title'] = 'Admin | ' . $this->system_title;
+            $page_data['top'] = "dashboard.php";
+            $page_data['folder'] = "earnings";
+            $page_data['file'] = "payment_cart.php";
+            $page_data['bottom'] = "earnings/index.php";
+            $page_data['page_name'] = "bulkpayment";
+            $page_data['cart_items'] = $cart_items;
+            $page_data['packages'] = $packages;
+            
+            $this->load->view('back/index', $page_data);
+        }
+        
+        // ============================================================
+        // Bulk Payment Success Page (OLD - for backward compatibility)
+        // ============================================================
         elseif ($para1 == "bulk_payment_success_page") {
             $invoices = $this->session->userdata('bulk_payment_invoices');
             
@@ -20179,7 +20227,9 @@ elseif ($para1 == "payment_cart") {
             $this->load->view('back/index', $page_data);
         }
         
+        // ============================================================
         // AJAX: Store cart items in session
+        // ============================================================
         elseif ($para1 == "store_cart_items") {
             $items = json_decode($this->input->post('items'), true);
             
@@ -20196,9 +20246,9 @@ elseif ($para1 == "payment_cart") {
             ]);
         }
         
-
-		
+        // ============================================================
         // AJAX: Remove cart item
+        // ============================================================
         elseif ($para1 == "remove_cart_item") {
             $item_id = $this->input->post('item_id');
             $cart_items = $this->session->userdata('cart_items');
@@ -20219,160 +20269,58 @@ elseif ($para1 == "payment_cart") {
                 echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
             }
         }
+        
+        // ============================================================
+        // ✅ NEW: Download Invoice PDF
+        // ============================================================
+        elseif ($para1 == 'download_invoice' && $para2) {
+            $invoice_id = $para2;
+            
+            // Get invoice data
+            $invoice = $this->db->get_where('bulk_payment_invoices', ['invoice_id' => $invoice_id])->row();
+            
+            if (!$invoice) {
+                show_404();
+                return;
+            }
+            
+            // Get admin details
+            $admin = $this->db->get_where('admin', ['admin_id' => $invoice->paid_by_admin_id])->row();
+            
+            // Get member details
+            $members = json_decode($invoice->member_ids, true);
+            
+            // Get plan details
+            $plan = $this->db->get_where('plan', ['plan_id' => $invoice->plan_id])->row();
+            
+            // Load PDF library (you'll need to install mPDF or TCPDF)
+            // For now, let's create a simple HTML invoice
+            $data = [
+                'invoice' => $invoice,
+                'admin' => $admin,
+                'members' => $members,
+                'plan' => $plan
+            ];
+            
+            $this->load->view('back/bulkpayment/invoice_pdf', $data);
+        }
+        
+        // ============================================================
+        // Default: Redirect to list
+        // ============================================================
+        else {
+            redirect(base_url('admin/bulkpayment'));
+        }
     }
 }
 
 
 
+////////////////////////////////////////////////////////////		Bulk payment methods  END 			///////////////////////////////////////////////////////////////////////
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // ============================== Bulk Payment Section ==============================
-// function bulkpayment($para1 = "", $para2 = "")
-// {
-//     if ($this->admin_permission() == FALSE) {
-//         redirect(base_url() . 'admin/login', 'refresh');
-//     } else {
-//         $page_data['title'] = "Admin || " . $this->system_title;
-
-//         // Main bulk payment member selection page (default)
-//         if ($para1 == "") {
-//             $page_data['top'] = "earnings/index.php";
-//             $page_data['folder'] = "bulkpayment";
-//             $page_data['file'] = "member_list.php";
-//             $page_data['bottom'] = "earnings/index.php";
-//             $page_data['page_name'] = "bulkpayment";
-            
-//             // Get all members with pending/due payments
-//             $this->db->select('m.member_id, m.member_profile_id, m.first_name, m.last_name, 
-//                               p.name as plan_name, pp.package_payment_id, pp.amount, 
-//                               pp.payment_status, pp.plan_id');
-//             $this->db->from('member m');
-//             $this->db->join('package_payment pp', 'm.member_id = pp.member_id', 'inner');
-//             $this->db->join('plan p', 'pp.plan_id = p.plan_id', 'left');
-//             $this->db->where_in('pp.payment_status', ['pending', 'due']);
-//             $this->db->order_by('m.first_name', 'ASC');
-//             $page_data['pending_payments'] = $this->db->get()->result();
-
-//             // Flash messages
-//             if ($this->session->flashdata('alert') == "cart_updated") {
-//                 $page_data['success_alert'] = translate('cart_updated_successfully');
-//             }
-
-//             $this->load->view('back/index', $page_data);
-//         }
-        
-//         // Payment Cart Page
-//         elseif ($para1 == "payment_cart") {
-//             $cart_items = $this->session->userdata('cart_items');
-            
-//             if (empty($cart_items)) {
-//                 $this->session->set_flashdata('warning_alert', 'No items in cart');
-//                 redirect(base_url() . 'admin/bulkpayment', 'refresh');
-//             }
-
-//             $page_data['top'] = "earnings/index.php";
-//             $page_data['folder'] = "earnings";
-//             $page_data['file'] = "payment_cart.php";
-//             $page_data['bottom'] = "earnings/index.php";
-//             $page_data['page_name'] = "bulkpayment";
-//             $page_data['cart_items'] = $cart_items;
-
-//             $this->load->view('back/index', $page_data);
-//         }
-        
-//         // Bulk Payment Success Page
-//         elseif ($para1 == "bulk_payment_success_page") {
-//             $invoices = $this->session->userdata('bulk_payment_invoices');
-            
-//             if (empty($invoices)) {
-//                 log_message('error', 'No invoice data in session');
-//                 $this->session->set_flashdata('danger_alert', 'No invoice data found');
-//                 redirect(base_url() . 'admin/bulkpayment', 'refresh');
-//                 return;
-//             }
-            
-//             $page_data['top'] = "earnings/index.php";
-//             $page_data['folder'] = "earnings";
-//             $page_data['file'] = "bulk_payment_success.php";
-//             $page_data['bottom'] = "earnings/index.php";
-//             $page_data['page_name'] = "bulkpayment";
-//             $page_data['invoices'] = $invoices;
-
-//             $this->load->view('back/index', $page_data);
-//         }
-        
-//         // AJAX: Store cart items in session
-//         elseif ($para1 == "store_cart_items") {
-//             $items = json_decode($this->input->post('items'), true);
-            
-//             if (empty($items)) {
-//                 echo json_encode(['status' => 'error', 'message' => 'No items selected']);
-//                 return;
-//             }
-            
-//             $this->session->set_userdata('cart_items', $items);
-//             echo json_encode([
-//                 'status' => 'success',
-//                 'message' => count($items) . ' items added to cart',
-//                 'redirect' => base_url('admin/bulkpayment/payment_cart')
-//             ]);
-//         }
-        
-//         // AJAX: Remove cart item
-//         elseif ($para1 == "remove_cart_item") {
-//             $item_id = $this->input->post('item_id');
-//             $cart_items = $this->session->userdata('cart_items');
-            
-//             if ($cart_items) {
-//                 foreach ($cart_items as $key => $item) {
-//                     if ($item['id'] == $item_id) {
-//                         unset($cart_items[$key]);
-//                         break;
-//                     }
-//                 }
-                
-//                 $cart_items = array_values($cart_items); // Re-index array
-//                 $this->session->set_userdata('cart_items', $cart_items);
-                
-//                 echo json_encode(['status' => 'success']);
-//             } else {
-//                 echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
-//             }
-//         }
-//     }
-// }
-
-/**
- * Add member to bulk payment cart - CREATE package_payment record
- */
 public function add_to_bulk_payment_cart()
 {
     $member_id = $this->input->post('member_id');
@@ -20486,14 +20434,6 @@ public function ajax_update_cart_package() {
     ]);
     exit;
 }
-
-
-
-
-
-
-
-
 
 
 }
