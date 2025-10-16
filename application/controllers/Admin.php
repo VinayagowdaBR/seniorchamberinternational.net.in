@@ -5050,46 +5050,158 @@ elseif ($para1 == "load_more_history") {
 
 
 // Update cart with selected package
-elseif ($para1 == 'update_cart_package') {
+elseif ($para1 == 'bulkpayment' && $para2 == 'update_cart_package') {
+    header('Content-Type: application/json');  // ✅ Set JSON header
+    
+    log_message('debug', '=== UPDATE CART PACKAGE CALLED ===');
+    
     $package_id = $this->input->post('package_id');
     $cart_items = $this->session->userdata('cart_items');
     
-    if (empty($package_id) || empty($cart_items)) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
-        return;
+    log_message('debug', 'Package ID received: ' . $package_id);
+    log_message('debug', 'Cart items: ' . print_r($cart_items, true));
+    
+    // Validate inputs
+    if (empty($package_id)) {
+        log_message('error', 'Package ID is empty');
+        echo json_encode(['status' => 'error', 'message' => 'No package selected']);
+        exit;
     }
     
-    // Get package details from plan table
-    $package = $this->db->get_where('plan', array('plan_id' => $package_id))->row();
+    if (empty($cart_items) || !is_array($cart_items)) {
+        log_message('error', 'Cart items empty or invalid');
+        echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
+        exit;
+    }
+    
+    // Get package details from database
+    $package = $this->db->get_where('plan', ['plan_id' => $package_id])->row();
     
     if (!$package) {
+        log_message('error', 'Package not found in database: ' . $package_id);
         echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
-        return;
+        exit;
     }
     
-    // Calculate total price (amount + gst)
-    $total_price = $package->amount + $package->gst;
+    log_message('debug', 'Package found: ' . $package->name);
     
-    // Update all cart items with selected package
+    // ✅ CORRECT GST CALCULATION
+    $base_amount = floatval($package->amount);                           // 700
+    $gst_percentage = floatval($package->gst);                           // 18.00
+    $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);     // 126
+    $total_price = $base_amount + $gst_amount;                           // 826
+    
+    log_message('debug', 'Calculation: Base=' . $base_amount . ', GST%=' . $gst_percentage . ', GST Amount=' . $gst_amount . ', Total=' . $total_price);
+    
+    // ✅ CRITICAL: Store package ID in session
+    $this->session->set_userdata('selected_package_id', $package_id);
+    
+    $verify_session = $this->session->userdata('selected_package_id');
+    log_message('debug', 'Session package_id set to: ' . $verify_session);
+    
+    // Update all cart items
     foreach ($cart_items as &$item) {
         $item['packageName'] = $package->name;
         $item['packageId'] = $package->plan_id;
         $item['amount'] = $total_price;
-        $item['base_amount'] = $package->amount;
-        $item['gst'] = $package->gst;
+        $item['base_amount'] = $base_amount;
+        $item['gst_percentage'] = $gst_percentage;
+        $item['gst_amount'] = $gst_amount;
     }
+    unset($item);
     
     $this->session->set_userdata('cart_items', $cart_items);
     
-    echo json_encode([
+    log_message('debug', 'Cart items updated successfully');
+    
+    // ✅ RETURN JSON RESPONSE
+    $response = [
         'status' => 'success',
+        'message' => 'Package updated successfully',
         'package_name' => $package->name,
         'package_price' => $total_price,
-        'base_amount' => $package->amount,
-        'gst' => $package->gst,
+        'base_amount' => $base_amount,
+        'gst_percentage' => $gst_percentage,
+        'gst_amount' => $gst_amount,
         'total_amount' => $total_price * count($cart_items)
-    ]);
+    ];
+    
+    log_message('debug', 'Sending response: ' . json_encode($response));
+    
+    echo json_encode($response);
+    exit;  // ✅ CRITICAL: Stop execution
 }
+
+
+
+
+
+// Update cart with selected package
+// elseif ($para1 == 'update_cart_package') {
+//     log_message('debug', '=== UPDATE CART PACKAGE CALLED ===');
+    
+//     $package_id = $this->input->post('package_id');
+//     $cart_items = $this->session->userdata('cart_items');
+    
+//     log_message('debug', 'Package ID received: ' . $package_id);
+//     log_message('debug', 'Cart items count: ' . (is_array($cart_items) ? count($cart_items) : 0));
+    
+//     if (empty($package_id) || empty($cart_items)) {
+//         log_message('error', 'Validation failed - empty package_id or cart_items');
+//         echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
+//         exit;
+//     }
+    
+//     // Get package details from plan table
+//     $package = $this->db->get_where('plan', ['plan_id' => $package_id])->row();
+    
+//     if (!$package) {
+//         log_message('error', 'Package not found in database: ' . $package_id);
+//         echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
+//         exit;
+//     }
+    
+//     log_message('debug', 'Package found: ' . $package->name);
+    
+//     // ✅ CORRECT GST CALCULATION
+//     $base_amount = floatval($package->amount);           // 700
+//     $gst_percentage = floatval($package->gst);           // 18.00
+//     $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);  // 126
+//     $total_price = $base_amount + $gst_amount;           // 826
+    
+//     log_message('debug', 'Calculation: Base=' . $base_amount . ', GST%=' . $gst_percentage . ', GST Amount=' . $gst_amount . ', Total=' . $total_price);
+    
+//     // ✅ CRITICAL: Store package ID in session for PhonePe controller
+//     $this->session->set_userdata('selected_package_id', $package_id);
+    
+//     log_message('debug', 'Session package_id set to: ' . $this->session->userdata('selected_package_id'));
+    
+//     // Update all cart items with selected package
+//     foreach ($cart_items as &$item) {
+//         $item['packageName'] = $package->name;
+//         $item['packageId'] = $package->plan_id;
+//         $item['amount'] = $total_price;
+//         $item['base_amount'] = $base_amount;
+//         $item['gst_percentage'] = $gst_percentage;
+//         $item['gst_amount'] = $gst_amount;
+//     }
+//     unset($item); // Break the reference
+    
+//     $this->session->set_userdata('cart_items', $cart_items);
+    
+//     log_message('debug', 'Cart items and session updated successfully');
+    
+//     echo json_encode([
+//         'status' => 'success',
+//         'package_name' => $package->name,
+//         'package_price' => $total_price,
+//         'base_amount' => $base_amount,
+//         'gst_percentage' => $gst_percentage,
+//         'gst_amount' => $gst_amount,
+//         'total_amount' => $total_price * count($cart_items)
+//     ]);
+//     exit; // ✅ IMPORTANT: Stop execution
+// }
 
 
 
@@ -5122,46 +5234,6 @@ elseif ($para1 == 'update_cart_package') {
     
 //     $this->load->view('back/index', $page_data);
 // }
-
-
-// Update cart with selected package
-elseif ($para1 == 'update_cart_package') {
-    $package_id = $this->input->post('package_id');
-    $cart_items = $this->session->userdata('cart_items');
-    
-    if (empty($package_id) || empty($cart_items)) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
-        return;
-    }
-    
-    // Get package details
-    $package = $this->db->get_where('plan', array('plan_id' => $package_id))->row();
-    
-    if (!$package) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
-        return;
-    }
-    
-    // Calculate total (amount + gst)
-    $total_price = $package->amount + $package->gst;
-    
-    // Update cart
-    foreach ($cart_items as &$item) {
-        $item['packageName'] = $package->name;
-        $item['packageId'] = $package->plan_id;
-        $item['amount'] = $total_price;
-    }
-    
-    $this->session->set_userdata('cart_items', $cart_items);
-    
-    echo json_encode([
-        'status' => 'success',
-        'package_name' => $package->name,
-        'package_price' => $total_price,
-        'total_amount' => $total_price * count($cart_items)
-    ]);
-}
-
 
 
 elseif ($para1 == "bulk_payment_success_page") {
@@ -19916,6 +19988,117 @@ function bulkpayment($para1 = "", $para2 = "")
         // }
 
 
+
+
+
+
+
+
+// Update cart with selected package
+elseif ($para1 == 'bulkpayment' && $para2 == 'update_cart_package') {
+    header('Content-Type: application/json');  // ✅ Set JSON header
+    
+    log_message('debug', '=== UPDATE CART PACKAGE CALLED ===');
+    
+    $package_id = $this->input->post('package_id');
+    $cart_items = $this->session->userdata('cart_items');
+    
+    log_message('debug', 'Package ID received: ' . $package_id);
+    log_message('debug', 'Cart items: ' . print_r($cart_items, true));
+    
+    // Validate inputs
+    if (empty($package_id)) {
+        log_message('error', 'Package ID is empty');
+        echo json_encode(['status' => 'error', 'message' => 'No package selected']);
+        exit;
+    }
+    
+    if (empty($cart_items) || !is_array($cart_items)) {
+        log_message('error', 'Cart items empty or invalid');
+        echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
+        exit;
+    }
+    
+    // Get package details from database
+    $package = $this->db->get_where('plan', ['plan_id' => $package_id])->row();
+    
+    if (!$package) {
+        log_message('error', 'Package not found in database: ' . $package_id);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
+        exit;
+    }
+    
+    log_message('debug', 'Package found: ' . $package->name);
+    
+    // ✅ CORRECT GST CALCULATION
+    $base_amount = floatval($package->amount);                           // 700
+    $gst_percentage = floatval($package->gst);                           // 18.00
+    $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);     // 126
+    $total_price = $base_amount + $gst_amount;                           // 826
+    
+    log_message('debug', 'Calculation: Base=' . $base_amount . ', GST%=' . $gst_percentage . ', GST Amount=' . $gst_amount . ', Total=' . $total_price);
+    
+    // ✅ CRITICAL: Store package ID in session
+    $this->session->set_userdata('selected_package_id', $package_id);
+    
+    $verify_session = $this->session->userdata('selected_package_id');
+    log_message('debug', 'Session package_id set to: ' . $verify_session);
+    
+    // Update all cart items
+    foreach ($cart_items as &$item) {
+        $item['packageName'] = $package->name;
+        $item['packageId'] = $package->plan_id;
+        $item['amount'] = $total_price;
+        $item['base_amount'] = $base_amount;
+        $item['gst_percentage'] = $gst_percentage;
+        $item['gst_amount'] = $gst_amount;
+    }
+    unset($item);
+    
+    $this->session->set_userdata('cart_items', $cart_items);
+    
+    log_message('debug', 'Cart items updated successfully');
+    
+    // ✅ RETURN JSON RESPONSE
+    $response = [
+        'status' => 'success',
+        'message' => 'Package updated successfully',
+        'package_name' => $package->name,
+        'package_price' => $total_price,
+        'base_amount' => $base_amount,
+        'gst_percentage' => $gst_percentage,
+        'gst_amount' => $gst_amount,
+        'total_amount' => $total_price * count($cart_items)
+    ];
+    
+    log_message('debug', 'Sending response: ' . json_encode($response));
+    
+    echo json_encode($response);
+    exit;  // ✅ CRITICAL: Stop execution
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Payment Cart Page
 elseif ($para1 == "payment_cart") {
     $cart_items = $this->session->userdata('cart_items');
@@ -19943,43 +20126,6 @@ elseif ($para1 == "payment_cart") {
     $this->load->view('back/index', $page_data);
 }
 
-// Update cart with selected package (ADD THIS NEW METHOD)
-elseif ($para1 == 'update_cart_package') {
-    $package_id = $this->input->post('package_id');
-    $cart_items = $this->session->userdata('cart_items');
-    
-    if (empty($package_id) || empty($cart_items)) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
-        return;
-    }
-    
-    // Get package details
-    $package = $this->db->get_where('plan', array('plan_id' => $package_id))->row();
-    
-    if (!$package) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
-        return;
-    }
-    
-    // Calculate total (amount + gst)
-    $total_price = $package->amount + $package->gst;
-    
-    // Update cart
-    foreach ($cart_items as &$item) {
-        $item['packageName'] = $package->name;
-        $item['packageId'] = $package->plan_id;
-        $item['amount'] = $total_price;
-    }
-    
-    $this->session->set_userdata('cart_items', $cart_items);
-    
-    echo json_encode([
-        'status' => 'success',
-        'package_name' => $package->name,
-        'package_price' => $total_price,
-        'total_amount' => $total_price * count($cart_items)
-    ]);
-}
 
 
 
@@ -20292,6 +20438,54 @@ public function add_to_bulk_payment_cart()
 }
 
 
+public function ajax_update_cart_package() {
+    header('Content-Type: application/json');
+    
+    $package_id = $this->input->post('package_id');
+    $cart_items = $this->session->userdata('cart_items');
+    
+    if (empty($package_id) || empty($cart_items)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
+        exit;
+    }
+    
+    $package = $this->db->get_where('plan', ['plan_id' => $package_id])->row();
+    
+    if (!$package) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
+        exit;
+    }
+    
+    $base_amount = floatval($package->amount);
+    $gst_percentage = floatval($package->gst);
+    $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);
+    $total_price = $base_amount + $gst_amount;
+    
+    $this->session->set_userdata('selected_package_id', $package_id);
+    
+    foreach ($cart_items as &$item) {
+        $item['packageName'] = $package->name;
+        $item['packageId'] = $package->plan_id;
+        $item['amount'] = $total_price;
+        $item['base_amount'] = $base_amount;
+        $item['gst_percentage'] = $gst_percentage;
+        $item['gst_amount'] = $gst_amount;
+    }
+    unset($item);
+    
+    $this->session->set_userdata('cart_items', $cart_items);
+    
+    echo json_encode([
+        'status' => 'success',
+        'package_name' => $package->name,
+        'package_price' => $total_price,
+        'base_amount' => $base_amount,
+        'gst_percentage' => $gst_percentage,
+        'gst_amount' => $gst_amount,
+        'total_amount' => $total_price * count($cart_items)
+    ]);
+    exit;
+}
 
 
 

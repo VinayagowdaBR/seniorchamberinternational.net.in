@@ -30,18 +30,23 @@
                             <label>Select Package <span class="text-danger">*</span></label>
                             <select id="package-select" class="form-control" required>
                                 <option value="">-- Choose Package --</option>
-                                <?php 
+                              <?php 
                                 if (isset($packages) && !empty($packages)) {
                                     foreach ($packages as $pkg): 
-                                        $total = $pkg->amount + $pkg->gst;
+                                        // Calculate GST correctly
+                                        $gst_amount = ($pkg->amount * $pkg->gst) / 100;
+                                        $total = $pkg->amount + $gst_amount;  // ✅ CORRECT!
                                 ?>
-                                <option value="<?php echo $pkg->plan_id; ?>" 
-                                        data-name="<?php echo htmlspecialchars($pkg->name); ?>"
-                                        data-price="<?php echo $total; ?>"
-                                        data-amount="<?php echo $pkg->amount; ?>"
-                                        data-gst="<?php echo $pkg->gst; ?>">
-                                    <?php echo $pkg->name; ?> - ₹<?php echo number_format($total, 2); ?>
-                                </option>
+
+                                    <option value="<?php echo $pkg->plan_id; ?>" 
+                                            data-name="<?php echo htmlspecialchars($pkg->name); ?>"
+                                            data-price="<?php echo $total; ?>"
+                                            data-amount="<?php echo $pkg->amount; ?>"
+                                            data-gst-percentage="<?php echo $pkg->gst; ?>"
+                                            data-gst-amount="<?php echo $gst_amount; ?>">
+                                        <?php echo $pkg->name; ?> - ₹<?php echo number_format($total, 2); ?>
+                                    </option>
+
                                 <?php endforeach; } ?>
                             </select>
                         </div>
@@ -585,13 +590,15 @@ function showToast(type, title, message) {
 $(document).ready(function() {
     
     // Package selection
-    $('#package-select').change(function() {
-        var opt = $(this).find(':selected');
-        var pkgId = $(this).val();
-        var pkgName = opt.data('name');
-        var pkgPrice = parseFloat(opt.data('price'));
-        var pkgAmount = parseFloat(opt.data('amount'));
-        var pkgGst = parseFloat(opt.data('gst'));
+$('#package-select').change(function() {
+    var opt = $(this).find(':selected');
+    var pkgId = $(this).val();
+    var pkgName = opt.data('name');
+    var pkgPrice = parseFloat(opt.data('price'));
+    var pkgAmount = parseFloat(opt.data('amount'));
+    var pkgGstPercentage = parseFloat(opt.data('gst-percentage'));  // 18
+    var pkgGstAmount = parseFloat(opt.data('gst-amount'));  // 126
+
         
         if (!pkgId) {
             $('#package-details').slideUp();
@@ -605,7 +612,7 @@ $(document).ready(function() {
         }
         
         $.ajax({
-            url: '<?=base_url()?>admin/bulkpayment/update_cart_package',
+            url: '<?=base_url()?>admin/ajax_update_cart_package',
             type: 'POST',
             data: { package_id: pkgId },
             dataType: 'json',
@@ -615,7 +622,7 @@ $(document).ready(function() {
                     
                     $('#pkg-name').text(pkgName);
                     $('#pkg-amount').text(pkgAmount.toFixed(2));
-                    $('#pkg-gst').text(pkgGst.toFixed(2));
+                   $('#pkg-gst').text(pkgGstAmount.toFixed(2) + ' (' + pkgGstPercentage + '%)');  // Show: ₹126.00 (18%)
                     $('#pkg-price').text(pkgPrice.toFixed(2));
                     $('#package-details').slideDown();
                     
