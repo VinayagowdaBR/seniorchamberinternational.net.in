@@ -567,11 +567,6 @@ private function verify_and_process_bulk_payment($bulk_transaction_id, $is_callb
 }
 
 
-
-
-
-
-
 /**
  * Generate individual invoice number (YOUR EXISTING LOGIC)
  * Format: INV-2025-00001
@@ -626,7 +621,5 @@ private function generate_bulk_invoice_number()
     
     return $prefix . '-' . $year . $month . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
 }
-
-
 
 }

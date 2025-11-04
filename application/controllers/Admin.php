@@ -24,6 +24,8 @@ function __construct()
 	$this->lang->load("member", "kannada");
 }
 
+
+/////////////////////////////////////////// Contribution Package Section ///////////////////////////////////////////
 	public function contribution($para1 = "", $para2 = "")
 	{
 		if ($this->admin_permission() == FALSE) {
@@ -93,107 +95,115 @@ function __construct()
 		}
 	}
 
-	public function contribution_do_add()
-	{
-		$data['name'] = $this->input->post('name');
-		$data['amount'] = $this->input->post('amount');
-		$data['gst'] = $this->input->post('gst');
-		$data['start_date'] = $this->input->post('start_date');
-		$data['end_date'] = $this->input->post('end_date');
-		$data['contribution'] = 1;
 
-		if (!empty($_POST['exp_int_status'])) {
-			$data['exp_int_status'] = 1;
-		} else {
-			$data['exp_int_status'] = 0;
-		}
 
-		if (!empty($_POST['dir_msg_status'])) {
-			$data['dir_msg_status'] = 1;
-		} else {
-			$data['dir_msg_status'] = 0;
-		}
 
-		$this->db->insert('plan', $data);
-		$plan_id = $this->db->insert_id();
+	// public function contribution_do_add()
+	// {
+	// 	$data['name'] = $this->input->post('name');
+	// 	$data['amount'] = $this->input->post('amount');
+	// 	$data['gst'] = $this->input->post('gst');
+	// 	$data['start_date'] = $this->input->post('start_date');
+	// 	$data['end_date'] = $this->input->post('end_date');
+	// 	$data['contribution'] = 1;
 
-		if (!demo()) {
-			if ($_FILES['image']['name'] !== '') {
-				$id = $plan_id;
-				$path = $_FILES['image']['name'];
-				$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
-				if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
-					$this->Crud_model->file_up("image", "plan", $id, '', '', $ext);
-					$images[] = array('image' => 'plan_' . $id . $ext, 'thumb' => 'plan_' . $id . '_thumb' . $ext);
-					$data['image'] = json_encode($images);
-				} else {
-					$this->session->set_flashdata('alert', 'failed_image');
-					redirect(base_url() . 'admin/contribution', 'refresh');
-				}
-			}
-		}
+	// 	if (!empty($_POST['exp_int_status'])) {
+	// 		$data['exp_int_status'] = 1;
+	// 	} else {
+	// 		$data['exp_int_status'] = 0;
+	// 	}
 
-		$this->db->where('plan_id', $plan_id);
-		$result = $this->db->update('plan', $data);
-		recache();
-		if ($result) {
-			$this->session->set_flashdata('alert', 'add');
-			redirect(base_url() . 'admin/contribution', 'refresh');
-		} else {
-			echo "Data Failed to Add!";
-		}
-		exit;
-	}
+	// 	if (!empty($_POST['dir_msg_status'])) {
+	// 		$data['dir_msg_status'] = 1;
+	// 	} else {
+	// 		$data['dir_msg_status'] = 0;
+	// 	}
 
-	public function contribution_update()
-	{
-		$plan_id = $this->input->post('plan_id');
-		$data['name'] = $this->input->post('name');
-		$data['amount'] = $this->input->post('amount');
-		$data['gst'] = $this->input->post('gst');
-		$data['start_date'] = $this->input->post('start_date');
-		$data['end_date'] = $this->input->post('end_date');
-		$data['contribution'] = 1;
+	// 	$this->db->insert('plan', $data);
+	// 	$plan_id = $this->db->insert_id();
 
-		if (!empty($_POST['exp_int_status'])) {
-			$data['exp_int_status'] = 1;
-		} else {
-			$data['exp_int_status'] = 0;
-		}
+	// 	if (!demo()) {
+	// 		if ($_FILES['image']['name'] !== '') {
+	// 			$id = $plan_id;
+	// 			$path = $_FILES['image']['name'];
+	// 			$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
+	// 			if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
+	// 				$this->Crud_model->file_up("image", "plan", $id, '', '', $ext);
+	// 				$images[] = array('image' => 'plan_' . $id . $ext, 'thumb' => 'plan_' . $id . '_thumb' . $ext);
+	// 				$data['image'] = json_encode($images);
+	// 			} else {
+	// 				$this->session->set_flashdata('alert', 'failed_image');
+	// 				redirect(base_url() . 'admin/contribution', 'refresh');
+	// 			}
+	// 		}
+	// 	}
 
-		if (!empty($_POST['dir_msg_status'])) {
-			$data['dir_msg_status'] = 1;
-		} else {
-			$data['dir_msg_status'] = 0;
-		}
+	// 	$this->db->where('plan_id', $plan_id);
+	// 	$result = $this->db->update('plan', $data);
+	// 	recache();
+	// 	if ($result) {
+	// 		$this->session->set_flashdata('alert', 'add');
+	// 		redirect(base_url() . 'admin/contribution', 'refresh');
+	// 	} else {
+	// 		echo "Data Failed to Add!";
+	// 	}
+	// 	exit;
+	// }
 
-		if (!demo()) {
-			if ($_FILES['image']['name'] !== '') {
-				$id = $plan_id;
-				$path = $_FILES['image']['name'];
-				$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
-				if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
-					$this->Crud_model->file_up("image", "plan", $id, '', '', $ext);
-					$images[] = array('image' => 'plan_' . $id . $ext, 'thumb' => 'plan_' . $id . '_thumb' . $ext);
-					$data['image'] = json_encode($images);
-				} else {
-					$this->session->set_flashdata('alert', 'failed_image');
-					redirect(base_url() . 'admin/contribution', 'refresh');
-				}
-			}
-		}
+	// public function contribution_update()
+	// {
+	// 	$plan_id = $this->input->post('plan_id');
+	// 	$data['name'] = $this->input->post('name');
+	// 	$data['amount'] = $this->input->post('amount');
+	// 	$data['gst'] = $this->input->post('gst');
+	// 	$data['start_date'] = $this->input->post('start_date');
+	// 	$data['end_date'] = $this->input->post('end_date');
+	// 	$data['contribution'] = 1;
 
-		$this->db->where('plan_id', $plan_id);
-		$result = $this->db->update('plan', $data);
-		recache();
-		if ($result) {
-			$this->session->set_flashdata('alert', 'edit');
-			redirect(base_url() . 'admin/contribution', 'refresh');
-		} else {
-			echo "Data Failed to Edit!";
-		}
-		exit;
-	}
+	// 	if (!empty($_POST['exp_int_status'])) {
+	// 		$data['exp_int_status'] = 1;
+	// 	} else {
+	// 		$data['exp_int_status'] = 0;
+	// 	}
+
+	// 	if (!empty($_POST['dir_msg_status'])) {
+	// 		$data['dir_msg_status'] = 1;
+	// 	} else {
+	// 		$data['dir_msg_status'] = 0;
+	// 	}
+
+	// 	if (!demo()) {
+	// 		if ($_FILES['image']['name'] !== '') {
+	// 			$id = $plan_id;
+	// 			$path = $_FILES['image']['name'];
+	// 			$ext = '.' . pathinfo($path, PATHINFO_EXTENSION);
+	// 			if ($ext == ".jpg" || $ext == ".JPG" || $ext == ".jpeg" || $ext == ".JPEG" || $ext == ".png" || $ext == ".PNG") {
+	// 				$this->Crud_model->file_up("image", "plan", $id, '', '', $ext);
+	// 				$images[] = array('image' => 'plan_' . $id . $ext, 'thumb' => 'plan_' . $id . '_thumb' . $ext);
+	// 				$data['image'] = json_encode($images);
+	// 			} else {
+	// 				$this->session->set_flashdata('alert', 'failed_image');
+	// 				redirect(base_url() . 'admin/contribution', 'refresh');
+	// 			}
+	// 		}
+	// 	}
+
+	// 	$this->db->where('plan_id', $plan_id);
+	// 	$result = $this->db->update('plan', $data);
+	// 	recache();
+	// 	if ($result) {
+	// 		$this->session->set_flashdata('alert', 'edit');
+	// 		redirect(base_url() . 'admin/contribution', 'refresh');
+	// 	} else {
+	// 		echo "Data Failed to Edit!";
+	// 	}
+	// 	exit;
+	// }
+
+
+/////////////////////////////////////////// Contribution Package Section End ///////////////////////////////////////////
+
+
 
 	public function index()
 	{
@@ -19303,6 +19313,8 @@ if ($para1 == "") {
 		$page_data['page_name'] = "marriage_application_details";
 		$this->load->view('back/index', $page_data);
 }
+
+
 	public function add_group(){
 			$page_data['top'] = "new-Code/index.php";
 			$page_data['folder'] = "group";

@@ -74,19 +74,26 @@
     
     <div id="page-content">
         <!-- Flash Messages -->
-        <?php if ($this->session->flashdata('success_alert')): ?>
+<?php 
+        $success = $this->session->flashdata('success_alert');
+        $danger  = $this->session->flashdata('danger_alert');
+        ?>
+
+        <?php if (!empty($success)): ?>
             <div class="alert alert-success alert-dismissible" id="success-alert">
                 <button type="button" class="close" data-dismiss="alert">&times;</button>
-                <i class="fa fa-check-circle"></i> <?php echo $this->session->flashdata('success_alert'); ?>
+                <i class="fa fa-check-circle"></i> <?php echo $success; ?>
             </div>
-        <?php endif; ?>
-        
-        <?php if ($this->session->flashdata('danger_alert')): ?>
+            <?php $this->session->unset_userdata('success_alert'); ?>
+
+        <?php elseif (!empty($danger)): ?>
             <div class="alert alert-danger alert-dismissible" id="danger-alert">
                 <button type="button" class="close" data-dismiss="alert">&times;</button>
-                <i class="fa fa-exclamation-circle"></i> <?php echo $this->session->flashdata('danger_alert'); ?>
+                <i class="fa fa-exclamation-circle"></i> <?php echo $danger; ?>
             </div>
+            <?php $this->session->unset_userdata('danger_alert'); ?>
         <?php endif; ?>
+
         
         <div class="panel">
             <div class="panel-heading">
@@ -207,14 +214,18 @@ $(document).ready(function() {
     // Auto-hide success alert after 5 seconds
     if ($('#success-alert').length) {
         setTimeout(function() {
-            $('#success-alert').fadeOut('slow');
+            $('#success-alert').fadeTo(800, 0).slideUp(500, function() {
+                $(this).remove();
+            });
         }, 5000);
     }
-    
+
     // Auto-hide danger alert after 5 seconds
     if ($('#danger-alert').length) {
         setTimeout(function() {
-            $('#danger-alert').fadeOut('slow');
+            $('#danger-alert').fadeTo(800, 0).slideUp(500, function() {
+                $(this).remove();
+            });
         }, 5000);
     }
 });
