@@ -6,3 +6,4 @@ node_modules/
 
 application/logs/
 application/cache/
+/application/sessions/
