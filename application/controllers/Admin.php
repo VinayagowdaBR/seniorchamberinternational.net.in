@@ -2385,7 +2385,7 @@ if (!empty($data['legion_id'])) {
 					$data['date_of_birth'] = strtotime($this->input->post('date_of_birth'));
 					$data['height'] = $this->input->post('height');
 					$data['introduction'] = $this->input->post('introduction');
-					$data['percentage'] = $this->input->post('percentage') . '%';
+					$data['percentage'] = $this->input->post('percentage') ;
 					// ------------------------------------Basic Info------------------------------------ //
 					$basic_info[] = array(
 						'marital_status'		=>	$this->input->post('marital_status'),
@@ -2591,16 +2591,29 @@ if (!empty($data['legion_id'])) {
 						}
 					}
 
-					$this->db->where('member_id', $para2);
-					$result = $this->db->update('member', $data);
-					recache();
-					if ($result) {
-						$this->session->set_flashdata('alert', 'edit');
-						redirect(base_url() . 'admin/members/' . $para3, 'refresh');
-					}
+
+
+
+// ✅ Add Legion & Area fields before update
+$data['legion_id'] = $this->input->post('legion_id');
+$data['legion']    = $this->input->post('legion');
+$data['area_id']   = $this->input->post('area_id');
+$data['area']      = $this->input->post('area');
+
+$this->db->where('member_id', $para2);
+$result = $this->db->update('member', $data);
+recache();
+if ($result) {
+    $this->session->set_flashdata('alert', 'edit');
+    redirect(base_url() . 'admin/members/' . $para3, 'refresh');
+}
+
 				}
 			
 			} 
+
+
+
 			elseif ($para1 == "upgrade_member_package") {
 				$up_member_id = $this->input->post('up_member_id');
 				$plan_id = $this->input->post('plan');
@@ -2637,6 +2650,12 @@ if (!empty($data['legion_id'])) {
 			}
 		}
 	}
+
+
+
+
+
+
 
 	// Bulk member add
 	function bulk_member_add($para1 = "", $para2 = "", $para3 = "")

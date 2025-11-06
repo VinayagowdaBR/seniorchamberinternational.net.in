@@ -191,15 +191,19 @@
         <label for="area" class="text-uppercase c-gray-light">
           <?php echo translate('area') ?>  
         </label>
+
         <select id="area" name="area_id" class="form-control" onchange="getLegions(this.value); setAreaName(this);">
-          <option value="">Select Area</option>
-          <?php foreach($areas as $area): ?>
-            <option value="<?= $area['id'] ?>" <?= ($area['id'] == $selected_area) ? 'selected' : '' ?>>
-              <?= $area['name'] ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-        <input type="hidden" name="area" id="area_name" value="<?= isset($selected_area_name) ? $selected_area_name : '' ?>">
+  <option value="">Select Area</option>
+  <?php foreach($areas as $area): ?>
+    <option value="<?= $area['id'] ?>" <?= isset($selected_area) && $selected_area == $area['id'] ? 'selected' : '' ?>>
+      <?= $area['name'] ?>
+    </option>
+  <?php endforeach; ?>
+</select>
+<input type="hidden" name="area" id="area_name" value="<?= isset($selected_area_name) ? $selected_area_name : '' ?>">
+
+
+
         <span class="glyphicon form-control-feedback" aria-hidden="true"></span>
         <div class="help-block with-errors"></div>
       </div>
@@ -211,11 +215,20 @@
         <label for="legion" class="text-uppercase c-gray-light">
           <?php echo translate('legion') ?> 
         </label>
+
+
+
         <select id="legion" name="legion_id" class="form-control" onchange="setLegionName(this);">
-          <option value="">Select Legion</option>
-          <!-- Options will be populated via AJAX -->
-        </select>
-        <input type="hidden" name="legion" id="legion_name" value="<?= isset($selected_legion_name) ? $selected_legion_name : '' ?>">
+  <option value="">Select Legion</option>
+  <?php foreach($legions as $legion): ?>
+    <option value="<?= $legion['id'] ?>" <?= isset($selected_legion) && $selected_legion == $legion['id'] ? 'selected' : '' ?>>
+      <?= $legion['name'] ?>
+    </option>
+  <?php endforeach; ?>
+</select>
+<input type="hidden" name="legion" id="legion_name" value="<?= isset($selected_legion_name) ? $selected_legion_name : '' ?>">
+
+
         <span class="glyphicon form-control-feedback" aria-hidden="true"></span>
         <div class="help-block with-errors"></div>
       </div>
@@ -1841,7 +1854,7 @@
 
 <script>
 
-	function getLegions(areaId) {
+function getLegions(areaId, selectedLegionId = null) {
     if (areaId === '') {
         document.getElementById('legion').innerHTML = '<option value="">Select Legion</option>';
         return;
@@ -1850,18 +1863,27 @@
     fetch("<?= base_url('admin/get_legions_of_area/') ?>" + areaId)
         .then(response => response.json())
         .then(data => {
-            console.log("Fetched legions:", data); // ✅ Logging fetched data
-
             let options = '<option value="">Select Legion</option>';
             data.forEach(function (legion) {
-                options += `<option value="${legion.id}">${legion.name}</option>`;
+                const selected = (selectedLegionId && selectedLegionId == legion.id) ? 'selected' : '';
+                options += `<option value="${legion.id}" ${selected}>${legion.name}</option>`;
             });
             document.getElementById('legion').innerHTML = options;
+
+            // Update hidden legion_name if selected
+            if (selectedLegionId) {
+                const selectedLegion = data.find(l => l.id == selectedLegionId);
+                if (selectedLegion) {
+                    document.getElementById('legion_name').value = selectedLegion.name;
+                }
+            }
         })
         .catch(error => {
             console.error('Error fetching legions:', error);
         });
 }
+
+
 
 function setAreaName(select) {
     const areaName = select.options[select.selectedIndex].text;
@@ -1900,129 +1922,91 @@ console.log("Member ID from URI segment:", memberId);
 	});
 </script>
 
+
+
 <script>
-    $(document).ready(function(){
+$(document).ready(function(){
+    // ✅ Exclude these fields from percentage calculation
+    const excludedSelectors = [
+        '#profile_percentage', 
+        '#per', 
+        '#old_email', 
+        '#old_mobile',
+        '#profile_image_is_edit', 
+        '#area_name',          // 🟢 excluded area_name
+        '#legion_name'         // 🟢 excluded legion_name
+    ];
 
-        function updateInputProgress(){
-            var filledFields = 0;
-            $("#input-progress").find("input, select, textarea").each(function(){
-                // alert($(this).val());
-                if($(this).val() != ""){
-                    filledFields++;
+    function updateInputProgress() {
+        let totalFields = 0;
+        let filledFields = 0;
+        let emptyFieldsList = [];  // For warning
+
+        $("#input-progress").find("input, select, textarea").each(function() {
+            const $this = $(this);
+            const fieldName = $this.attr('name') || $this.attr('id') || 'unnamed';
+            const isExcluded = excludedSelectors.some(selector => $this.is(selector));
+
+            if (!isExcluded) { // ✅ only count non-excluded fields
+                totalFields++;
+                let isFilled = ($this.val() !== "" && $this.val() !== null);
+                
+                // ✅ Treat profile image as filled if old image exists
+                if ($this.attr('id') === 'profile_image' && $this.val() === "") {
+                    isFilled = true;
                 }
-            });
 
-            if($('#profile_percentage').val() != ""){
-              filledFields--;
-            }
-
-            filledFields--;
-
-            if($('#mobile1').val() != ""){
-              filledFields--;
-            }
-            if($('#email1').val() != ""){
-              filledFields--;
-            }
-
-            if($('#per').val() != ""){
-              filledFields--;
-            }
-            
-            if($('#profile_image').val() != ""){
-              filledFields--;
-            }
-            
-            var percent = Math.ceil(100 * filledFields / totalFields);
-
-           $("#progress-inputs .progress-bar").attr("aria-valuenow", percent).width(percent + "%").find(".sr-only").html(percent + "% Complete");
-            console.log(percent);
-            $('#per').val(percent);
-        }
-    
-    //Input Progress
-        var totalFields = $("#input-progress").find("input, select, textarea").length;
-        totalFields = totalFields -2;
-        if($('#mobile1').val() != ""){
-              totalFields--;
-            }
-
-        if($('#email1').val() != ""){
-          totalFields--;
-        }
-        
-        if($('#per').val() != ""){
-            totalFields--;
-        }
-        
-        if($('#profile_image').val() != ""){
-            totalFields--;
-        }
-
-        $("#input-progress").append(updateInputProgress());
-       
-        $("#input-progress .btn-success").click(function(){
-            var percent = updateInputProgress();
-            if(percent == 100){
-                alert("Finished inputs successfully!");
-            }
-        });
-    
-    });
-
-    function updatePercent(){
-        var totalFields = $("#input-progress").find("input, select, textarea").length;
-
-        totalFields = totalFields -2;
-         if($('#mobile1').val() != ""){
-              totalFields--;
-            }
-
-        if($('#email1').val() != ""){
-              totalFields--;
-            }
-
-        if($('#per').val() != ""){
-              totalFields--;
-            }
-        
-        if($('#profile_image').val() != ""){
-              totalFields--;
-            }  
-            
- 
-        var filledFields = 0;
-        $("#input-progress").find("input, select, textarea").each(function(){
-            if($(this).val() != ""){
-                filledFields++;
+                if (isFilled) {
+                    filledFields++;
+                } else {
+                    emptyFieldsList.push(fieldName);
+                }
             }
         });
 
-        filledFields--;
+        const percent = totalFields > 0 ? Math.ceil(100 * filledFields / totalFields) : 0;
 
-        if($('#profile_percentage').val() != ""){
-          filledFields--;
+        // ✅ Update progress bar display cleanly
+        const $progressBar = $("#progress-inputs .progress-bar");
+        $progressBar.attr("aria-valuenow", percent).css("width", percent + "%");
+        $progressBar.find("h1").text(percent + "%");
+        $progressBar.find(".sr-only").text(percent + "% Complete");
+
+        $('#per').val(percent);
+
+        // For debugging (optional)
+        console.log(`Total: ${totalFields}, Filled: ${filledFields}, Percent: ${percent}%`);
+        if (emptyFieldsList.length > 0) {
+            console.log('EMPTY FIELDS (fill to reach 100%):', emptyFieldsList.join(', '));
         }
-        if($('#mobile1').val() != ""){
-              filledFields--;
-            }
 
-        if($('#email1').val() != ""){
-              filledFields--;
-            }
-        
-        if($('#per').val() != ""){
-              filledFields--;
-            }
-            
-        if($('#profile_image').val() != ""){
-              filledFields--;
-            }
-            
-
-        var percent = Math.ceil(100 * filledFields / totalFields);
-        $('#profile_percentage').val(percent);
-
-        return true;
+        return { percent, emptyFieldsList };
     }
+
+    // Run initially
+    updateInputProgress();
+
+    // Update dynamically on change/input
+    $("#input-progress").on('input change', 'input, select, textarea', updateInputProgress);
+
+    // Optional success check
+    $("#input-progress .btn-success").click(function(){
+        const result = updateInputProgress();
+        if (result.percent == 100) {
+            alert("Finished inputs successfully!");
+        }
+    });
+});
+
+// ✅ Update percent before form submission
+function updatePercent(){
+    const result = updateInputProgress();
+    $('#profile_percentage').val(result.percent);
+    
+    if (result.percent < 100 && result.emptyFieldsList.length > 0) {
+        alert(`Progress: ${result.percent}% - Fill these fields to reach 100%: ${result.emptyFieldsList.join(', ')}`);
+    }
+    
+    return true;  // allow submit anyway
+}
 </script>
