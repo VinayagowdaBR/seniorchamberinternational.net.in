@@ -957,8 +957,13 @@ public function add_member() {
 		}
 	}
 
+
+
 	function members($para1 = "", $para2 = "", $para3 = "", $para4 = "")
 	{
+
+
+
 
 		 $log_message = "members - para1: $para1, para2: $para2, para3: $para3, para4: $para4";
     	log_message("info", $log_message);
@@ -1004,6 +1009,12 @@ public function add_member() {
 			} elseif ($this->session->flashdata('alert') == "demo_msg") {
 				$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
 			}
+
+
+
+
+
+
 
 			if ($para2 == "list_data") {
 				if ($para1 == "free_members") {
@@ -1300,6 +1311,11 @@ public function add_member() {
 			}
 			// code writtten by gowda
 
+
+
+
+
+
 			else if ($para2 == "star_list_data") {
 				if ($para1 == "free_members") {
 					if ($member_approval == 'yes') {
@@ -1568,6 +1584,12 @@ public function add_member() {
 				echo json_encode($json_data);
 			}
 			// code ended for star matching
+
+
+
+
+
+
 
 			elseif ($para1 == "free_members") {
 				if ($para2 == "") {
@@ -2257,7 +2279,10 @@ public function add_member() {
 						$this->db->insert('member', $data);
 						$insert_id = $this->db->insert_id();
 						// Generate prefix-based member profile ID
-if (!empty($data['legion_id'])) {
+
+
+
+						if (!empty($data['legion_id'])) {
     $member_profile_id = $this->Crud_model->generate_member_profile_id($data['legion_id']);
     if (!$member_profile_id) {
         // Fallback to old method if generation fails
@@ -3161,7 +3186,20 @@ if ($result) {
 			} elseif ($this->session->flashdata('alert') == "demo_msg") {
 				$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
 			}
-			if ($para1 == "list_data") {
+			if ($para2 == "list_data") {
+				// Get membership configuration
+				$membership_config = $this->get_membership_config($para1);
+				if (!$membership_config) {
+					echo json_encode(array('error' => 'Invalid membership type'));
+					return;
+				}
+				$membership_value = $membership_config->membership_value;
+			
+				// Get member approval setting
+				$member_approval_setting = $this->db->get_where('general_settings', array('type' => 'member_approval'))->row();
+				$member_approval = $member_approval_setting ? $member_approval_setting->value : 'no';
+			
+				// Define columns (same for all types)
 				if ($member_approval == 'yes') {
 					$columns = array(
 						0 => '',
@@ -3171,41 +3209,44 @@ if ($result) {
 						4 => 'follower',
 						5 => 'reported_by',
 						6 => 'member_since',
+						7 => 'spiritual_and_social_background',
+						8 => 'sub_caste_name',
 					);
 				} else {
 					$columns = array(
 						0 => '',
 						1 => 'member_profile_id',
 						2 => 'first_name',
-						3 => 'follower',
-						4 => 'reported_by',
-						5 => 'member_since',
+						3 => 'status',
+						4 => 'follower',
+						5 => 'reported_by',
+						6 => 'member_since',
+						7 => 'spiritual_and_social_background',
+						8 => 'sub_caste_name',
 					);
 				}
-
-
+			
+				// Get DataTable parameters
 				$limit = $this->input->post('length');
 				$start = $this->input->post('start');
-				$order = $columns[$this->input->post('order')[0]['column']];
+				$order_col = $columns[$this->input->post('order')[0]['column']];
 				$dir = $this->input->post('order')[0]['dir'];
-
-				$member_type = 3;
-
-				$totalData = $this->Crud_model->all_deleted_members_count($member_type);
-
-				$totalFiltered = $totalData;
-
+			
+				// Get admin ID for scoped data (if needed; adjust as per your auth)
+				$admin_id = $this->session->userdata('admin_id');
+			
+				// Get total and filtered data (UPDATED: Use $membership_value instead of $member_type)
+				$totalData = $this->Crud_model->allmemberscount($membership_value);  // Note: Your Crud_model method should accept value, not type
 				if (empty($this->input->post('search')['value'])) {
-
-					$members = $this->Crud_model->all_deleted_members($member_type, $limit, $start, $order, $dir);
+					$members = $this->Crud_model->allmembers($membership_value, $limit, $start, $order_col, $dir);
+					$totalFiltered = $totalData;
 				} else {
 					$search = $this->input->post('search')['value'];
-
-					$members =  $this->Crud_model->deleted_members_search($member_type, $limit, $start, $search, $order, $dir);
-
-					$totalFiltered = $this->Crud_model->deleted_members_search_count($member_type, $search);
+					$members = $this->Crud_model->memberssearch($membership_value, $limit, $start, $search, $order_col, $dir);
+					$totalFiltered = $this->Crud_model->memberssearchcount($membership_value, $search);
 				}
 
+				
 				$data = array();
 				if (!empty($members)) {
 					// if ($dir == 'asc') { $i = $start + 1; } elseif ($dir == 'desc') { $i = $totalFiltered - $start; }
@@ -20496,6 +20537,21 @@ public function add_to_bulk_payment_cart()
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public function ajax_update_cart_package() {
     header('Content-Type: application/json');
     
@@ -20544,6 +20600,169 @@ public function ajax_update_cart_package() {
     ]);
     exit;
 }
+
+// ========== MEMBERSHIP MANAGEMENT SECTION ==========
+public function membership_management($para1 = '', $para2 = '') {
+    if ($this->admin_permission() == FALSE) {
+        redirect(base_url() . 'admin/login', 'refresh');
+    }
+    
+    $page_data['title'] = 'Admin | ' . $this->system_title;
+    
+    if ($para1 == 'list_data') {
+        // AJAX DataTable Request
+        $columns = array(
+            0 => 'id',
+            1 => 'name',
+            2 => 'membership_value',
+            3 => 'slug',
+            4 => 'status'
+        );
+        
+        $limit = $this->input->post('length');
+        $start = $this->input->post('start');
+        $order_index = $this->input->post('order')[0]['column'];
+        $order = isset($columns[$order_index]) ? $columns[$order_index] : 'id';
+        $dir = $this->input->post('order')[0]['dir'];
+        
+        // Total records
+        $totalData = $this->db->count_all('membership_types');
+        
+        // Search
+        $search = $this->input->post('search')['value'];
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('name', $search);
+            $this->db->or_like('slug', $search);
+            $this->db->or_like('membership_value', $search);
+            $this->db->group_end();
+        }
+        
+        // Get filtered count
+        $totalFiltered = $this->db->count_all_results('membership_types', FALSE);
+        
+        // Get data
+        $this->db->order_by($order, $dir);
+        $this->db->limit($limit, $start);
+        $query = $this->db->get();
+        
+        $data = array();
+        if ($query->num_rows() > 0) {
+            foreach ($query->result() as $row) {
+                $nestedData = array();
+                $nestedData[] = $row->id;
+                $nestedData[] = $row->name;
+                $nestedData[] = $row->membership_value;
+                $nestedData[] = $row->slug;
+                
+                // Status badge
+                if ($row->status == 'active') {
+                    $nestedData[] = '<span class="label label-success">Active</span>';
+                } else {
+                    $nestedData[] = '<span class="label label-danger">Inactive</span>';
+                }
+                
+                // Actions
+                $nestedData[] = '
+                    <a href="' . base_url() . 'admin/membership_management/edit/' . $row->id . '" 
+                       class="btn btn-info btn-xs btn-labeled fa fa-wrench" 
+                       data-toggle="tooltip" 
+                       title="Edit">
+                        Edit
+                    </a>';
+                
+                $data[] = $nestedData;
+            }
+        }
+        
+        $json_data = array(
+            "draw" => intval($this->input->post('draw')),
+            "recordsTotal" => intval($totalData),
+            "recordsFiltered" => intval($totalFiltered),
+            "data" => $data
+        );
+        
+        echo json_encode($json_data);
+        exit;
+        
+    } elseif ($para1 == 'add') {
+        // Show add form
+        $page_data['page_name'] = 'add_membership';
+        $page_data['top'] = 'membership/index.php';
+        $page_data['folder'] = 'membership';
+        $page_data['file'] = 'add.php';
+        $page_data['bottom'] = 'membership/index.php';
+        
+        $this->load->view('back/index', $page_data);
+        
+    } elseif ($para1 == 'do_add') {
+        // Process add
+        $data = array(
+            'name' => $this->input->post('name'),
+            'slug' => $this->input->post('slug'),
+            'membership_value' => $this->input->post('membership_value'),
+            'display_order' => $this->input->post('display_order'),
+            'status' => 'active'
+        );
+        
+        $this->db->insert('membership_types', $data);
+        recache();
+        $this->session->set_flashdata('alert', 'add');
+        redirect(base_url() . 'admin/membership_management', 'refresh');
+        
+    } elseif ($para1 == 'edit') {
+        // Show edit form
+        $membership = $this->db->get_where('membership_types', array('id' => $para2))->row();
+        
+        if (!$membership) {
+            redirect(base_url() . 'admin/membership_management', 'refresh');
+        }
+        
+        $page_data['page_name'] = 'edit_membership';
+        $page_data['membership'] = $membership;
+        $page_data['top'] = 'membership/index.php';
+        $page_data['folder'] = 'membership';
+        $page_data['file'] = 'edit.php';
+        $page_data['bottom'] = 'membership/index.php';
+        
+        $this->load->view('back/index', $page_data);
+        
+    } elseif ($para1 == 'update') {
+        // Process update
+        $data = array(
+            'name' => $this->input->post('name'),
+            'slug' => $this->input->post('slug'),
+            'membership_value' => $this->input->post('membership_value'),
+            'display_order' => $this->input->post('display_order'),
+            'status' => $this->input->post('status')
+        );
+        
+        $this->db->where('id', $para2);
+        $this->db->update('membership_types', $data);
+        recache();
+        
+        $this->session->set_flashdata('alert', 'edit');
+        redirect(base_url() . 'admin/membership_management', 'refresh');
+        
+    } else {
+        // List view (default)
+        $page_data['page_name'] = 'membership_list';
+        $page_data['top'] = 'membership/index.php';
+        $page_data['folder'] = 'membership';
+        $page_data['file'] = 'list.php';
+        $page_data['bottom'] = 'membership/index.php';
+        
+        if ($this->session->flashdata('alert') == 'add') {
+            $page_data['success_alert'] = 'Membership type added successfully!';
+        } elseif ($this->session->flashdata('alert') == 'edit') {
+            $page_data['success_alert'] = 'Membership type updated successfully!';
+        }
+        
+        $this->load->view('back/index', $page_data);
+    }
+}
+// ========== END MEMBERSHIP MANAGEMENT ==========
+
 
 
 }

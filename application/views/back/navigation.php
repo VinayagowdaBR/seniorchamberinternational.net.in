@@ -22,7 +22,7 @@
                         </li>
                         <?php } ?>
 
-                        <?php if ($this->Crud_model->admin_permission('members')) { ?>
+                        <!-- <?php if ($this->Crud_model->admin_permission('members')) { ?>
                         <li <?php if(in_array($page_name, ['free_members', 'premium_members', 'national_members', 'ngb_members', 'guest_members', 'deleted_member', 'add_member', 'bulk_member_add', 'member_profile_pic_approval'])) echo 'class="active-sub active"'; ?>>
                             <a href="#">
                                 <i class="fa fa-users"></i>
@@ -38,6 +38,7 @@
                                 <li <?php if($page_name=="guest_members") echo 'class="active-link"'; ?>>
                                     <a href="<?=base_url()?>admin/members/guest_members"><i class="fa fa-user-o"></i><?php echo translate('Guests')?></a>
                                 </li>
+
                                 <?php } if ($this->Crud_model->admin_permission('ngb_members')) { ?>
                                 <li <?php if($page_name=="ngb_members") echo 'class="active-link"'; ?>>
                                     <a href="<?=base_url()?>admin/members/ngb_members"><i class="fa fa-user-o"></i><?php echo translate('NGB Members')?></a>
@@ -70,7 +71,108 @@
                                 <?php } ?>
                             </ul>
                         </li>
-                        <?php } ?>
+                        <?php } ?> -->
+
+
+
+                        <?php 
+// Get active membership types
+$CI =& get_instance();
+$membership_types = $CI->db->order_by('display_order', 'ASC')
+                           ->get_where('membership_types', array('status' => 'active'))
+                           ->result();
+
+$member_pages = array('free_members', 'premium_members', 'national_members', 'ngb_members', 
+                     'guest_members', 'deleted_member', 'add_member', 'bulk_member_add', 
+                     'member_profile_pic_approval');
+?>
+
+<?php if ($this->Crud_model->admin_permission('members')) { ?>
+<li <?php if(in_array($page_name, $member_pages)) echo 'class="active-sub active"'; ?>>
+    <a href="#">
+        <i class="fa fa-users"></i>
+        <span class="menu-title"><?php echo translate('members')?></span>
+        <i class="arrow"></i>
+    </a>
+    <ul class="collapse">
+        <?php 
+        // DYNAMIC membership type links
+        foreach ($membership_types as $membership) { 
+            if ($this->Crud_model->admin_permission($membership->slug)) { 
+        ?>
+        <li <?php if($page_name == $membership->slug) echo 'class="active-link"'; ?>>
+            <a href="<?=base_url()?>admin/members/<?=$membership->slug?>">
+                <i class="fa fa-user-o"></i>
+                <?php echo translate($membership->name)?>
+            </a>
+        </li>
+        <?php 
+            } 
+        } 
+        ?>
+        
+        <!-- Static menu items (add, bulk add, deleted, etc.) -->
+        <?php if ($this->Crud_model->admin_permission('add_members')) { ?>
+        <li <?php if($page_name=="add_member") echo 'class="active-link"'; ?>>
+            <a href="<?=base_url()?>admin/members/add_member">
+                <i class="fa fa-address-card"></i>
+                <?php echo translate('add_member')?>
+            </a>
+        </li>
+        <?php } ?>
+        
+        <?php if ($this->Crud_model->admin_permission('bulk_member_add')) { ?>
+        <li <?php if($page_name=="bulk_member_add") echo 'class="active-link"'; ?>>
+            <a href="<?=base_url()?>admin/bulk_member_add">
+                <i class="fa fa-address-card"></i>
+                <?php echo translate('bulk_member_add')?>
+            </a>
+        </li>
+        <?php } ?>
+        
+        <?php if ($this->Crud_model->admin_permission('deleted_members')) { ?>
+        <li <?php if($page_name=="deleted_member") echo 'class="active-link"'; ?>>
+            <a href="<?=base_url()?>admin/deleted_members">
+                <i class="fa fa-user-times"></i>
+                <?php echo translate('deleted_members')?>
+            </a>
+        </li>
+        <?php } ?>
+
+        <?php if ($this->Crud_model->admin_permission('membership_management')) { ?>
+            <li <?php if($page_name == 'membership_list' || $page_name == 'add_membership' || $page_name == 'edit_membership') echo 'class="active"'; ?>>
+                <a href="<?=base_url()?>admin/membership_management">
+                    <i class="fa fa-id-card"></i>
+                    <span class="menu-title"><?php echo translate('membership_types')?></span>
+                </a>
+            </li>
+            <?php } ?>
+       
+        <?php if ($this->Crud_model->admin_permission('member_profile_pic_approval') && 
+                  $this->db->get_where('general_settings', ['type' => 'member_profile_pic_approval_by_admin'])->row()->value == 'on') { ?>
+        <li <?php if($page_name=="member_profile_pic_approval") echo 'class="active-link"'; ?>>
+            <a href="<?=base_url()?>admin/member_profile_image_approval">
+                <i class="fa fa-image"></i>
+                <?php echo translate('profile_pic_approval')?>
+            </a>
+        </li>
+        <?php } ?>
+    </ul>
+</li>
+<?php } ?>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
                         <?php if ($this->Crud_model->admin_permission('premium_plans')) { ?>
                         <li <?php if($page_name=="packages") echo 'class="active-link"'; ?>>
