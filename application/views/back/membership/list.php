@@ -1,102 +1,92 @@
-<!--CONTENT CONTAINER-->
-<!--===================================================-->
 <div id="content-container">
     <div id="page-head">
-        <!--Page Title-->
-        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <div id="page-title">
-            <h1 class="page-header text-overflow"><?php echo translate('membership_management')?></h1>
+            <h1 class="page-header text-overflow">Membership Types</h1>
         </div>
-        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-        <!--End page title-->
-
-        <!--Breadcrumb-->
-        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <ol class="breadcrumb">
-            <li><a href="<?=base_url()?>admin"><?php echo translate('home')?></a></li>
-            <li class="active"><?php echo translate('membership_types')?></li>
+            <li><a href="<?=base_url()?>admin"><i class="demo-pli-home"></i></a></li>
+            <li class="active">Membership Types</li>
         </ol>
-        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-        <!--End breadcrumb-->
     </div>
 
-    <!--Page content-->
-    <!--===================================================-->
     <div id="page-content">
-        <!-- Basic Data Tables -->
-        <!--===================================================-->
         <div class="panel">
             <?php if (!empty($success_alert)) { ?>
-            <div class="alert alert-success" id="success_alert" style="display: block;">
+            <div class="alert alert-success alert-dismissible">
                 <button class="close" data-dismiss="alert"><i class="pci-cross pci-circle"></i></button>
                 <?=$success_alert?>
+            </div>
+            <?php } ?>
+            
+            <?php if (!empty($danger_alert)) { ?>
+            <div class="alert alert-danger alert-dismissible">
+                <button class="close" data-dismiss="alert"><i class="pci-cross pci-circle"></i></button>
+                <?=$danger_alert?>
             </div>
             <?php } ?>
             
             <div class="panel-heading">
                 <div class="row">
                     <div class="col-md-8">
-                        <h3 class="panel-title"><?php echo translate('membership_types')?></h3>
+                        <h3 class="panel-title">All Membership Types</h3>
                     </div>
                     <div class="col-md-4 text-right">
-                        <a href="<?=base_url()?>admin/membership_management/add" class="btn btn-primary btn-sm">
-                            <i class="fa fa-plus"></i> <?php echo translate('add_new')?>
+                        <a href="<?=base_url()?>admin/membership_management/add" 
+                           class="btn btn-primary btn-labeled fa fa-plus-circle">
+                            Add New
                         </a>
                     </div>
                 </div>
             </div>
             
-            <div class="panel-body" style="padding: 15px 20px 0px !important;">
-                <table id="membership_table" class="table table-striped table-bordered table-responsive" cellspacing="0" width="100%">
+            <div class="panel-body">
+                <table id="membership_table" class="table table-striped table-bordered" cellspacing="0" width="100%">
                     <thead>
                         <tr>
-                            <th width="5%"><?php echo translate('id')?></th>
-                            <th width="20%"><?php echo translate('name')?></th>
-                            <th width="20%"><?php echo translate('slug')?></th>
-                            <th width="10%"><?php echo translate('value')?></th>
-                            <th width="10%"><?php echo translate('status')?></th>
-                            <th width="15%" data-sortable="false"><?php echo translate('options')?></th>
+                            <th style="width:50px;">ID</th>
+                            <th>Name</th>
+                            <th style="width:80px;">Value</th>
+                            <th>Slug</th>
+                            <th style="width:80px;">Status</th>
+                            <th style="width:150px;">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </div>
-        <!--===================================================-->
-        <!-- End Striped Table -->
     </div>
-    <!--===================================================-->
-    <!--End page content-->
 </div>
 
-<script>
+<script type="text/javascript">
 $(document).ready(function() {
-    $('#membership_table').DataTable({
+    var table = $('#membership_table').DataTable({
         "processing": true,
         "serverSide": true,
         "ajax": {
             "url": "<?=base_url()?>admin/membership_management/list_data",
-            "type": "POST",
-            "data": {
-                '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
-            }
+            "type": "POST"
         },
         "columns": [
             { "data": 0 },
             { "data": 1 },
             { "data": 2 },
             { "data": 3 },
-            { "data": 4 },
+            { "data": 4, "orderable": false },
             { "data": 5, "orderable": false }
         ],
-        "drawCallback": function(settings) {
-            $('.add-tooltip').tooltip();
+        "order": [[0, 'asc']],
+        "pageLength": 25,
+        "language": {
+            "processing": "Loading data..."
         }
     });
-    
-    setTimeout(function() {
-        $('#success_alert').fadeOut('fast');
-    }, 5000);
 });
+
+// Confirm delete function
+function confirm_modal(delete_url) {
+    if (confirm('Are you sure you want to delete this membership type?')) {
+        window.location.href = delete_url;
+    }
+}
 </script>
