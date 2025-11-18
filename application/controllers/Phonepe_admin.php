@@ -9,6 +9,8 @@ class Phonepe_admin extends CI_Controller
         $this->load->database();
         $this->load->model('Crud_model');
         $this->load->library('phonepe');
+        $this->load->library('email');
+
     }
 
     /**
@@ -262,11 +264,6 @@ log_message('debug', 'Using backend calculated amount: ' . $calculated_total);
         redirect(base_url('admin/earnings/payment_cart'));
     }
 }
-
-
-
-
-
 
 
 /**
@@ -551,19 +548,64 @@ private function verify_and_process_bulk_payment($bulk_transaction_id, $is_callb
         
         $this->db->trans_commit();
         log_message('debug', 'Payment processing completed successfully');
-        
-        // Store invoices in session (YOUR EXISTING LOGIC)
-        $this->session->set_userdata('bulk_payment_invoices', $generated_invoices);
-        $this->session->unset_userdata(['cart_items', 'bulk_payment_data', 'selected_package_id']);
-        
+        // === Send Email Notification to Head/Admin ===
+
+// === Send Email Notification to Head/Admin ===
+try {
+    $this->load->library('email');
+
+    // SMTP Configuration
+    $config = array(
+        'protocol'    => 'smtp',
+        'smtp_host'   => 'mail.seniorchamberinternational.net.in',
+        'smtp_port'   => 587,
+        'smtp_crypto' => 'tls',
+        'smtp_user'   => 'info@seniorchamberinternational.net.in',
+        'smtp_pass'   => 'Senioradmin@1234',
+        'mailtype'    => 'html',
+        'charset'     => 'utf-8',
+        'newline'     => "\r\n",
+        'crlf'        => "\r\n",
+        'smtp_timeout'=> 10,
+    );
+
+    $this->email->initialize($config);
+
+    // Sender
+    $this->email->from('info@seniorchamberinternational.net.in', 'Senior Chamber International');
+
+    // Receiver (You can change this later)
+    $this->email->to('vinayagowda7676@gmail.com');
+
+    // Subject & Body
+    $this->email->subject('Bulk Payment Successful - Confirmation');
+    $this->email->message("
+        <h2>Bulk Payment Completed</h2>
+        <p>Bulk Transaction ID: <strong>{$bulk_transaction_id}</strong></p>
+        <p>Total Amount Paid: <strong>₹{$total_amount}</strong></p>
+        <p>Total Members: <strong>".count($child_payments)."</strong></p>
+        <p>Payment Date: ".date('d-m-Y H:i:s')."</p>
+        <hr>
+        <p>Regards,<br>Senior Chamber International</p>
+    ");
+
+    if ($this->email->send()) {
+        log_message('info', 'Bulk payment success email sent.');
+    } else {
+        log_message('error', 'Email failed: ' . $this->email->print_debugger());
+    }
+
+} catch (Exception $e) {
+    log_message('error', 'Email exception: ' . $e->getMessage());
+}
+
         return 'SUCCESS';
         
     } catch (Exception $e) {
-        $this->db->trans_rollback();
-        log_message('error', 'Payment verification exception: ' . $e->getMessage());
-        log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+        log_message('error', 'Exception in verify_and_process_bulk_payment: ' . $e->getMessage());
         return 'FAILED';
-    }
+    }   
+
 }
 
 

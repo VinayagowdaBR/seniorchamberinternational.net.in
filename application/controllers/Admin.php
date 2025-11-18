@@ -2676,6 +2676,37 @@ if ($result) {
 		}
 	}
 
+// public function sendMail()
+// {
+//     $config = array(
+//         'protocol'  => 'smtp',
+//         'smtp_host' => 'mail.seniorchamberinternational.net.in',
+//         'smtp_port' => 587,                      // USE 587 (TLS)
+//         'smtp_user' => 'info@seniorchamberinternational.net.in',
+//         'smtp_pass' => 'Senioradmin@1234',
+//         'smtp_crypto' => 'tls',                  // TLS required
+//         'mailtype'  => 'html',
+//         'charset'   => 'utf-8',
+//         'smtp_timeout' => 30,
+//         'newline'   => "\r\n",
+//         'crlf'      => "\r\n"
+//     );
+
+//     $this->load->library('email', $config);
+
+//     $this->email->from('info@seniorchamberinternational.net.in', 'Your Name');
+//     $this->email->to('2527chethan@gmail.com');
+//     $this->email->subject('Localhost SMTP Test');
+//     $this->email->message('This email is sent from localhost via hosting SMTP.');
+
+//     if ($this->email->send()) {
+//         echo "Email sent successfully!";
+//     } else {
+//         echo "Error:<br>";
+//         echo $this->email->print_debugger();
+//     }
+// }
+
 
 
 
