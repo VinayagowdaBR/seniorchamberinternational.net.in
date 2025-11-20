@@ -959,6 +959,7 @@ public function add_member() {
 
 
 
+
 	function members($para1 = "", $para2 = "", $para3 = "", $para4 = "")
 	{
 
@@ -1310,12 +1311,6 @@ public function add_member() {
 				echo json_encode($json_data);
 			}
 			// code writtten by gowda
-
-
-
-
-
-
 			else if ($para2 == "star_list_data") {
 				if ($para1 == "free_members") {
 					if ($member_approval == 'yes') {
@@ -2257,7 +2252,7 @@ public function add_member() {
 						// } else {
 						// 	$data['membership'] = 2;
 						// }
-						$data['membership'] = 2;
+						$data['membership'] = $this->input->post('membership');
 						$data['profile_status'] = 1;
 						$data['is_closed'] = 'no';
 						$data['member_since'] = date("Y-m-d H:i:s");
@@ -2407,6 +2402,8 @@ public function add_member() {
 						$data['email'] = $this->input->post('email');
 					}
 					$data['mobile'] = $this->input->post('mobile');
+					$data['membership'] = $this->input->post('membership');
+
 					$data['date_of_birth'] = strtotime($this->input->post('date_of_birth'));
 					$data['height'] = $this->input->post('height');
 					$data['introduction'] = $this->input->post('introduction');

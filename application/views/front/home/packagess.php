@@ -5,7 +5,7 @@
 ?>
 <section class="parallax-section parallax-section-lg pricing-plans pricing-plans--style-1 slice--offset" style="background-image: url(<?=base_url()?>uploads/home_page/premium_plans_image/<?=$premium_plans_image[0]['image']?>)">
     <div class="container">
-        <span class="clearfix"></span>
+        <span class="clearfix"></span>55
         <div class="row" style="margin-top: -10px">
             <?php foreach ($all_plans as $value): ?>
                 <?php if($value->status == 0) { ?>

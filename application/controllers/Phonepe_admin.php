@@ -582,6 +582,7 @@ try {
     $this->email->message("
         <h2>Bulk Payment Completed</h2>
         <p>Bulk Transaction ID: <strong>{$bulk_transaction_id}</strong></p>
+        <p>PhonePe Transaction ID: <strong>{$phonepe_transaction_id}</strong></p>
         <p>Total Amount Paid: <strong>₹{$total_amount}</strong></p>
         <p>Total Members: <strong>".count($child_payments)."</strong></p>
         <p>Payment Date: ".date('d-m-Y H:i:s')."</p>
