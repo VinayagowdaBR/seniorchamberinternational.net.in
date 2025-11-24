@@ -3199,12 +3199,9 @@ if ($result) {
 
 	function deleted_members($para1 = "", $para2 = "", $para3 = "", $para4 = "")
 	{
-	    
-	    
 		if ($this->admin_permission() == FALSE) {
 			redirect(base_url() . 'admin/login', 'refresh');
 		} else {
-			$member_approval = $this->db->get_where('general_settings', array('type' => 'member_approval_by_admin'))->row()->value;
 			$page_data['title'] = "Admin || " . $this->system_title;
 			if ($this->session->flashdata('alert') == "restore") {
 				$page_data['success_alert'] = translate("you_have_successfully_restored_this_member!");
@@ -3214,138 +3211,104 @@ if ($result) {
 			} elseif ($this->session->flashdata('alert') == "demo_msg") {
 				$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
 			}
-			if ($para2 == "list_data") {
-				// Get membership configuration
-				$membership_config = $this->get_membership_config($para1);
-				if (!$membership_config) {
-					echo json_encode(array('error' => 'Invalid membership type'));
-					return;
-				}
-				$membership_value = $membership_config->membership_value;
-			
-				// Get member approval setting
-				$member_approval_setting = $this->db->get_where('general_settings', array('type' => 'member_approval'))->row();
-				$member_approval = $member_approval_setting ? $member_approval_setting->value : 'no';
-			
-				// Define columns (same for all types)
-				if ($member_approval == 'yes') {
-					$columns = array(
-						0 => '',
-						1 => 'member_profile_id',
-						2 => 'first_name',
-						3 => 'status',
-						4 => 'follower',
-						5 => 'reported_by',
-						6 => 'member_since',
-						7 => 'spiritual_and_social_background',
-						8 => 'sub_caste_name',
-					);
-				} else {
-					$columns = array(
-						0 => '',
-						1 => 'member_profile_id',
-						2 => 'first_name',
-						3 => 'status',
-						4 => 'follower',
-						5 => 'reported_by',
-						6 => 'member_since',
-						7 => 'spiritual_and_social_background',
-						8 => 'sub_caste_name',
-					);
-				}
-			
-				// Get DataTable parameters
+
+			if ($para1 == "list_data") {
 				$limit = $this->input->post('length');
 				$start = $this->input->post('start');
-				$order_col = $columns[$this->input->post('order')[0]['column']];
-				$dir = $this->input->post('order')[0]['dir'];
-			
-				// Get admin ID for scoped data (if needed; adjust as per your auth)
-				$admin_id = $this->session->userdata('admin_id');
-			
-				// Get total and filtered data (UPDATED: Use $membership_value instead of $member_type)
-				$totalData = $this->Crud_model->allmemberscount($membership_value);  // Note: Your Crud_model method should accept value, not type
-				if (empty($this->input->post('search')['value'])) {
-					$members = $this->Crud_model->allmembers($membership_value, $limit, $start, $order_col, $dir);
-					$totalFiltered = $totalData;
-				} else {
-					$search = $this->input->post('search')['value'];
-					$members = $this->Crud_model->memberssearch($membership_value, $limit, $start, $search, $order_col, $dir);
-					$totalFiltered = $this->Crud_model->memberssearchcount($membership_value, $search);
+				$search = $this->input->post('search')['value'];
+				$order = $this->input->post('order');
+				$order_col_index = $order[0]['column'];
+				$dir = $order[0]['dir'];
+
+				$columns = array(
+					0 => 'profile_image',
+					1 => 'member_profile_id',
+					2 => 'first_name',
+					3 => 'status',
+					4 => 'follower',
+					5 => 'reported_by',
+					6 => 'member_since',
+					7 => 'is_closed',
+					8 => 'options'
+				);
+				
+				$order_col = isset($columns[$order_col_index]) ? $columns[$order_col_index] : 'member_id';
+				if($order_col == 'profile_image' || $order_col == 'options'){
+					$order_col = 'member_id';
 				}
 
+				$this->db->from('deleted_member');
+				if (!empty($search)) {
+					$this->db->group_start();
+					$this->db->like('first_name', $search);
+					$this->db->or_like('last_name', $search);
+					$this->db->or_like('member_profile_id', $search);
+					$this->db->or_like('email', $search);
+					$this->db->group_end();
+				}
 				
+				$temp_db = clone $this->db;
+				$totalFiltered = $temp_db->count_all_results('', false);
+
+				$this->db->limit($limit, $start);
+				$this->db->order_by($order_col, $dir);
+				$members = $this->db->get()->result();
+				
+				$totalData = $this->db->count_all('deleted_member');
+
 				$data = array();
-				if (!empty($members)) {
-					// if ($dir == 'asc') { $i = $start + 1; } elseif ($dir == 'desc') { $i = $totalFiltered - $start; }
-					foreach ($members as $member) {
-						//          	$image = json_decode($member->profile_image, true);
-						//          	if (file_exists('uploads/profile_image/'.$image[0]['thumb'])) {
-						// 			$member_image="<img src='".base_url()."uploads/profile_image/".$image[0]['thumb']."' class='img-sm'>";
-						// 		}
-						// 		else {
-						// 			$member_image="<img src='".base_url()."uploads/profile_image/male_default.jpg' class='img-sm'>";
-						// 		}
-
-
-						$image = json_decode($member->profile_image, true);
-						if (file_exists('uploads/profile_image/' . $image[0]['thumb'])) {
-
-							if ($image[0]['thumb'] == 'male_default_thumb.jpg') {
-								$member_image = "<img src='" . base_url() . "uploads/profile_image/male_default.jpg' class='img-sm'>";
-							} else if ($image[0]['thumb'] == 'female_default_thumb.png') {
-								$member_image = "<img src='" . base_url() . "uploads/profile_image/female_default.png' class='img-sm'>";
-							} else {
-								$member_image = "<img src='" . base_url() . "uploads/profile_image/" . $image[0]['thumb'] . "' class='img-sm'>";
-							}
+				foreach ($members as $member) {
+					$image = json_decode($member->profile_image, true);
+					if (file_exists('uploads/profile_image/' . $image[0]['thumb'])) {
+						if ($image[0]['thumb'] == 'male_default_thumb.jpg') {
+							$member_image = "<img src='" . base_url() . "uploads/profile_image/male_default.jpg' class='img-sm'>";
+						} else if ($image[0]['thumb'] == 'female_default_thumb.png') {
+							$member_image = "<img src='" . base_url() . "uploads/profile_image/female_default.png' class='img-sm'>";
 						} else {
-							if ($member->gender == '1') {
-								$member_image = "<img src='" . base_url() . "uploads/profile_image/male_default.jpg' class='img-sm'>";
-							} else if ($member->gender == '2') {
-								$member_image = "<img src='" . base_url() . "uploads/profile_image/female_default.png' class='img-sm'>";
-							}
+							$member_image = "<img src='" . base_url() . "uploads/profile_image/" . $image[0]['thumb'] . "' class='img-sm'>";
 						}
-
-
-
-
-						if ($member->is_closed == "yes") {
-							$acnt_status_button = "<center><span class='badge badge-danger' style='width:60px'>" . translate('closed') . "</span></center>";
-						} elseif ($member->is_closed == "no") {
-							$acnt_status_button = "<center><span class='badge badge-success' style='width:60px'>" . translate('Active') . "</span></center>";
-						}
-
-						$nestedData['image'] = $member_image;
-						$nestedData['address'] = $address;
-						 $nestedData['percentage'] = $member->percentage.'%';
-						$nestedData['name'] = $member->first_name . ' ' . $member->last_name;
-						if ($member_approval == 'yes') {
-							if ($member->status == "pending") {
-								$nestedData['status'] = "<button  data-toggle='modal' class='badge badge-info' >" . translate('pending') . "</button>
-								";
-							} elseif ($member->status == "approved") {
-								$nestedData['status'] = "<button   class='badge badge-success' >" . translate('approved') . "</i></button>
-								";
-							}
-						}
-
-
-						$nestedData['member_id'] = $member->member_profile_id;
-						$nestedData['follower'] = $member->follower;
-						$nestedData['profile_reported'] = $member->reported_by;
-
-						if ($para1 == "premium_members") {
-							$package_info = $this->db->get_where('member', array('member_id' => $member->member_id))->row()->package_info;
-							$package_info = json_decode($package_info, true);
-							$nestedData['package'] = $package_info[0]['current_package'];
-						}
-						$nestedData['member_since'] = date('d/m/Y h:i:s A', strtotime($member->member_since));
-						$nestedData['member_status'] = $acnt_status_button;
-						$nestedData['options'] = "<button data-target='#restore_modal' data-toggle='modal' class='btn btn-success btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title= '" . translate('restore') . "' onclick='restore($member->member_id)'><i class='fa fa-check'></i></button>" . ' ' . "<button data-target='#permanently_delete_member_modal' data-toggle='modal' class='btn btn-danger btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('permanently_delete_member') . "' onclick='permanently_delete_member($member->member_id)'><i class='fa fa-trash'></i></button>";
-
-						$data[] = $nestedData;
-						// if ($dir == 'asc') { $i++; } elseif ($dir == 'desc') { $i--; }
+					} else {
+						if ($member->gender == '1') {
+							$member_image = "<img src='" . base_url() . "uploads/profile_image/male_default.jpg' class='img-sm'>";
+						} else if ($member->gender == '2') {
+							$member_image = "<img src='" . base_url() . "uploads/profile_image/female_default.png' class='img-sm'>";
+						} else {
+                             $member_image = "<img src='" . base_url() . "uploads/profile_image/default.jpg' class='img-sm'>";
+                        }
 					}
+
+					if ($member->is_closed == "yes") {
+						$acnt_status_button = "<center><span class='badge badge-danger' style='width:60px'>" . translate('closed') . "</span></center>";
+					} elseif ($member->is_closed == "no") {
+						$acnt_status_button = "<center><span class='badge badge-success' style='width:60px'>" . translate('Active') . "</span></center>";
+					}
+                    
+                    $member_approval = $this->db->get_where('general_settings', array('type' => 'member_approval_by_admin'))->row()->value;
+
+					$nestedData = array();
+					$nestedData['image'] = $member_image;
+					$nestedData['address'] = isset($member->present_address) ? $member->present_address : "";
+                    $nestedData['percentage'] = isset($member->percentage) ? $member->percentage.'%' : "0%";
+					$nestedData['name'] = $member->first_name . ' ' . $member->last_name;
+					
+                    if ($member_approval == 'yes') {
+						if ($member->status == "pending") {
+							$nestedData['status'] = "<button class='badge badge-info' >" . translate('pending') . "</button>";
+						} elseif ($member->status == "approved") {
+							$nestedData['status'] = "<button class='badge badge-success' >" . translate('approved') . "</button>";
+						} else {
+                            $nestedData['status'] = "<button class='badge badge-default' >" . $member->status . "</button>";
+                        }
+					}
+
+					$nestedData['member_id'] = $member->member_profile_id;
+					$nestedData['follower'] = isset($member->follower) ? $member->follower : 0;
+					$nestedData['profile_reported'] = isset($member->reported_by) ? $member->reported_by : 0;
+					$nestedData['member_since'] = date('d/m/Y h:i:s A', strtotime($member->member_since));
+					$nestedData['member_status'] = $acnt_status_button;
+					$nestedData['options'] = "<button data-target='#restore_modal' data-toggle='modal' class='btn btn-success btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title= '" . translate('restore') . "' onclick='restore($member->member_id)'><i class='fa fa-check'></i></button>" . ' ' . "<button data-target='#permanently_delete_member_modal' data-toggle='modal' class='btn btn-danger btn-xs add-tooltip' data-toggle='tooltip' data-placement='top' title='" . translate('permanently_delete_member') . "' onclick='permanently_delete_member($member->member_id)'><i class='fa fa-trash'></i></button>";
+
+					$data[] = $nestedData;
 				}
 
 				$json_data = array(
@@ -3370,7 +3333,6 @@ if ($result) {
 	function member_restore($para1)
 	{
 		$this->session->set_flashdata('alert', 'restore');
-		//echo $para1;
 		$data['member_id'] = $para1;
 		$data['member_profile_id'] = $this->db->get_where("deleted_member", array("member_id" => $para1))->row()->member_profile_id;
 		$data['status'] = $this->db->get_where("deleted_member", array("member_id" => $para1))->row()->status;
