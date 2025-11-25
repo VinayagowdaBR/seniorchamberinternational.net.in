@@ -267,6 +267,58 @@ $member_pages = array('free_members', 'premium_members', 'national_members', 'ng
 
 <!-- //////////////////////////////////////////// BULK PAYMETN  NAVEBAR CRATING  END /////////////////////////////////////////// -->
 
+<!-- //////////////////////////////////////////// CONTRIBUTION PAYMENT NAVBAR START /////////////////////////////////////////// -->
+
+<?php if ($this->Crud_model->admin_permission('contributionpayment')) { ?>
+
+    <li class="parent 
+        <?php 
+            if(
+                $page_name=="contributionpayment" || 
+                $page_name=="contributionpayment/invoice_list" || 
+                $page_name=="contributionpayment/admin_invoices" ||
+                $page_name=="contributionpayment/invoice_detail"
+            ) echo 'active-sub'; 
+        ?>
+    ">
+        <a href="#">
+            <i class="fa fa-handshake-o"></i>
+            <span class="menu-title"><?php echo translate('contribution_payment'); ?></span>
+        </a>
+
+        <ul class="children">
+
+            <!-- Make Contribution Payment -->
+            <li <?php if($page_name=="contributionpayment") echo 'class="active-link"'; ?>>
+                <a href="<?= base_url() ?>admin/contributionpayment">
+                    <i class="fa fa-credit-card"></i>
+                    <span class="menu-title"><?php echo translate('make_contribution'); ?></span>
+                </a>
+            </li>
+
+            <!-- Contribution Payment Invoices -->
+            <li 
+                <?php 
+                    if(
+                        $page_name=="contributionpayment/invoice_list" || 
+                        $page_name=="contributionpayment/admin_invoices" || 
+                        $page_name=="contributionpayment/invoice_detail"
+                    ) echo 'class="active-link"'; 
+                ?>
+            >
+                <a href="<?= base_url() ?>admin/contributionpayment/invoices">
+                    <i class="fa fa-file-text"></i>
+                    <span class="menu-title"><?php echo translate('contribution_invoices'); ?></span>
+                </a>
+            </li>
+
+        </ul>
+
+    </li>
+
+<?php } ?>
+
+<!-- //////////////////////////////////////////// CONTRIBUTION PAYMENT NAVBAR END /////////////////////////////////////////// -->
 
 
 

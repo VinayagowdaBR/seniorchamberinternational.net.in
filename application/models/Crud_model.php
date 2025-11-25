@@ -958,21 +958,29 @@ public function insert_legion($data) {
         $admin        = $this->db->get_where('admin', array(
             'admin_id' => $admin_id
         ))->row();
-        $this->benchmark->mark_time();
-        $permission = $this->db->get_where('permission', array(
-            'codename' => $codename
-        ))->row()->permission_id;
+        
         if ($admin->role == 1) {
             return true;
+        }
+        
+        $this->benchmark->mark_time();
+        $permission_row = $this->db->get_where('permission', array(
+            'codename' => $codename
+        ))->row();
+        
+        if (!$permission_row) {
+            return false; // Permission does not exist
+        }
+        
+        $permission = $permission_row->permission_id;
+        
+        $role  = $admin->role;
+        $role_permissions = json_decode($this->Crud_model->get_type_name_by_id('role', $role, 'permission'));
+        if (in_array($permission, $role_permissions)) {
+            return true;
         } else {
-            $role  = $admin->role;
-            $role_permissions = json_decode($this->Crud_model->get_type_name_by_id('role', $role, 'permission'));
-            if (in_array($permission, $role_permissions)) {
-                return true;
-            } else {
-                return false;
-            }
-        }/**/
+            return false;
+        }
     }
 
 

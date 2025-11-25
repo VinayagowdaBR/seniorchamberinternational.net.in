@@ -1,0 +1,138 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Phonepe_contribution {
+    
+    private $merchant_id;
+    private $salt_key; 
+    private $salt_index;
+    private $base_url;
+    
+    public function __construct() {
+        $ci =& get_instance();
+        
+        // Load configuration from file
+        $ci->config->load('phonepe_contribution', TRUE);
+        
+        $this->merchant_id = $ci->config->item('phonepe_contribution_merchant_id', 'phonepe_contribution');
+        $this->salt_key = $ci->config->item('phonepe_contribution_salt_key', 'phonepe_contribution');
+        $this->salt_index = $ci->config->item('phonepe_contribution_salt_index', 'phonepe_contribution');
+        $this->base_url = $ci->config->item('phonepe_contribution_base_url', 'phonepe_contribution');
+        
+        // Debug log
+        log_message('debug', 'PhonePe Contribution Library Initialized - Merchant ID: ' . $this->merchant_id);
+    }
+    
+    public function create_payment($data) {
+        $merchant_transaction_id = $data['merchant_transaction_id'];
+        $amount = $data['amount']; // Amount should already be in paise
+        $redirect_url = $data['redirect_url'];
+        $callback_url = $data['callback_url'];
+        $mobile_number = $data['mobile_number'];
+        $user_id = $data['user_id'];
+        
+        $payload = [
+            'merchantId' => $this->merchant_id,
+            'merchantTransactionId' => $merchant_transaction_id,
+            'merchantUserId' => $user_id,
+            'amount' => $amount,
+            'redirectUrl' => $redirect_url,
+            'redirectMode' => 'POST',
+            'callbackUrl' => $callback_url,
+            'mobileNumber' => $mobile_number,
+            'paymentInstrument' => [
+                'type' => 'PAY_PAGE'
+            ]
+        ];
+        
+        $encoded_payload = base64_encode(json_encode($payload));
+        $string_to_hash = $encoded_payload . '/pg/v1/pay' . $this->salt_key;
+        $sha256_hash = hash('sha256', $string_to_hash);
+        $checksum = $sha256_hash . '###' . $this->salt_index;
+        
+        $curl_data = [
+            'request' => $encoded_payload
+        ];
+        
+        $url = $this->base_url . '/pg/v1/pay';
+        
+        // Log request details for debugging
+        log_message('debug', 'PhonePe Contribution Request URL: ' . $url);
+        
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($curl_data),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'X-VERIFY: ' . $checksum
+            ]
+        ]);
+        
+        $response = curl_exec($curl);
+        $error = curl_error($curl);
+        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+        
+        log_message('debug', 'PhonePe Contribution Response Code: ' . $http_code);
+        
+        if ($error) {
+            log_message('error', 'PhonePe Contribution CURL Error: ' . $error);
+            return ['success' => false, 'message' => 'Connection error: ' . $error];
+        }
+        
+        $response_array = json_decode($response, true);
+        
+        if (!$response_array) {
+            log_message('error', 'PhonePe Contribution Invalid JSON Response: ' . $response);
+            return ['success' => false, 'message' => 'Invalid response from payment gateway'];
+        }
+        
+        return $response_array;
+    }
+    
+    public function verify_payment($merchant_transaction_id) {
+        $string_to_hash = '/pg/v1/status/' . $this->merchant_id . '/' . $merchant_transaction_id . $this->salt_key;
+        $sha256_hash = hash('sha256', $string_to_hash);
+        $checksum = $sha256_hash . '###' . $this->salt_index;
+        
+        $url = $this->base_url . '/pg/v1/status/' . $this->merchant_id . '/' . $merchant_transaction_id;
+        
+        log_message('debug', 'PhonePe Contribution Verification URL: ' . $url);
+        
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'X-VERIFY: ' . $checksum,
+                'X-MERCHANT-ID: ' . $this->merchant_id
+            ]
+        ]);
+        
+        $response = curl_exec($curl);
+        $error = curl_error($curl);
+        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+        
+        if ($error) {
+            log_message('error', 'PhonePe Contribution Verification CURL Error: ' . $error);
+            return ['success' => false, 'message' => 'Connection error: ' . $error];
+        }
+        
+        $response_array = json_decode($response, true);
+        
+        if (!$response_array) {
+            log_message('error', 'PhonePe Contribution Verification Invalid JSON Response: ' . $response);
+            return ['success' => false, 'message' => 'Invalid response from payment gateway'];
+        }
+        
+        return $response_array;
+    }
+}

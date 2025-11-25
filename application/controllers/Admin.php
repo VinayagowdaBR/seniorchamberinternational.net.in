@@ -5224,165 +5224,6 @@ elseif ($para1 == "bulk_payment_success_page") {
             $html = $this->load->view('back/earnings/individual_invoice_pdf', $data, true);
             
             // Generate and download PDF
-            $filename = 'Invoice_' . $invoice_number . '.pdf';
-            generate_pdf($html, $filename, 'D');
-        }
-
-
-
-			// IT is old code for downloading invoice
-
-
-			// elseif ($para1 == "download_invoice") {
-			// 	$payment_id = (int) $para2;
-			// 	$this->generate_member_invoice($payment_id);
-			// }
-			
-
-
-
-			// ✅ Process bulk payment (AJAX)
-			elseif ($para1 == "process_bulk_payment") {
-				$cart_items = $this->session->userdata('cart_items');
-				if (empty($cart_items)) {
-					echo json_encode(['status' => 'error', 'message' => 'No items in cart']);
-					return;
-				}
-				
-				$total_amount = 0;
-				$payment_ids = array();
-				
-				foreach ($cart_items as $item) {
-					$total_amount += $item['amount'];
-					$payment_ids[] = $item['id'];
-				}
-				
-				$bulk_data = array(
-					'payment_ids' => json_encode($payment_ids),
-					'total_amount' => $total_amount,
-					'payment_status' => 'pending',
-					'created_at' => date('Y-m-d H:i:s')
-				);
-				
-				$this->session->set_userdata('bulk_payment_data', $bulk_data);
-				
-				echo json_encode([
-					'status' => 'success',
-					'total_amount' => $total_amount,
-					'payment_ids' => $payment_ids,
-					'redirect_url' => base_url('admin/earnings/phonepe_bulk_payment')
-				]);
-			}
-			// ✅ PhonePe bulk payment page
-			elseif ($para1 == "phonepe_bulk_payment") {
-				$bulk_payment_data = $this->session->userdata('bulk_payment_data');
-				if (empty($bulk_payment_data)) {
-					redirect(base_url() . 'admin/earnings', 'refresh');
-				}
-				
-				$page_data['title'] = "Admin || " . $this->system_title;
-				$page_data['top'] = "earnings/index.php";
-				$page_data['folder'] = "earnings";
-				$page_data['file'] = "process_bulk_payment.php";
-				$page_data['bottom'] = "earnings/index.php";
-				$page_data['page_name'] = "earnings";
-				$page_data['bulk_payment_data'] = $bulk_payment_data;
-				
-				$this->load->view('back/index', $page_data);
-			}
-			// ✅ Bulk payment success callback
-			elseif ($para1 == "bulk_payment_success") {
-				$bulk_payment_data = $this->session->userdata('bulk_payment_data');
-				if (empty($bulk_payment_data)) {
-					$this->session->set_flashdata('danger_alert', 'Payment session expired');
-					redirect(base_url() . 'admin/earnings', 'refresh');
-					return;
-				}
-				
-				$payment_ids = json_decode($bulk_payment_data['payment_ids'], true);
-				
-				foreach ($payment_ids as $payment_id) {
-					$payment_details = $this->db->get_where('package_payment', array('package_payment_id' => $payment_id))->row();
-					
-					if (!$payment_details) continue;
-					
-					$member_details = $this->db->get_where('member', array('member_id' => $payment_details->member_id))->row();
-					$plan_details = $this->db->get_where('plan', array('plan_id' => $payment_details->plan_id))->row();
-	
-					if (!$member_details || !$plan_details) continue;
-	
-					$data = array();
-					$data['membership'] = ($plan_details->plan_id == '1') ? 1 : 2;
-					$data['express_interest'] = $member_details->express_interest + $plan_details->express_interest;
-					$data['direct_messages'] = $member_details->direct_messages + $plan_details->direct_messages;
-					$data['photo_gallery'] = $member_details->photo_gallery + $plan_details->photo_gallery;
-	
-					$package_info = array(array(
-						'current_package' => $plan_details->name,
-						'package_price' => $payment_details->amount,
-						'payment_type' => 'PhonePe Bulk'
-					));
-					$data['package_info'] = json_encode($package_info);
-	
-					$this->db->where('member_id', $payment_details->member_id);
-					$this->db->update('member', $data);
-	
-					$data2 = array(
-						'payment_status' => 'paid',
-						'payment_type' => 'PhonePe',
-						'payment_timestamp' => time(),
-						'purchase_datetime' => time()
-					);
-					
-					$this->db->where('package_payment_id', $payment_id);
-					$this->db->update('package_payment', $data2);
-				}
-				
-				recache();
-				$this->session->unset_userdata('cart_items');
-				$this->session->unset_userdata('bulk_payment_data');
-				$this->session->set_flashdata('alert', 'bulk_payment_success');
-				redirect(base_url() . 'admin/earnings/', 'refresh');
-			}
-
-			elseif ($para1 == "download_payment_pdf") {
-				$payment_id = (int) $para2;
-				$payment = $this->db->get_where('package_payment', ['package_payment_id' => $payment_id])->row();
-				if (!$payment) { show_error('Payment not found'); }
-	
-				$member = $this->db->get_where('member', ['member_id' => $payment->member_id])->row();
-				$plan = $this->db->get_where('plan', ['plan_id' => $payment->plan_id])->row();
-	
-				$logo_path = FCPATH . 'uploads/logo1.jpg';
-				$logo_src = file_exists($logo_path)
-					? 'data:image/'.pathinfo($logo_path, PATHINFO_EXTENSION).';base64,'.base64_encode(file_get_contents($logo_path))
-					: '';
-	
-				$data = [
-					'payment' => $payment,
-					'member' => $member,
-					'plan' => $plan,
-					'logoSrc' => $logo_src,
-					'system_title' => $this->system_title ?? 'YOUR COMPANY NAME',
-				];
-	
-				$html = $this->load->view('back/earnings/payment_pdf', $data, true);
-				$this->load->library('pdf');
-				$this->pdf->loadHtml($html);
-				$this->pdf->setPaper('A4', 'portrait');
-				$this->pdf->render();
-				$this->pdf->stream("payment_receipt_{$payment_id}.pdf", ["Attachment" => 1]);
-			}
-			elseif ($para1 == "download_cpm_bill_copy") {
-				$cpm_bill_copy = $this->db->get_where('package_payment', array('package_payment_id' => $para2))->row()->custom_payment_method_bill_copy;
-				$this->load->helper('download');
-				$link = 'uploads/custom_payment_method_bill_image/' . $cpm_bill_copy;
-				force_download($link, NULL);
-			} 
-			elseif ($para1 == "accept_payment") {
-				$payment_details = $this->db->get_where('package_payment', array('package_payment_id' => $para2))->row();
-				$member_details = $this->db->get_where('member', array('member_id' => $payment_details->member_id))->row();
-				$plan_details = $this->db->get_where('plan', array('plan_id' => $payment_details->plan_id))->row();
 	
 				$data = array();
 				$data['membership'] = ($plan_details->plan_id == '1') ? 1 : 2;
@@ -5426,8 +5267,7 @@ elseif ($para1 == "bulk_payment_success_page") {
 				$this->db->where('package_payment_id', $para2);
 				$result = $this->db->delete('package_payment');
 				recache();
-				
-				if ($result) {
+                if ($result) {
 					if ($cpm_bill_copy != null && file_exists('uploads/custom_payment_method_bill_image/' . $cpm_bill_copy)) {
 						unlink('uploads/custom_payment_method_bill_image/' . $cpm_bill_copy);
 					}
@@ -5435,10 +5275,331 @@ elseif ($para1 == "bulk_payment_success_page") {
 				} else {
 					$this->session->set_flashdata('alert', 'failed_delete');
 				}
-			}
-		}
-	}
-	
+                redirect(base_url() . 'admin/earnings/', 'refresh');
+            }
+        }
+    }
+
+    // ============================== Contribution Payment Section ==============================
+// ============================== Contribution Payment Section ==============================
+function contributionpayment($para1 = "", $para2 = "")
+{
+    if ($this->admin_permission() == FALSE) {
+        redirect(base_url() . 'admin/login', 'refresh');
+    }
+
+    // Index: Member Selection
+    if ($para1 == "") {
+        $page_data['all_members'] = $this->db->get('member')->result();
+        $page_data['title'] = "Contribution Payment || " . $this->system_title;
+        $page_data['page_name'] = "contributionpayment";
+        $page_data['top'] = "dashboard.php";
+        $page_data['folder'] = "contributionpayment";
+        $page_data['file'] = "index.php";
+        $page_data['bottom'] = "earnings/index.php";
+        $this->load->view('back/index', $page_data);
+    }
+    
+    // Store Cart Items
+    elseif ($para1 == "store_cart_items") {
+        header('Content-Type: application/json');
+        
+        // Get member IDs from POST
+        $member_ids = $this->input->post('member_ids');
+        
+        // Validate input
+        if (empty($member_ids) || !is_array($member_ids)) {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'No members selected'
+            ]);
+            exit;
+        }
+        
+        // Build cart items array
+        $cart_items = [];
+        foreach ($member_ids as $member_id) {
+            $member = $this->db->get_where('member', ['member_id' => $member_id])->row();
+            if ($member) {
+                $cart_items[] = [
+                    'member_id' => $member_id,
+                    'member_name' => $member->first_name . ' ' . $member->last_name,
+                    'member_code' => $member->member_profile_id ?? 'N/A'
+                ];
+            }
+        }
+        
+        if (empty($cart_items)) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'No valid members found'
+            ]);
+            exit;
+        }
+        
+        // Store in session
+        $this->session->set_userdata('contribution_cart', $cart_items);
+        
+        // Return success
+        echo json_encode([
+            'status' => 'success',
+            'message' => count($cart_items) . ' members added to cart',
+            'count' => count($cart_items),
+            'redirect' => base_url('admin/contributionpayment/payment_cart')
+        ]);
+        exit;
+    }
+    
+    // Payment Cart
+    elseif ($para1 == "payment_cart") {
+        $cart_items = $this->session->userdata('contribution_cart');
+        if (empty($cart_items)) {
+            redirect(base_url('admin/contributionpayment'));
+        }
+        
+        // Get all packages for dropdown
+        $page_data['packages'] = $this->db->get('plan')->result();
+        $page_data['cart_items'] = $cart_items;
+        
+        // Default to first plan if not set
+        if (!$this->session->userdata('selected_contribution_package_id')) {
+             $first_plan = $this->db->get('plan')->row();
+             if ($first_plan) {
+                 $this->session->set_userdata('selected_contribution_package_id', $first_plan->plan_id);
+             }
+        }
+        
+        $page_data['title'] = "Contribution Payment Cart || " . $this->system_title;
+        $page_data['page_name'] = "contributionpayment";
+        $page_data['top'] = "dashboard.php";
+        $page_data['folder'] = "contributionpayment";
+        $page_data['file'] = "payment_cart.php";
+        $page_data['bottom'] = "earnings/index.php";
+        $this->load->view('back/index', $page_data);
+    }
+    
+    // Update Cart Package
+    elseif ($para1 == "update_cart_package") {
+        header('Content-Type: application/json');
+        
+        log_message('debug', '=== UPDATE CONTRIBUTION CART PACKAGE ===');
+        
+        $package_id = $this->input->post('package_id');
+        $cart_items = $this->session->userdata('contribution_cart');
+        
+        // Validate inputs
+        if (empty($package_id)) {
+            echo json_encode(['status' => 'error', 'message' => 'No package selected']);
+            exit;
+        }
+        
+        if (empty($cart_items) || !is_array($cart_items)) {
+            echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
+            exit;
+        }
+        
+        // Get package details
+        $package = $this->db->get_where('plan', ['plan_id' => $package_id])->row();
+        
+        if (!$package) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid package']);
+            exit;
+        }
+        
+        // Calculate amounts
+        $base_amount = floatval($package->amount);
+        $gst_percentage = floatval($package->gst);
+        $gst_amount = round(($base_amount * $gst_percentage) / 100, 2);
+        $total_price = $base_amount + $gst_amount;
+        
+        // Store package ID in session
+        $this->session->set_userdata('selected_contribution_package_id', $package_id);
+        
+        // Update cart items
+        foreach ($cart_items as &$item) {
+            $item['packageName'] = $package->name;
+            $item['packageId'] = $package->plan_id;
+            $item['amount'] = $total_price;
+            $item['base_amount'] = $base_amount;
+            $item['gst_percentage'] = $gst_percentage;
+            $item['gst_amount'] = $gst_amount;
+        }
+        unset($item);
+        
+        $this->session->set_userdata('contribution_cart', $cart_items);
+        
+        log_message('debug', 'Contribution cart updated successfully');
+        
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Package updated successfully',
+            'package_name' => $package->name,
+            'package_price' => $total_price,
+            'base_amount' => $base_amount,
+            'gst_percentage' => $gst_percentage,
+            'gst_amount' => $gst_amount,
+            'total_amount' => $total_price * count($cart_items)
+        ]);
+        exit;
+    }
+    
+    // Remove Member from Cart
+    elseif ($para1 == "remove_from_cart") {
+        header('Content-Type: application/json');
+        
+        $member_id = $this->input->post('member_id');
+        $cart_items = $this->session->userdata('contribution_cart');
+        
+        if (empty($cart_items)) {
+            echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
+            exit;
+        }
+        
+        // Remove member
+        $cart_items = array_filter($cart_items, function($item) use ($member_id) {
+            return $item['member_id'] != $member_id;
+        });
+        
+        // Re-index array
+        $cart_items = array_values($cart_items);
+        
+        // Update session
+        $this->session->set_userdata('contribution_cart', $cart_items);
+        
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Member removed from cart',
+            'remaining_count' => count($cart_items)
+        ]);
+        exit;
+    }
+    
+    // Invoices List
+    elseif ($para1 == "invoices") {
+        $this->db->select('paid_by_admin_id, processed_by_admin_name as admin_name, COUNT(*) as total_invoices, SUM(total_amount) as total_paid, MAX(created_at) as last_payment');
+        $this->db->from('contribution_bulk_payment_invoices');
+        $this->db->where('payment_method', 'phonepe_contribution');
+        $this->db->group_by('paid_by_admin_id');
+        $page_data['invoice_summary'] = $this->db->get()->result();
+        
+        // Add email to summary
+        foreach ($page_data['invoice_summary'] as $summary) {
+            $admin = $this->db->get_where('admin', ['admin_id' => $summary->paid_by_admin_id])->row();
+            $summary->admin_email = $admin ? $admin->email : '';
+        }
+        
+        $page_data['title'] = "Contribution Invoices || " . $this->system_title;
+        $page_data['page_name'] = "contributionpayment";
+        $page_data['top'] = "dashboard.php";
+        $page_data['folder'] = "contributionpayment";
+        $page_data['file'] = "invoice_list.php";
+        $page_data['bottom'] = "earnings/index.php";
+        $this->load->view('back/index', $page_data);
+    }
+    
+    // Invoices By Admin
+    elseif ($para1 == "invoices_by_admin") {
+        $admin_id = $para2;
+        $page_data['admin'] = $this->db->get_where('admin', ['admin_id' => $admin_id])->row();
+        
+        if (!$page_data['admin']) {
+            redirect(base_url('admin/contributionpayment/invoices'));
+        }
+        
+        $this->db->where('paid_by_admin_id', $admin_id);
+        $this->db->where('payment_method', 'phonepe_contribution');
+        $this->db->order_by('created_at', 'DESC');
+        $page_data['invoices'] = $this->db->get('contribution_bulk_payment_invoices')->result();
+        
+        $page_data['title'] = "Invoices by " . $page_data['admin']->name . " || " . $this->system_title;
+        $page_data['page_name'] = "contributionpayment";
+        $page_data['top'] = "dashboard.php";
+        $page_data['folder'] = "contributionpayment";
+        $page_data['file'] = "admin_invoices.php";
+        $page_data['bottom'] = "earnings/index.php";
+        $this->load->view('back/index', $page_data);
+    }
+    
+    // Invoice Detail
+    elseif ($para1 == "invoice_detail") {
+        $invoice_id = $para2;
+        $invoice = $this->db->get_where('contribution_bulk_payment_invoices', ['contribution_invoice_id' => $invoice_id])->row();
+        
+        if (!$invoice) {
+            $this->session->set_flashdata('danger_alert', 'Invoice not found');
+            redirect(base_url('admin/contributionpayment/invoices'));
+        }
+        
+        $page_data['invoice'] = $invoice;
+        $page_data['paid_by'] = $this->db->get_where('admin', ['admin_id' => $invoice->paid_by_admin_id])->row();
+        $page_data['members'] = json_decode($invoice->member_ids, true);
+        
+        $page_data['title'] = "Invoice Detail || " . $this->system_title;
+        $page_data['page_name'] = "contributionpayment";
+        $page_data['top'] = "dashboard.php";
+        $page_data['folder'] = "contributionpayment";
+        $page_data['file'] = "invoice_detail.php";
+        $page_data['bottom'] = "earnings/index.php";
+        $this->load->view('back/index', $page_data);
+    }
+    
+    // Delete Invoice
+    elseif ($para1 == "delete_invoice") {
+        $invoice_id = $para2;
+        
+        // Check if invoice exists
+        $invoice = $this->db->get_where('contribution_bulk_payment_invoices', ['contribution_invoice_id' => $invoice_id])->row();
+        
+        if ($invoice) {
+            $this->db->where('contribution_invoice_id', $invoice_id);
+            $this->db->delete('contribution_bulk_payment_invoices');
+            $this->session->set_flashdata('success_alert', 'Invoice deleted successfully');
+        } else {
+            $this->session->set_flashdata('danger_alert', 'Invoice not found');
+        }
+        
+        redirect(base_url('admin/contributionpayment/invoices'));
+    }
+    
+    // Download Invoice PDF
+    elseif ($para1 == "download_invoice") {
+        $invoice_id = $para2;
+        $invoice = $this->db->get_where('contribution_bulk_payment_invoices', ['contribution_invoice_id' => $invoice_id])->row();
+        
+        if (!$invoice) {
+            $this->session->set_flashdata('danger_alert', 'Invoice not found');
+            redirect(base_url('admin/contributionpayment/invoices'));
+        }
+        
+        $data['invoice'] = $invoice;
+        $data['paid_by'] = $this->db->get_where('admin', ['admin_id' => $invoice->paid_by_admin_id])->row();
+        $data['members'] = json_decode($invoice->member_ids, true);
+        $data['generated_date'] = date('d M Y, h:i A');
+        
+        // Organization details
+        $data['org_name'] = $this->system_name;
+        $data['org_email'] = $this->system_email;
+        $data['org_phone'] = $this->system_phone;
+        
+        // Load PDF view
+        $this->load->view('back/contributionpayment/invoice_pdf', $data);
+    }
+    
+    // Payment Return Handler (for redirect after PhonePe)
+    elseif ($para1 == "payment_return") {
+        $this->session->set_flashdata('info_alert', 'Processing your payment...');
+        redirect(base_url('admin/contributionpayment/invoices'));
+    }
+    
+    // Catch-all for invalid routes
+    else {
+        redirect(base_url('admin/contributionpayment'));
+    }
+}
+
+    // ============================== Contribution Payment Section END ==============================
+
+
 
 
 	function contact_messages($para1 = "", $para2 = "")

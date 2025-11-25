@@ -52,5 +52,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 $route['default_controller'] = 'home';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
+
+// PhonePe Contribution Payment Routes
+$route['phonepe_contribution/initiate_payment'] = 'phonepe_contribution/initiate_payment';
+$route['phonepe_contribution/payment_return'] = 'phonepe_contribution/payment_return';
+$route['phonepe_contribution/payment_callback'] = 'phonepe_contribution/payment_callback';
+
 // Custom route for generating PDF
 
