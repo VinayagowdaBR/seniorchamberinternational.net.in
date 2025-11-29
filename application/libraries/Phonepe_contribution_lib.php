@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Phonepe_contribution {
+class Phonepe_contribution_lib {
     
     private $merchant_id;
     private $salt_key; 
