@@ -320,7 +320,35 @@ $member_pages = array('free_members', 'premium_members', 'national_members', 'ng
 
 <!-- //////////////////////////////////////////// CONTRIBUTION PAYMENT NAVBAR END /////////////////////////////////////////// -->
 
+<!-- //////////////////////////////////////////// payment /////////////////////////////////////////// -->
 
+<?php if ($this->Crud_model->admin_permission('payment')) { ?>
+    <li class="parent <?php if($page_name=="payment" || $page_name=="payment/make" || $page_name=="payment/invoices") echo 'active-sub'; ?>">
+        <a href="#">
+            <i class="fa fa-credit-card"></i>
+            <span class="menu-title"><?php echo translate('payment'); ?></span>
+        </a>
+        <ul class="children">
+            <!-- Make Payment -->
+            <li <?php if($page_name=="payment/make") echo 'class="active-link"'; ?>>
+                <a href="<?=base_url()?>admin/payment/make">
+                    <i class="fa fa-money"></i>
+                    <span class="menu-title"><?php echo translate('make_payment'); ?></span>
+                </a>
+            </li>
+            
+            <!-- Payment List -->
+            <li <?php if($page_name=="payment/invoices") echo 'class="active-link"'; ?>>
+                <a href="<?=base_url()?>admin/payment/invoices">
+                    <i class="fa fa-file-text"></i>
+                    <span class="menu-title"><?php echo translate('payment_list'); ?></span>
+                </a>
+            </li>
+        </ul>
+    </li>
+<?php } ?>
+
+<!-- //////////////////////////////////////////// payment end /////////////////////////////////////////// -->
 
 
 

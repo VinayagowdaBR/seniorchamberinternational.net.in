@@ -92,8 +92,8 @@ if ($hostname == 'localhost' || $hostname == '127.0.0.1') {
     $db['default'] = array(
          'dsn'   => '',
         'hostname' => 'localhost',
-        'username' => 'ztakzvxv_user',
-        'password' => 'H0OXO!Uh*PlG',
+        'username' => 'root',
+        'password' => '',
         'database' => 'ztakzvxv_db',
         'dbdriver' => 'mysqli',
         'dbprefix' => '',
