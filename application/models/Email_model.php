@@ -538,6 +538,8 @@
 
     function do_email($from = '', $from_name = '', $to = '', $sub = '', $msg = '', $mailtype = 'html' )
         {
+            log_message('debug', 'do_email called: To=' . $to . ', Subject=' . $sub);
+            
             $config = array();
             $smtp_config = array();
             $protocol = $this->db->get_where('general_settings', array('type' => 'mail_status'))->row()->value;
@@ -570,11 +572,18 @@
             $this->email->subject($sub);
             $this->email->message($msg);
 
+            // Log demo status
+            $is_demo = demo();
+            log_message('debug', 'Email demo check: ' . ($is_demo ? 'TRUE (Email blocked)' : 'FALSE (Sending enabled)'));
+
             if(!demo()){
                 if ($this->email->send()) {
+                    log_message('debug', 'Email sent successfully to ' . $to);
                     return true;
                 } else {
-                    echo $this->email->print_debugger();
+                    $error = $this->email->print_debugger();
+                    log_message('error', 'Email failed to ' . $to . '. Error: ' . $error);
+                    echo $error;
                     return false;
                 }
             }else {

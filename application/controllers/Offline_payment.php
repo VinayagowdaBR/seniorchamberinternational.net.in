@@ -320,7 +320,60 @@ class Offline_payment extends CI_Controller
             
             $this->db->where('member_id', $member['member_id']);
             $this->db->update('member', $update_member_data);
+
+            // --- Send Individual Member Email ---
+            
+            $to = $member['email'];
+            $sub = "Payment Confirmation - " . $plan->name;
+            $msg = "Dear " . $member['first_name'] . " " . $member['last_name'] . ",<br><br>";
+            $msg .= "Your payment for <b>" . $plan->name . "</b> has been successfully processed by the admin.<br>";
+            $msg .= "Amount: " . $amount_per_member . "<br>";
+            $msg .= "Transaction ID: " . $transaction_id . "<br><br>";
+            $msg .= "Thank you,<br>Senior Chamber International";
+
+            log_message('debug', 'Attempting to send confirmation email to Member: ' . $to);
+            $this->_send_email($to, $sub, $msg);
+            // ------------------------------------
         }
+
+        // --- Send Summary Email to National Members (Membership ID = 3) ---
+
+        // Admin who processed the payment
+        $admin_details = $this->db->get_where('admin', array('admin_id' => $admin_id))->row();
+        $admin_name = isset($admin_details->name) ? $admin_details->name : 'Admin';
+
+        $summary_sub = "Offline Payment Summary - " . count($members) . " Members Paid";
+        $summary_msg = "<h3>Offline Payment Processed</h3>";
+        $summary_msg .= "<p><b>Processed By:</b> " . $admin_name . "</p>";
+        $summary_msg .= "<p><b>Plan:</b> " . $plan->name . "</p>";
+        $summary_msg .= "<p><b>Total Amount:</b> " . $total_amount . "</p>";
+        $summary_msg .= "<p><b>Transaction ID:</b> " . $transaction_id . "</p>";
+        $summary_msg .= "<br><h4>Paid Members List:</h4>";
+        $summary_msg .= "<table border='1' cellpadding='5' cellspacing='0'>";
+        $summary_msg .= "<tr><th>ID</th><th>Name</th><th>Email</th><th>Amount</th></tr>";
+        
+        foreach ($members as $mem) {
+             $summary_msg .= "<tr>";
+             $summary_msg .= "<td>" . $mem['member_profile_id'] . "</td>";
+             $summary_msg .= "<td>" . $mem['first_name'] . " " . $mem['last_name'] . "</td>";
+             $summary_msg .= "<td>" . $mem['email'] . "</td>";
+             $summary_msg .= "<td>" . $amount_per_member . "</td>";
+             $summary_msg .= "</tr>";
+        }
+        $summary_msg .= "</table>";
+        
+        // Fetch National Members (membership = 3)
+        $national_members = $this->db->get_where('member', ['membership' => 3])->result_array();
+        
+        if (!empty($national_members)) {
+            foreach ($national_members as $nm) {
+                if (!empty($nm['email'])) {
+                    log_message('debug', 'Attempting to send summary email to National Member: ' . $nm['email']);
+                    $this->_send_email($nm['email'], $summary_sub, $summary_msg);
+                }
+            }
+        }
+        // ------------------------------------------------------------
 
         // Clear cart
         $this->session->unset_userdata('offline_payment_cart');
@@ -449,5 +502,40 @@ class Offline_payment extends CI_Controller
         // Generate PDF
         $filename = 'Invoice_' . $invoice->invoice_number;
         $this->pdf->create($html, $filename);
+    }
+    // Custom email sending function using provided SMTP settings
+    private function _send_email($to, $subject, $message) {
+        $this->load->library('email');
+
+        // SMTP Configuration
+        $config = array(
+            'protocol'    => 'smtp',
+            'smtp_host'   => 'mail.seniorchamberinternational.net.in',
+            'smtp_port'   => 587,
+            'smtp_crypto' => 'tls',
+            'smtp_user'   => 'info@seniorchamberinternational.net.in',
+            'smtp_pass'   => 'Senioradmin@1234',
+            'mailtype'    => 'html',
+            'charset'     => 'utf-8',
+            'newline'     => "\r\n",
+            'crlf'        => "\r\n",
+            'smtp_timeout'=> 10,
+        );
+
+        $this->email->initialize($config);
+
+        // Sender
+        $this->email->from('info@seniorchamberinternational.net.in', 'Senior Chamber International');
+        $this->email->to($to);
+        $this->email->subject($subject);
+        $this->email->message($message);
+
+        if ($this->email->send()) {
+            log_message('debug', 'Email sent successfully to ' . $to);
+            return true;
+        } else {
+            log_message('error', 'Email failed to ' . $to . '. Error: ' . $this->email->print_debugger());
+            return false;
+        }
     }
 }
