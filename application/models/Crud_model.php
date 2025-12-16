@@ -49,54 +49,73 @@ public function update_story($id, $data)
     public function get_legion_and_area_by_admin($admin_id)
 {
     log_message('debug', 'Method invoked: get_legion_and_area_by_admin | Admin ID: ' . $admin_id);
-    $session_data = $this->session->userdata();
-    log_message('debug', 'Full Session Data: ' . print_r($session_data, true));
+    
+    // Check for areas
+    $this->db->select('area_id');
+    $this->db->from('admin_area');
+    $this->db->where('admin_id', $admin_id);
+    $areas = $this->db->get()->result_array();
+    $area_ids = array_column($areas, 'area_id');
 
-    try {
-        // Check if admin_id exists in admin_legion table
-        $this->db->select('legion_id');
-        $this->db->from('admin_legion');
-        $this->db->where('admin_id', $admin_id);
-        $query = $this->db->get();
+    // Check for legions
+    $this->db->select('legion_id');
+    $this->db->from('admin_legion');
+    $this->db->where('admin_id', $admin_id);
+    $legions = $this->db->get()->result_array();
+    $legion_ids = array_column($legions, 'legion_id');
 
-        if ($query->num_rows() === 0) {
-            $message = 'No legion assigned to this admin.';
-            log_message('debug', 'Admin ID ' . $admin_id . ' => ' . $message);
-            return ['status' => false, 'message' => $message];
-        }
+    return [
+        'area_ids' => $area_ids,
+        'legion_ids' => $legion_ids
+    ];
+}
 
-        $legion_id = $query->row()->legion_id;
-        log_message('debug', 'Fetched legion_id: ' . $legion_id . ' for admin_id: ' . $admin_id);
-
-        // Fetch legion and area details using joins
-        $this->db->select('legions.id as legion_id, legions.name AS legion_name, areas.name AS area_name');
-        $this->db->from('legions');
-        $this->db->join('areas', 'legions.area_id = areas.id', 'left');
-        $this->db->where('legions.id', $legion_id);
-        $legion_query = $this->db->get();
-
-        if ($legion_query->num_rows() === 0) {
-            $message = 'Legion or area details not found.';
-            log_message('debug', 'Legion ID ' . $legion_id . ' => ' . $message);
-            return ['status' => false, 'message' => $message];
-        }
-
-        $result = $legion_query->row();
-        log_message('debug', 'Legion ID: ' . $result->legion_id . ', Legion Name: ' . $result->legion_name . ', Area Name: ' . $result->area_name);
-
-        return [
-            'status' => true,
-            'legion_id' => $result->legion_id,
-            'legion_name' => $result->legion_name,
-            'area_name' => $result->area_name
-        ];
-    } catch (Exception $e) {
-        log_message('error', 'Exception in get_legion_and_area_by_admin: ' . $e->getMessage());
-        return [
-            'status' => false,
-            'message' => 'An unexpected error occurred while retrieving legion and area details.'
-        ];
+public function get_members_by_admin_access($admin_id) {
+    
+    // Check if Super Admin (Admin ID 1)
+    if($admin_id == 1){
+         $this->db->select('member.*, areas.name as area_name, legions.name as legion_name');
+         $this->db->from('member');
+         $this->db->join('areas', 'member.area_id = areas.id', 'left');
+         $this->db->join('legions', 'member.legion_id = legions.id', 'left');
+         return $this->db->get()->result_array();
     }
+
+    // Get authorized areas and legions
+    $access = $this->get_legion_and_area_by_admin($admin_id);
+    $area_ids = $access['area_ids'];
+    $legion_ids = $access['legion_ids'];
+
+    if (empty($area_ids) && empty($legion_ids)) {
+        return []; // No access
+    }
+
+    $this->db->select('member.*, areas.name as area_name, legions.name as legion_name');
+    $this->db->from('member');
+    $this->db->join('areas', 'member.area_id = areas.id', 'left');
+    $this->db->join('legions', 'member.legion_id = legions.id', 'left');
+    
+    $this->db->group_start();
+    
+    if (!empty($area_ids)) {
+        $this->db->where_in('member.area_id', $area_ids);
+    }
+    
+    if (!empty($legion_ids)) {
+        if (!empty($area_ids)) {
+            $this->db->or_where_in('member.legion_id', $legion_ids);
+        } else {
+            $this->db->where_in('member.legion_id', $legion_ids);
+        }
+    }
+    
+    $this->db->group_end();
+    
+    // Optional: Filter approved members only
+    // $this->db->where('member.status', 'approved'); 
+
+    $query = $this->db->get();
+    return $query->result_array();
 }
 
 

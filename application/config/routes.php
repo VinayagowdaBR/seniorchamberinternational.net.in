@@ -58,5 +58,14 @@ $route['phonepe_contribution/initiate_payment'] = 'phonepe_contribution/initiate
 $route['phonepe_contribution/payment_return'] = 'phonepe_contribution/payment_return';
 $route['phonepe_contribution/payment_callback'] = 'phonepe_contribution/payment_callback';
 
+// Custom route for Admin Offline Payment
+$route['admin/payment/make'] = 'offline_payment/make';
+// Offline Payment Routes
+$route['offline-payment'] = 'offline_payment/make';
+$route['offline-payment/cart'] = 'offline_payment/offline_payment_cart';
+$route['offline-payment/invoices'] = 'offline_payment/offline_invoice_list';
+$route['offline-payment/invoice/(:num)'] = 'offline_payment/offline_invoice_detail/$1';
+$route['offline-payment/invoice-pdf/(:num)'] = 'offline_payment/offline_invoice_pdf/$1';
+
 // Custom route for generating PDF
 
