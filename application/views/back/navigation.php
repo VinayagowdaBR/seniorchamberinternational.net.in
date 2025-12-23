@@ -337,11 +337,11 @@ $member_pages = array('free_members', 'premium_members', 'national_members', 'ng
                 </a>
             </li>
             
-            <!-- Payment List -->
-            <li <?php if($page_name=="payment/invoices") echo 'class="active-link"'; ?>>
-                <a href="<?=base_url()?>admin/payment/invoices">
+            <!-- Contribution Payment List -->
+            <li <?php if($page_name=="offline_contribution_make") echo 'class="active-link"'; ?>>
+                <a href="<?=base_url()?>admin/offline_contribution/make">
                     <i class="fa fa-file-text"></i>
-                    <span class="menu-title"><?php echo translate('payment_list'); ?></span>
+                    <span class="menu-title"><?php echo translate('contribution_payment'); ?></span>
                 </a>
             </li>
         </ul>

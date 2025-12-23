@@ -67,5 +67,15 @@ $route['offline-payment/invoices'] = 'offline_payment/offline_invoice_list';
 $route['offline-payment/invoice/(:num)'] = 'offline_payment/offline_invoice_detail/$1';
 $route['offline-payment/invoice-pdf/(:num)'] = 'offline_payment/offline_invoice_pdf/$1';
 
+// Custom route for Admin Offline Contribution
+$route['admin/contribution/make'] = 'offline_contribution/make';
+$route['admin/offline_contribution/make'] = 'offline_contribution/make';
+// Offline Contribution Routes
+$route['offline-contribution'] = 'offline_contribution/make';
+$route['offline-contribution/cart'] = 'offline_contribution/offline_contribution_cart';
+$route['offline-contribution/invoices'] = 'offline_contribution/offline_invoice_list';
+$route['offline-contribution/invoice/(:num)'] = 'offline_contribution/offline_invoice_detail/$1';
+$route['offline-contribution/invoice-pdf/(:num)'] = 'offline_contribution/offline_invoice_pdf/$1';
+
 // Custom route for generating PDF
 
