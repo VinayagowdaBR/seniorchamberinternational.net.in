@@ -13,6 +13,7 @@
                     <th>Status</th>
                     <th>Points</th>
                     <th>Date</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,6 +43,11 @@
                     </td>
                     <td><?= (int)$entry['total_points']; ?></td>
                     <td><?= date('d-M-Y', strtotime($entry['created_at'])); ?></td>
+                    <td>
+                        <a href="<?= base_url('admin/award/view_details/' . $entry['id']); ?>" class="btn btn-info btn-xs" target="_blank">
+                            <i class="fa fa-eye"></i> View
+                        </a>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

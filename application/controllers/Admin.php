@@ -21321,6 +21321,23 @@ public function award($para1 = '', $para2 = '')
             
             $this->load->view('back/index', $pagedata);
 
+        } elseif ($para1 == 'view_details') {
+            $award_id = $para2;
+            $pagedata['top']      = 'members/index.php';
+            $pagedata['folder']   = 'awards';
+            $pagedata['file']     = 'view_details.php';
+            $pagedata['bottom']   = 'members/index.php';
+            $pagedata['pagename'] = 'award/view_details';
+            $pagedata['entry']    = $this->db->get_where('award_entries', array('id' => $award_id))->row_array();
+            
+            // Check if entry exists and permissions (implied for now as link comes from filtered report)
+            if (empty($pagedata['entry'])) {
+                $this->session->set_flashdata('alert', 'demo_msg'); // Using a generic error
+                redirect(base_url() . 'admin/award/report', 'refresh');
+            }
+
+            $this->load->view('back/index', $pagedata);
+
         } elseif ($para1 == 'approve') {
 
             $pagedata['top']      = 'members/index.php';
