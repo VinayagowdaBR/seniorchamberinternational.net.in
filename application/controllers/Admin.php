@@ -21311,6 +21311,16 @@ public function award($para1 = '', $para2 = '')
             $this->session->set_flashdata('alert', $result ? 'add' : 'failedadd');
             redirect(base_url() . 'admin/award/add', 'refresh');
 
+        } elseif ($para1 == 'report') {
+            $pagedata['top']      = 'members/index.php';
+            $pagedata['folder']   = 'awards';
+            $pagedata['file']     = 'report.php';
+            $pagedata['bottom']   = 'members/index.php';
+            $pagedata['pagename'] = 'award/report';
+            $pagedata['entries']  = $this->Crud_model->get_award_entries('approved');
+            
+            $this->load->view('back/index', $pagedata);
+
         } elseif ($para1 == 'approve') {
 
             $pagedata['top']      = 'members/index.php';

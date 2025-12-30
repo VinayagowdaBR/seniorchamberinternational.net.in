@@ -3162,14 +3162,40 @@ public function insert_award_entry($data)
     return $this->db->insert('award_entries', $data);
 }
 
-public function get_award_entries()
-{
-    return $this->db
-        ->order_by('created_at', 'DESC')
-        ->order_by('total_points', 'DESC')
-        ->get('award_entries')
-        ->result_array();
-}
+    public function get_award_entries($status = null)
+    {
+        $admin_id = $this->session->userdata('admin_id');
+
+        // 1. Check if Admin is restricted to specific Legions
+        $this->db->select('legion_id');
+        $legion_restrictions = $this->db->get_where('admin_legion', array('admin_id' => $admin_id))->result_array();
+        $restricted_legion_ids = array_column($legion_restrictions, 'legion_id');
+
+        // 2. Check if Admin is restricted to specific Areas
+        $this->db->select('area_id');
+        $area_restrictions = $this->db->get_where('admin_area', array('admin_id' => $admin_id))->result_array();
+        $restricted_area_ids = array_column($area_restrictions, 'area_id');
+
+        // Start Query
+        $this->db->order_by('created_at', 'DESC');
+        $this->db->order_by('total_points', 'DESC');
+
+        // Apply Filters
+        if (!empty($restricted_legion_ids)) {
+            $this->db->where_in('legion_id', $restricted_legion_ids);
+        }
+
+        if (!empty($restricted_area_ids)) {
+            $this->db->where_in('area_id', $restricted_area_ids);
+        }
+
+        // Apply Status Filter
+        if ($status !== null) {
+            $this->db->where('status', $status);
+        }
+
+        return $this->db->get('award_entries')->result_array();
+    }
 
 public function update_award_on_approval($id, $status, $points = array(), $total_points = 0)
 {

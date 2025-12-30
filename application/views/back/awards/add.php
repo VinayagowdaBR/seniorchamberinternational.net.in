@@ -383,7 +383,7 @@ function loadLegions() {
         $('#legion_id').html('<option value="">Choose Legion</option>');
         return;
     }
-    $.get('<?= base_url('admin/getlegionsofarea'); ?>/' + areaId, function(res) {
+    $.get('<?= base_url('admin/get_legions_of_area'); ?>/' + areaId, function(res) {
         var html = '<option value="">Choose Legion</option>';
         try {
             var legions = JSON.parse(res);
@@ -408,7 +408,7 @@ function loadIndLegions() {
         $('#ind_member_id').html('<option value="">Choose Member</option>');
         return;
     }
-    $.get('<?= base_url('admin/getlegionsofarea'); ?>/' + areaId, function(res) {
+    $.get('<?= base_url('admin/get_legions_of_area'); ?>/' + areaId, function(res) {
         var html = '<option value="">Choose Legion</option>';
         try {
             var legions = JSON.parse(res);
