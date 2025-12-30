@@ -112,12 +112,12 @@
                                     <h4 class="text-thin mar-no">Scan to Pay</h4>
                                     <small class="text-muted">Use UPI / Bank App</small>
                                     <br><br>
-                                    <img src="<?= base_url('uploads/UPI/Senior_chamber_International_Account.jpg') ?>" 
+                                    <img src="<?= base_url('uploads/UPI/sci_foundation_charitable_education_trust_scanner.jpeg') ?>" 
                                          alt="Payment Scanner QR" 
                                          style="width: 300px; height: 300px; object-fit: contain; border: 1px solid #ddd; padding: 5px; border-radius: 4px;"
                                          onerror="this.src="this.onerror=null;this.src='https://via.placeholder.com/150?text=QR+Not+Found';">
                                     <p class="mar-top text-sm text-info">
-                                        <i class="fa fa-info-circle"></i> UPI ID: seniorchamber2494@sbi
+                                        <i class="fa fa-info-circle"></i> UPI ID: seniorchamber5193@sbi
                                 </div>
 
                                 <div class="form-group">

@@ -21160,8 +21160,259 @@ public function membership_management($para1 = '', $para2 = '') {
 
         $this->load->view('back/index', $page_data);
     }
-}
+    }
+
+    public function get_members_of_legion($legion_id = null) {
+        if ($legion_id === null) {
+            $legion_id = $this->input->get('legion_id') ?? $this->uri->segment(3);
+        }
+        $members = $this->Crud_model->get_members_by_legion($legion_id);
+        echo json_encode($members);
+    }
 // ========== END MEMBERSHIP MANAGEMENT ==========
+
+// C:\xampp\htdocs\senior-new\application\controllers\Admin.php
+
+public function award($para1 = '', $para2 = '')
+{
+    if ($this->admin_permission() == FALSE) {
+        redirect(base_url() . 'admin/login', 'refresh');
+    } else {
+
+        $pagedata['title'] = 'Awards - ' . $this->system_title;
+
+        if ($para1 == 'add') {
+
+            $pagedata['top']      = 'members/index.php';
+            $pagedata['folder']   = 'awards';
+            $pagedata['file']     = 'add.php';
+            $pagedata['bottom']   = 'members/index.php';
+            $pagedata['pagename'] = 'award/add';
+
+            $admin_id                  = $this->session->userdata('admin_id');
+            $pagedata['areas']         = $this->Crud_model->get_all_areas();
+            $pagedata['members']       = $this->Crud_model->get_members_by_admin_access($admin_id);
+
+            if ($this->session->flashdata('alert') == 'add') {
+                $pagedata['success_alert'] = translate('Award entry saved successfully.');
+            } elseif ($this->session->flashdata('alert') == 'failedadd') {
+                $pagedata['danger_alert'] = translate('Failed to save award entry.');
+            }
+
+            $this->load->view('back/index', $pagedata);
+
+        } elseif ($para1 == 'do_add') {
+
+            // Only basic info; marks will be entered on approve screen
+            $award_for = $this->input->post('award_for'); // legion / individual
+            $category  = $this->input->post('category');
+            $year      = (int)$this->input->post('year');
+
+            $data = array(
+                'award_for'           => $award_for,
+                'category'            => $category,
+                'year'                => $year,
+                'points_json'         => json_encode(array()),
+                'total_points'        => 0,
+                'status'              => 'pending',
+                'created_by_admin_id' => $this->session->userdata('admin_id'),
+                'created_at'          => date('Y-m-d H:i:s')
+            );
+
+            if ($award_for == 'legion') {
+                $data['area_id']     = (int)$this->input->post('area_id');
+                $data['legion_id']   = (int)$this->input->post('legion_id');
+                $data['legion_name'] = $this->input->post('legion_name');
+                
+                // New Legion Form Fields
+                $data['legion_form_json'] = json_encode(array(
+                    'award_name'        => $this->input->post('form_award_name'),
+                    'president_name'    => $this->input->post('form_president_name'),
+                    'legion_address'    => $this->input->post('form_legion_address'),
+                    'members_count'     => $this->input->post('form_members_count'),
+                    'affiliation_date'  => $this->input->post('form_affiliation_date'),
+                ));
+
+            } else {
+                $data['member_id']     = (int)$this->input->post('member_id');
+                $data['nominee_name']  = $this->input->post('nominee_name');
+                $data['legion_name']   = $this->input->post('legion_name_individual');
+
+                // New Individual Form Fields
+                $data['individual_form_json'] = json_encode(array(
+                    'year_of_charter'      => $this->input->post('form_year_of_charter'),
+                    'mailing_address'      => $this->input->post('form_mailing_address'),
+                    'age'                  => $this->input->post('form_age'),
+                    'sex'                  => $this->input->post('form_sex'),
+                    'qualifications'       => $this->input->post('form_qualifications'),
+                    'vocation'             => $this->input->post('form_vocation'),
+                    'marital_status'       => $this->input->post('form_marital_status'),
+                    'spouse_name'          => $this->input->post('form_spouse_name'),
+                    'children_names'       => $this->input->post('form_children_names'),
+                    'legion_award_date'    => $this->input->post('form_legion_award_date'),
+                    'major_achievements'   => $this->input->post('form_major_achievements'),
+                ));
+            }
+
+            $result = $this->Crud_model->insert_award_entry($data);
+
+            $this->session->set_flashdata('alert', $result ? 'add' : 'failedadd');
+            redirect(base_url() . 'admin/award/add', 'refresh');
+
+        } elseif ($para1 == 'approve') {
+
+            $pagedata['top']      = 'members/index.php';
+            $pagedata['folder']   = 'awards';
+            $pagedata['file']     = 'approve.php';
+            $pagedata['bottom']   = 'members/index.php';
+            $pagedata['pagename'] = 'award/approve';
+
+            $pagedata['entries']        = $this->Crud_model->get_award_entries();
+            $pagedata['award_criteria'] = $this->get_award_criteria_config();
+
+            $this->load->view('back/index', $pagedata);
+
+        } elseif ($para1 == 'update_status') {
+
+            $entry_id = (int)$para2;
+            $status   = $this->input->post('status'); // approved / rejected
+
+            // On approval we also receive marks from form
+            $points       = $this->input->post('points');
+            $total_points = 0;
+            if (is_array($points)) {
+                foreach ($points as $p) {
+                    $total_points += (int)$p;
+                }
+            }
+
+            $this->Crud_model->update_award_on_approval($entry_id, $status, $points, $total_points);
+
+            redirect(base_url() . 'admin/award/approve', 'refresh');
+
+        } elseif ($para1 == 'report') {
+
+            $pagedata['top']      = 'dashboard.php';
+            $pagedata['folder']   = 'awards';
+            $pagedata['file']     = 'report.php';
+            $pagedata['bottom']   = 'dashboard.php';
+            $pagedata['pagename'] = 'award/report';
+
+            $pagedata['summary']  = $this->Crud_model->get_award_summary();
+
+            $this->load->view('back/index', $pagedata);
+
+        } else {
+            redirect(base_url() . 'admin', 'refresh');
+        }
+    }
+}
+
+/**
+ * Criteria configuration as per manual
+ */
+private function get_award_criteria_config()
+{
+    return array(
+        'legion' => array(
+            'OUTSTANDING LEGION' => array(
+                'Membership Growth' => 20,
+                'Meetings Held' => 20,
+                'Contribution to SCI' => 20,
+                'Contribution to Community' => 20,
+                'Participation in National Events' => 10,
+                'Media Coverage' => 10,
+            ),
+            'OUTSTANDING NEW LEGION' => array(
+                'Meetings Held' => 20,
+                'Contribution to SCI' => 20,
+                'Contribution to Community' => 20,
+                'Participation in National Events' => 20,
+                'Media Coverage' => 20,
+            ),
+            'OUTSTANDING PUBLIC RELATION PROGRAMME' => array(
+                'Initiative & Innovation' => 30,
+                'Contribution to Community' => 10,
+                'Participation of Members' => 10,
+                'Media Coverage' => 50,
+            ),
+            'OUTSTANDING COMMUNITY DEVELOPMENT PROGRAMME' => array(
+                'Initiative & Innovation' => 20,
+                'Contribution to Community' => 50,
+                'Membership Involvement' => 20,
+                'Media Coverage' => 10,
+            ),
+            'OUTSTANDING FAMILY LEGION' => array(
+                'Number of Family Meetings' => 25,
+                'Number of Picnic' => 25,
+                'Initiative & Innovation' => 25,
+                'Attendance of Members & Family' => 25,
+            ),
+            'OUTSTANDING NATIONAL PROGRAM' => array(
+                'Initiative & Innovation' => 10,
+                'Contribution to Community' => 50,
+                'Participation of Members' => 20,
+                'Media Coverage' => 20,
+            ),
+            'OUTSTANDING SENIORETTE WING' => array(
+                'Membership Participation' => 20,
+                'Meetings Held' => 20,
+                'Initiative & Innovation' => 20,
+                'Contribution to Community' => 20,
+                'Participation in National Events' => 20,
+            ),
+            'OUTSTANDING G&D' => array(
+                'Internal Growth (Minimum 20%)' => 20,
+                'New Legion Extension' => 20,
+                'Outside State Extension' => 20,
+                'Outside Country Extension' => 20,
+                'Revival of Inactive Legion' => 20,
+            ),
+        ),
+        'individual' => array(
+            'OUTSTANDING PRESIDENT' => array(
+                'Membership Growth' => 20,
+                'Participation in National Events' => 20,
+                'Initiative & Innovation' => 20,
+                'Contribution to Community' => 20,
+                'Contribution to SCI' => 20,
+            ),
+            'OUTSTANDING LEGION OFFICER' => array(
+                'Participation in National Events' => 20,
+                'Initiative & Innovation' => 20,
+                'Contribution to Community' => 20,
+                'Contribution to SCI' => 20,
+                'Reporting' => 20,
+            ),
+            'OUTSTANDING MEMBER' => array(
+                'Participation in National Events' => 20,
+                'Office Held' => 20,
+                'Initiative & Innovation' => 20,
+                'Contribution to Community' => 20,
+                'Contribution to SCI' => 20,
+            ),
+            'OUTSTANDING SENIORETTE' => array(
+                'Participation in National Events' => 20,
+                'Office Held' => 20,
+                'Initiative & Innovation' => 20,
+                'Contribution to Community' => 20,
+                'Contribution to SCI' => 20,
+            ),
+        ),
+    );
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

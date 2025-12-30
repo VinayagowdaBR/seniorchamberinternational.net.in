@@ -350,6 +350,55 @@ $member_pages = array('free_members', 'premium_members', 'national_members', 'ng
 
 <!-- //////////////////////////////////////////// payment end /////////////////////////////////////////// -->
 
+<!-- //////////////////////////////////////////// award /////////////////////////////////////////// -->
+
+<?php if ($this->Crud_model->admin_permission('award')) { ?>
+    <li class="parent <?php 
+        if (
+            $page_name == "award/add" ||
+            $page_name == "award/approve" ||
+            $page_name == "award/report"
+        ) {
+            echo 'active-sub';
+        }
+    ?>">
+        <a href="#">
+            <i class="fa fa-trophy"></i>
+            <span class="menu-title"><?php echo translate('award'); ?></span>
+        </a>
+        <ul class="children">
+            <!-- Add Award -->
+            <?php if ($this->Crud_model->admin_permission('award_add')) { ?>
+                <li <?php if ($page_name == "award/add") echo 'class="active-link"'; ?>>
+                    <a href="<?= base_url() ?>admin/award/add">
+                        <i class="fa fa-plus"></i>
+                        <span class="menu-title"><?php echo translate('add_award'); ?></span>
+                    </a>
+                </li>
+            <?php } ?>
+
+            <!-- Approve Awards -->
+            <?php if ($this->Crud_model->admin_permission('award_approve')) { ?>
+                <li <?php if ($page_name == "award/approve") echo 'class="active-link"'; ?>>
+                    <a href="<?= base_url() ?>admin/award/approve">
+                        <i class="fa fa-check"></i>
+                        <span class="menu-title"><?php echo translate('approve_awards'); ?></span>
+                    </a>
+                </li>
+            <?php } ?>
+
+            <!-- Award Reports -->
+            <?php if ($this->Crud_model->admin_permission('award_report')) { ?>
+                <li <?php if ($page_name == "award/report") echo 'class="active-link"'; ?>>
+                    <a href="<?= base_url() ?>admin/award/report">
+                        <i class="fa fa-file-text"></i>
+                        <span class="menu-title"><?php echo translate('award_reports'); ?></span>
+                    </a>
+                </li>
+            <?php } ?>
+        </ul>
+    </li>
+<?php } ?>
 
 
 

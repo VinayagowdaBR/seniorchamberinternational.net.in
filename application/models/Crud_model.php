@@ -3153,4 +3153,71 @@ public function get_members_count_with_filters($filters = array()) {
 }
 
 
+
+
+// C:\xampp\htdocs\senior-new\application\models\Crud_model.php
+
+public function insert_award_entry($data)
+{
+    return $this->db->insert('award_entries', $data);
+}
+
+public function get_award_entries()
+{
+    return $this->db
+        ->order_by('created_at', 'DESC')
+        ->order_by('total_points', 'DESC')
+        ->get('award_entries')
+        ->result_array();
+}
+
+public function update_award_on_approval($id, $status, $points = array(), $total_points = 0)
+{
+    $data = array(
+        'status'     => $status,
+        'updated_at' => date('Y-m-d H:i:s'),
+    );
+
+    if ($status === 'approved' && is_array($points)) {
+        $data['points_json']  = json_encode($points);
+        $data['total_points'] = (int)$total_points;
+    }
+
+    $this->db->where('id', $id);
+    return $this->db->update('award_entries', $data);
+}
+
+public function get_award_summary()
+{
+    return $this->db
+        ->select('award_for, category, year, MAX(total_points) as max_points, COUNT(*) as total_entries')
+        ->from('award_entries')
+        ->where('status', 'approved')
+        ->group_by(array('award_for','category','year'))
+        ->order_by('year', 'DESC')
+        ->order_by('max_points', 'DESC')
+        ->get()
+        ->result_array();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public function get_members_by_legion($legion_id)
+    {
+        $this->db->select('member.*, member_profile.member_profile_id');
+        $this->db->join('member_profile', 'member.member_id = member_profile.member_id', 'left');
+        return $this->db->get_where('member', array('legion_id' => $legion_id))->result_array();
+    }
 }
