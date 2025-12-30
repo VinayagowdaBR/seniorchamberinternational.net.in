@@ -1,19 +1,68 @@
-<div class="panel">
-    <div class="panel-heading">
-        <h3 class="panel-title"><i class="fa fa-trophy"></i> Add Award Entry</h3>
+<div id="content-container">
+    <div id="page-head">
+        <div id="page-title">
+            <h1 class="page-header text-overflow">Add Award Entry</h1>
+        </div>
+        <ol class="breadcrumb">
+            <li><a href="#"><?= translate('home')?></a></li>
+            <li><a href="#">Awards</a></li>
+            <li class="active">Add New</li>
+        </ol>
     </div>
+    <div id="page-content">
+        <div class="panel">
+            <div class="panel-heading">
+                <h3 class="panel-title"><i class="fa fa-trophy"></i> Add Award Entry</h3>
+            </div>
 
-    <div class="panel-body">
+            <div class="panel-body">
 
-        <?php if (isset($success_alert)): ?>
-            <div class="alert alert-success"><?= $success_alert; ?></div>
-        <?php endif; ?>
+                <?php if (isset($success_alert)): ?>
+                    <div class="alert alert-success"><?= $success_alert; ?></div>
+                <?php endif; ?>
 
-        <?php if (isset($danger_alert)): ?>
-            <div class="alert alert-danger"><?= $danger_alert; ?></div>
-        <?php endif; ?>
+                <?php if (isset($danger_alert)): ?>
+                    <div class="alert alert-danger"><?= $danger_alert; ?></div>
+                <?php endif; ?>
 
-        <form class="form-horizontal" method="post" action="<?= base_url('admin/award/do_add'); ?>" id="award-form" enctype="multipart/form-data">
+                <form class="form-horizontal" method="post" action="<?= base_url('admin/award/do_add'); ?>" id="award-form" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">Year</label>
+                        <div class="col-sm-6">
+                            <input type="number" name="year" value="<?= date('Y'); ?>" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">Award For</label>
+                        <div class="col-sm-6">
+                            <label class="radio-inline">
+                                <input type="radio" name="award_for" value="legion" checked onclick="toggleAwardType()"> Group (Legion)
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="award_for" value="individual" onclick="toggleAwardType()"> Individual
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Legion section -->
+                    <div id="legion-section">
+                        <!-- ... (Rest of existing Legion Fields) ... -->
+                        <!-- NOTE: Using existing content here would be huge, so I will target StartLine 1 and EndLine 6 (panel header) and append the closing tags at the very end of file separately or encompass whole file? -->
+                        <!-- Standard strategy: Wrap the whole file. But the file is large (453 lines). -->
+                        <!-- Better to use MULTI replace or just prepend header and append footer. -->
+                        <!-- But replace_file_content requires TargetContent. -->
+                        <!-- I will split this into two edits for add.php: Header and Footer. -->
+                        <!-- 1. Prepend Header. 2. Append Footer. -->
+                        <!-- Actually, I can just replace the first few lines and the last few lines. -->
+                        <!-- Wait, if I replace lines 1-6 with Header+PanelStart, and Last Line with PanelEnd+Footer. -->
+                    </div>
+                <!-- ... -->
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
             <div class="form-group">
                 <label class="col-sm-3 control-label">Year</label>
@@ -450,3 +499,5 @@ $(document).ready(function() {
     toggleAwardType();
 });
 </script>
+    </div>
+</div>

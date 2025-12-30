@@ -7,8 +7,18 @@ if ($entry['award_for'] == 'legion') {
 }
 ?>
 
-<div class="row">
-    <div class="col-md-12">
+<div id="content-container">
+    <div id="page-head">
+        <div id="page-title">
+            <h1 class="page-header text-overflow">Award Details</h1>
+        </div>
+        <ol class="breadcrumb">
+            <li><a href="#"><?= translate('home')?></a></li>
+            <li><a href="<?= base_url('admin/award/report')?>">Award Report</a></li>
+            <li class="active">Details</li>
+        </ol>
+    </div>
+    <div id="page-content">
         <div class="panel">
             <div class="panel-heading">
                 <h3 class="panel-title">Award Details: <?= $entry['category']; ?> (<?= $entry['year']; ?>)</h3>
