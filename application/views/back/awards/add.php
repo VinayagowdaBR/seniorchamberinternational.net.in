@@ -13,7 +13,7 @@
             <div class="alert alert-danger"><?= $danger_alert; ?></div>
         <?php endif; ?>
 
-        <form class="form-horizontal" method="post" action="<?= base_url('admin/award/do_add'); ?>" id="award-form">
+        <form class="form-horizontal" method="post" action="<?= base_url('admin/award/do_add'); ?>" id="award-form" enctype="multipart/form-data">
 
             <div class="form-group">
                 <label class="col-sm-3 control-label">Year</label>
@@ -42,6 +42,21 @@
                         <select name="category" id="legion-category" class="form-control" required>
                             <option value="">Choose Legion Award</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- New Project Fields -->
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Project/Program Name</label>
+                    <div class="col-sm-6">
+                        <input type="text" name="form_project_name" class="form-control" placeholder="Required for Program/Project Awards" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Date of Project</label>
+                    <div class="col-sm-3">
+                        <input type="date" name="form_project_date" class="form-control">
                     </div>
                 </div>
 
@@ -75,31 +90,31 @@
 
                 <!-- Award manual fields for Legion entry form -->
                 <div class="form-group">
-                    <label class="col-sm-3 control-label">Name of the Award</label>
+                    <label class="col-sm-3 control-label">Name of the Award (printed)</label>
                     <div class="col-sm-6">
                         <input type="text" name="form_award_name" class="form-control"
-                               placeholder="As to be printed on certificate">
+                               placeholder="As to be printed on certificate (if applicable)">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="col-sm-3 control-label">Name of the President</label>
+                    <label class="col-sm-3 control-label">Legion President Name</label>
                     <div class="col-sm-6">
-                        <input type="text" name="form_president_name" class="form-control">
+                        <input type="text" name="form_president_name" class="form-control" required>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-3 control-label">Address of Legion</label>
                     <div class="col-sm-6">
-                        <textarea name="form_legion_address" class="form-control" rows="3"></textarea>
+                        <textarea name="form_legion_address" class="form-control" rows="3" required></textarea>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="col-sm-3 control-label">Number of Members</label>
+                    <label class="col-sm-3 control-label">Total Membership Strength</label>
                     <div class="col-sm-3">
-                        <input type="number" name="form_members_count" class="form-control" min="0">
+                        <input type="number" name="form_members_count" class="form-control" min="0" required>
                     </div>
                 </div>
 
@@ -107,6 +122,21 @@
                     <label class="col-sm-3 control-label">Date of Affiliation</label>
                     <div class="col-sm-3">
                         <input type="date" name="form_affiliation_date" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Description / Major Achievements</label>
+                    <div class="col-sm-6">
+                        <textarea name="form_major_achievements_legion" class="form-control" rows="5" placeholder="Describe the activities, impact, and results..." required></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Supporting Documents</label>
+                    <div class="col-sm-6">
+                         <input type="file" name="legion_support_doc" class="form-control" required>
+                         <span class="help-block">Upload PDF or ZIP (Max 10MB)</span>
                     </div>
                 </div>
             </div>
@@ -153,9 +183,16 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="col-sm-3 control-label">Nominee Name (for form)</label>
+                    <label class="col-sm-3 control-label">Name of Nominee</label>
                     <div class="col-sm-6">
-                        <input type="text" name="nominee_name" class="form-control">
+                        <input type="text" name="nominee_name" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Proposed By (Name)</label>
+                    <div class="col-sm-6">
+                        <input type="text" name="form_proposed_by" class="form-control" required>
                     </div>
                 </div>
 
@@ -170,7 +207,11 @@
                 <div class="form-group">
                     <label class="col-sm-3 control-label">Year of Charter</label>
                     <div class="col-sm-3">
-                        <input type="text" name="form_year_of_charter" class="form-control">
+                        <input type="text" name="form_year_of_charter" class="form-control" required>
+                    </div>
+                    <label class="col-sm-1 control-label">Member Since</label>
+                    <div class="col-sm-2">
+                        <input type="text" name="form_member_since" class="form-control" placeholder="Year" required>
                     </div>
                 </div>
 
@@ -225,19 +266,38 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="col-sm-3 control-label">Date Legion Award Given</label>
+                    <label class="col-sm-3 control-label">Date of Local Recognition</label>
                     <div class="col-sm-3">
                         <input type="date" name="form_legion_award_date" class="form-control">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="col-sm-3 control-label">Major Achievements</label>
+                    <label class="col-sm-3 control-label">Bio / Citation (Short)</label>
                     <div class="col-sm-6">
-                        <textarea name="form_major_achievements" class="form-control" rows="4"></textarea>
-                        <span class="help-block">
-                            Use separate sheets if necessary; attach clippings and photo offline as per manual.
-                        </span>
+                        <textarea name="form_bio" class="form-control" rows="3" placeholder="Short bio for emcee to read if awarded (approx 100 words)" required></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Description of Achievements</label>
+                    <div class="col-sm-6">
+                        <textarea name="form_major_achievements" class="form-control" rows="5" placeholder="Detailed list of achievements justifying this nomination" required></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Passport Photo</label>
+                    <div class="col-sm-6">
+                         <input type="file" name="individual_photo" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Supporting Documents</label>
+                    <div class="col-sm-6">
+                         <input type="file" name="individual_support_doc" class="form-control" required>
+                         <span class="help-block">Upload PDF or ZIP (Max 10MB)</span>
                     </div>
                 </div>
             </div>
@@ -299,12 +359,20 @@ function toggleAwardType() {
     if (val === 'legion') {
         $('#legion-section').show();
         $('#individual-section').hide();
+        
+        // Disable individual fields so they aren't validated
+        $('#individual-section').find('input, select, textarea').prop('disabled', true);
+        $('#legion-section').find('input, select, textarea').prop('disabled', false);
+
         $('#legion-category').attr('required', true);
-        $('#individual-category').attr('required', false);
     } else {
         $('#legion-section').hide();
         $('#individual-section').show();
-        $('#legion-category').attr('required', false);
+        
+        // Disable legion fields
+        $('#legion-section').find('input, select, textarea').prop('disabled', true);
+        $('#individual-section').find('input, select, textarea').prop('disabled', false);
+
         $('#individual-category').attr('required', true);
     }
 }
@@ -364,7 +432,7 @@ function loadIndMembers() {
         try {
             var members = JSON.parse(res);
             for (var i=0; i<members.length; i++) {
-                var name = members[i].firstname + ' ' + members[i].lastname;
+                var name = members[i].first_name + ' ' + members[i].last_name;
                 html += '<option value="'+members[i].member_id+'">'+name+' ('+(members[i].member_profile_id || '')+')</option>';
             }
         } catch(e) { console.error(e); }

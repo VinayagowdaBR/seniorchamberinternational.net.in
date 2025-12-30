@@ -121,7 +121,7 @@ public function get_members_by_admin_access($admin_id) {
 
     public function get_legions_by_area($area_id)
     {
-        return $this->db->select('id, name')
+        return $this->db->select('id, name, prefix')
                         ->from('legions')
                         ->where('area_id', $area_id)
                         ->order_by('name', 'ASC')
@@ -3216,8 +3216,8 @@ public function get_award_summary()
 
     public function get_members_by_legion($legion_id)
     {
-        $this->db->select('member.*, member_profile.member_profile_id');
-        $this->db->join('member_profile', 'member.member_id = member_profile.member_id', 'left');
-        return $this->db->get_where('member', array('legion_id' => $legion_id))->result_array();
+        // Member table has all needed fields including member_profile_id
+        $this->db->where('legion_id', $legion_id);
+        return $this->db->get('member')->result_array();
     }
 }

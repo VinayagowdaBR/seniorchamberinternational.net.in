@@ -21167,6 +21167,7 @@ public function membership_management($para1 = '', $para2 = '') {
             $legion_id = $this->input->get('legion_id') ?? $this->uri->segment(3);
         }
         $members = $this->Crud_model->get_members_by_legion($legion_id);
+        log_message('error', 'DEBUG_MEMBERS: Legion ID = ' . $legion_id . ', Found Members = ' . count($members)); // Added Debug Log
         echo json_encode($members);
     }
 // ========== END MEMBERSHIP MANAGEMENT ==========
@@ -21240,6 +21241,7 @@ public function award($para1 = '', $para2 = '')
 
                 // New Individual Form Fields
                 $data['individual_form_json'] = json_encode(array(
+                    'proposed_by'          => $this->input->post('form_proposed_by'), // Moved inside JSON
                     'year_of_charter'      => $this->input->post('form_year_of_charter'),
                     'mailing_address'      => $this->input->post('form_mailing_address'),
                     'age'                  => $this->input->post('form_age'),
@@ -21251,8 +21253,58 @@ public function award($para1 = '', $para2 = '')
                     'children_names'       => $this->input->post('form_children_names'),
                     'legion_award_date'    => $this->input->post('form_legion_award_date'),
                     'major_achievements'   => $this->input->post('form_major_achievements'),
+                    'member_since'         => $this->input->post('form_member_since'),
+                    'bio'                  => $this->input->post('form_bio'),
+                    'photo'                => '', // placeholder
+                    'support_doc'          => ''  // placeholder
                 ));
             }
+
+            // --- FILE UPLOAD LOGIC ---
+            $upload_path = 'uploads/award_docs/';
+            if (!is_dir($upload_path)) {
+                mkdir($upload_path, 0777, true);
+            }
+
+            $uploaded_files = array();
+            
+            // Helper function for simple upload (Closure to avoid redeclaration issues)
+            $manual_upload = function($field_name, $target_dir) {
+                if (isset($_FILES[$field_name]) && $_FILES[$field_name]['error'] == 0) {
+                    $ext = pathinfo($_FILES[$field_name]['name'], PATHINFO_EXTENSION);
+                    $new_name = uniqid('awd_') . '.' . $ext;
+                    if (move_uploaded_file($_FILES[$field_name]['tmp_name'], $target_dir . $new_name)) {
+                        return $target_dir . $new_name;
+                    }
+                }
+                return '';
+            };
+
+            if ($award_for == 'legion') {
+                $doc_path = $manual_upload('legion_support_doc', $upload_path);
+                if ($doc_path) {
+                    // Update the JSON
+                    $json_arr = json_decode($data['legion_form_json'], true);
+                    $json_arr['support_doc'] = $doc_path;
+                    $data['legion_form_json'] = json_encode($json_arr);
+                }
+                // Add project fields to JSON
+                $json_arr = json_decode($data['legion_form_json'], true);
+                $json_arr['project_name'] = $this->input->post('form_project_name');
+                $json_arr['project_date'] = $this->input->post('form_project_date');
+                $json_arr['major_achievements'] = $this->input->post('form_major_achievements_legion');
+                $data['legion_form_json'] = json_encode($json_arr);
+
+            } else {
+                $photo_path = $manual_upload('individual_photo', $upload_path);
+                $doc_path   = $manual_upload('individual_support_doc', $upload_path);
+
+                $json_arr = json_decode($data['individual_form_json'], true);
+                if ($photo_path) $json_arr['photo'] = $photo_path;
+                if ($doc_path)   $json_arr['support_doc'] = $doc_path;
+                $data['individual_form_json'] = json_encode($json_arr);
+            }
+            // -------------------------
 
             $result = $this->Crud_model->insert_award_entry($data);
 
