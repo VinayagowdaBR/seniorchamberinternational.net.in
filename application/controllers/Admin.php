@@ -21194,9 +21194,9 @@ public function award($para1 = '', $para2 = '')
             $pagedata['areas']         = $this->Crud_model->get_all_areas();
             $pagedata['members']       = $this->Crud_model->get_members_by_admin_access($admin_id);
 
-            if ($this->session->flashdata('alert') == 'add') {
-                $pagedata['success_alert'] = translate('Award entry saved successfully.');
-            } elseif ($this->session->flashdata('alert') == 'failedadd') {
+            if ($this->session->flashdata('award_alert') == 'add') {
+                $pagedata['success_alert'] = "Successful submitted tq";
+            } elseif ($this->session->flashdata('award_alert') == 'failedadd') {
                 $pagedata['danger_alert'] = translate('Failed to save award entry.');
             }
 
@@ -21308,7 +21308,7 @@ public function award($para1 = '', $para2 = '')
 
             $result = $this->Crud_model->insert_award_entry($data);
 
-            $this->session->set_flashdata('alert', $result ? 'add' : 'failedadd');
+            $this->session->set_flashdata('award_alert', $result ? 'add' : 'failedadd');
             redirect(base_url() . 'admin/award/add', 'refresh');
 
         } elseif ($para1 == 'report') {
