@@ -21163,11 +21163,35 @@ public function membership_management($para1 = '', $para2 = '') {
     }
 
     public function get_members_of_legion($legion_id = null) {
+        // Get legion_id from URI segment, GET parameter, or POST
         if ($legion_id === null) {
-            $legion_id = $this->input->get('legion_id') ?? $this->uri->segment(3);
+            $legion_id = $this->uri->segment(3);
+            if (empty($legion_id)) {
+                $legion_id = $this->input->get('legion_id');
+            }
+            if (empty($legion_id)) {
+                $legion_id = $this->input->post('legion_id');
+            }
         }
+        
+        if (empty($legion_id)) {
+            echo json_encode(array('error' => 'Legion ID is required'));
+            return;
+        }
+        
+        // Ensure model is loaded
+        $this->load->model('Crud_model');
+        
+        // Get members
         $members = $this->Crud_model->get_members_by_legion($legion_id);
-        log_message('error', 'DEBUG_MEMBERS: Legion ID = ' . $legion_id . ', Found Members = ' . count($members)); // Added Debug Log
+        
+        // Log for debugging
+        log_message('info', 'get_members_of_legion: Legion ID = ' . $legion_id . ', Found Members = ' . count($members));
+        
+        // Set proper JSON header
+        header('Content-Type: application/json');
+        
+        // Return JSON response
         echo json_encode($members);
     }
 // ========== END MEMBERSHIP MANAGEMENT ==========

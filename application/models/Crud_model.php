@@ -3243,7 +3243,10 @@ public function get_award_summary()
     public function get_members_by_legion($legion_id)
     {
         // Member table has all needed fields including member_profile_id
+        $this->db->select('member_id, first_name, last_name, member_profile_id, legion_id');
         $this->db->where('legion_id', $legion_id);
+        $this->db->where('status', 'approved'); // Only get approved members
+        $this->db->order_by('first_name', 'ASC');
         return $this->db->get('member')->result_array();
     }
 }

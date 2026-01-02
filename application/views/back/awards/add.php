@@ -444,18 +444,44 @@ function loadIndMembers() {
     var legionId = $('#ind_legion_id').val();
     if (!legionId) {
         $('#ind_member_id').html('<option value="">Choose Member</option>');
+        $('#ind_member_id').prop('disabled', false); // Ensure it's enabled
         return;
     }
-    $.get('<?= base_url('admin/get_members_of_legion'); ?>/' + legionId, function(res) {
-        var html = '<option value="">Choose Member</option>';
-        try {
-            var members = JSON.parse(res);
-            for (var i=0; i<members.length; i++) {
-                var name = members[i].first_name + ' ' + members[i].last_name;
-                html += '<option value="'+members[i].member_id+'">'+name+' ('+(members[i].member_profile_id || '')+')</option>';
+    
+    // Ensure member select is enabled
+    $('#ind_member_id').prop('disabled', false);
+    
+    // Show loading state
+    $('#ind_member_id').html('<option value="">Loading...</option>');
+    
+    $.ajax({
+        url: '<?= base_url('admin/get_members_of_legion'); ?>/' + legionId,
+        type: 'GET',
+        dataType: 'json',
+        cache: false,
+        success: function(members) {
+            var html = '<option value="">Choose Member</option>';
+            if (members && Array.isArray(members) && members.length > 0) {
+                for (var i=0; i<members.length; i++) {
+                    var firstName = members[i].first_name || '';
+                    var lastName = members[i].last_name || '';
+                    var memberId = members[i].member_id || '';
+                    var profileId = members[i].member_profile_id || '';
+                    var name = (firstName + ' ' + lastName).trim() || 'Unknown';
+                    html += '<option value="'+memberId+'">'+name+' ('+profileId+')</option>';
+                }
+            } else {
+                html += '<option value="">No members found</option>';
             }
-        } catch(e) { console.error(e); }
-        $('#ind_member_id').html(html);
+            $('#ind_member_id').html(html).prop('disabled', false);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading members:', error);
+            console.error('Status:', status);
+            console.error('Response:', xhr.responseText);
+            console.error('Legion ID:', legionId);
+            $('#ind_member_id').html('<option value="">Error loading members</option>').prop('disabled', false);
+        }
     });
 }
 
