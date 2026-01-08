@@ -56,8 +56,31 @@ if ($entry['award_for'] == 'legion') {
                                 <th width="30%"><?= ucwords(str_replace('_', ' ', $key)); ?></th>
                                 <td>
                                     <?php 
+                                        // Check if value is criteria_data array
+                                        if ($key === 'criteria_data' && is_array($value)): 
+                                    ?>
+                                        <div class="criteria-list">
+                                            <?php foreach ($value as $crit): ?>
+                                                <div class="well well-sm">
+                                                    <h5><b><?= $crit['name']; ?></b></h5>
+                                                    <p><?= nl2br($crit['description']); ?></p>
+                                                    <?php if (!empty($crit['images'])): ?>
+                                                        <div style="margin-top: 10px;">
+                                                            <strong>Evidence:</strong><br>
+                                                            <?php foreach ($crit['images'] as $img): ?>
+                                                                <a href="<?= base_url($img); ?>" target="_blank" style="margin-right: 10px; display: inline-block;">
+                                                                    <img src="<?= base_url($img); ?>" style="height: 80px; border: 1px solid #ccc;">
+                                                                </a>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+
+                                    <?php 
                                         // Check if value is a file path (contains 'uploads/')
-                                        if (is_string($value) && strpos($value, 'uploads/') !== false): 
+                                        elseif (is_string($value) && strpos($value, 'uploads/') !== false): 
                                     ?>
                                         <?php if (preg_match('/\.(jpg|jpeg|png|gif)$/i', $value)): ?>
                                             <div style="margin-bottom:5px;">
@@ -68,6 +91,8 @@ if ($entry['award_for'] == 'legion') {
                                         <?php else: ?>
                                             <a href="<?= base_url($value); ?>" target="_blank" class="btn btn-success"><i class="fa fa-download"></i> Download Document</a>
                                         <?php endif; ?>
+                                    <?php elseif (is_array($value)): ?>
+                                        <pre><?= print_r($value, true); ?></pre>
                                     <?php else: ?>
                                         <?= $value; ?>
                                     <?php endif; ?>

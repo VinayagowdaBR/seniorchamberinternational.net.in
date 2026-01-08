@@ -151,6 +151,9 @@
                     </div>
                 </div>
 
+                <!-- Dynamic Criteria Section -->
+                <div id="legion-criteria-container"></div>
+
                 <div class="form-group">
                     <label class="col-sm-3 control-label">Supporting Documents</label>
                     <div class="col-sm-6">
@@ -305,6 +308,9 @@
                     </div>
                 </div>
 
+                <!-- Dynamic Criteria Section -->
+                <div id="individual-criteria-container"></div>
+
                 <div class="form-group">
                     <label class="col-sm-3 control-label">Passport Photo</label>
                     <div class="col-sm-6">
@@ -337,24 +343,7 @@
 </div>
 
 <script>
-var awardCategories = {
-    "legion": [
-        "OUTSTANDING LEGION",
-        "OUTSTANDING NEW LEGION",
-        "OUTSTANDING PUBLIC RELATION PROGRAMME",
-        "OUTSTANDING COMMUNITY DEVELOPMENT PROGRAMME",
-        "OUTSTANDING FAMILY LEGION",
-        "OUTSTANDING NATIONAL PROGRAM",
-        "OUTSTANDING SENIORETTE WING",
-        "OUTSTANDING G&D"
-    ],
-    "individual": [
-        "OUTSTANDING PRESIDENT",
-        "OUTSTANDING LEGION OFFICER",
-        "OUTSTANDING MEMBER",
-        "OUTSTANDING SENIORETTE"
-    ]
-};
+var awardDetailMap = <?= json_encode($award_criteria); ?>;
 
 function populateAwardCategories() {
     var legionSelect = $('#legion-category');
@@ -364,14 +353,63 @@ function populateAwardCategories() {
     legionSelect.find('option:gt(0)').remove();
     indSelect.find('option:gt(0)').remove();
 
-    // Populate
-    $.each(awardCategories.legion, function(i, val) {
-        legionSelect.append($('<option>', { value: val, text: val }));
-    });
-    $.each(awardCategories.individual, function(i, val) {
-        indSelect.append($('<option>', { value: val, text: val }));
+    // Populate from Dynamic Map
+    if (awardDetailMap.legion) {
+        $.each(Object.keys(awardDetailMap.legion), function(i, val) {
+            legionSelect.append($('<option>', { value: val, text: val }));
+        });
+    }
+    if (awardDetailMap.individual) {
+        $.each(Object.keys(awardDetailMap.individual), function(i, val) {
+            indSelect.append($('<option>', { value: val, text: val }));
+        });
+    }
+}
+
+// Logic to render criteria fields
+function renderCriteria(type, category) {
+    var container = (type === 'legion') ? $('#legion-criteria-container') : $('#individual-criteria-container');
+    container.empty();
+
+    if (!category || !awardDetailMap[type] || !awardDetailMap[type][category]) {
+        return;
+    }
+
+    var criteriaList = awardDetailMap[type][category]; // Object: { "Criteria Name": "Points" (int) }
+    
+    container.append('<h4>Category Criteria Requirements</h4><hr>');
+
+    var i = 0;
+    $.each(criteriaList, function(criteriaName, points) {
+        var html = `
+            <div class="form-group criteria-group">
+                <label class="col-sm-3 control-label">${criteriaName} <br><small class="text-muted">(Max ${points} pts)</small></label>
+                <div class="col-sm-6">
+                    <input type="hidden" name="criteria[${i}][name]" value="${criteriaName}">
+                    <input type="hidden" name="criteria[${i}][max_points]" value="${points}">
+                    
+                    <textarea name="criteria[${i}][desc]" class="form-control" rows="3" placeholder="Description and justification for ${criteriaName}" required></textarea>
+                    <div style="margin-top: 5px;">
+                        <label>Upload Evidence (2 Images):</label>
+                        <input type="file" name="criteria_files_${i}[]" multiple accept="image/*" class="form-control">
+                        <span class="help-block">Please upload exactly 2 images proving this criterion.</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.append(html);
+        i++;
     });
 }
+
+// Event Listeners for render
+$('#legion-category').change(function() {
+    renderCriteria('legion', $(this).val());
+});
+
+$('#individual-category').change(function() {
+    renderCriteria('individual', $(this).val());
+});
 
 function toggleAwardType() {
     var val = $('input[name="award_for"]:checked').val();

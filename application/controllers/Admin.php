@@ -21217,6 +21217,7 @@ public function award($para1 = '', $para2 = '')
             $admin_id                  = $this->session->userdata('admin_id');
             $pagedata['areas']         = $this->Crud_model->get_all_areas();
             $pagedata['members']       = $this->Crud_model->get_members_by_admin_access($admin_id);
+            $pagedata['award_criteria'] = $this->get_award_criteria_config();
 
             if ($this->session->flashdata('award_alert') == 'add') {
                 $pagedata['success_alert'] = "Successful submitted tq";
@@ -21304,6 +21305,35 @@ public function award($para1 = '', $para2 = '')
                 return '';
             };
 
+            // Process Dynamic Criteria
+            $criteria_list = array();
+            if ($this->input->post('criteria')) {
+                foreach ($this->input->post('criteria') as $index => $item) {
+                    $uploaded_images = array();
+                    $file_field = 'criteria_files_' . $index;
+                    
+                    if (isset($_FILES[$file_field])) {
+                        $files = $_FILES[$file_field];
+                        $count = count($files['name']);
+                        for ($k = 0; $k < $count; $k++) {
+                            if ($files['error'][$k] == 0) {
+                                $ext = pathinfo($files['name'][$k], PATHINFO_EXTENSION);
+                                $fname = uniqid('crit_') . '.' . $ext;
+                                if (move_uploaded_file($files['tmp_name'][$k], $upload_path . $fname)) {
+                                    $uploaded_images[] = $upload_path . $fname;
+                                }
+                            }
+                        }
+                    }
+                    
+                    $criteria_list[] = array(
+                        'name'        => $item['name'],
+                        'description' => $item['desc'],
+                        'images'      => $uploaded_images
+                    );
+                }
+            }
+
             if ($award_for == 'legion') {
                 $doc_path = $manual_upload('legion_support_doc', $upload_path);
                 if ($doc_path) {
@@ -21317,6 +21347,10 @@ public function award($para1 = '', $para2 = '')
                 $json_arr['project_name'] = $this->input->post('form_project_name');
                 $json_arr['project_date'] = $this->input->post('form_project_date');
                 $json_arr['major_achievements'] = $this->input->post('form_major_achievements_legion');
+                
+                // Add Criteria
+                $json_arr['criteria_data'] = $criteria_list;
+
                 $data['legion_form_json'] = json_encode($json_arr);
 
             } else {
@@ -21326,6 +21360,10 @@ public function award($para1 = '', $para2 = '')
                 $json_arr = json_decode($data['individual_form_json'], true);
                 if ($photo_path) $json_arr['photo'] = $photo_path;
                 if ($doc_path)   $json_arr['support_doc'] = $doc_path;
+                
+                // Add Criteria
+                $json_arr['criteria_data'] = $criteria_list;
+                
                 $data['individual_form_json'] = json_encode($json_arr);
             }
             // -------------------------
