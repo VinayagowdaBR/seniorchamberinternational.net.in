@@ -1,35 +1,36 @@
 <?php 
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
-require_once 'dompdf/autoload.inc.php';
+require_once FCPATH . 'vendor/autoload.php';
 
-use Dompdf\Dompdf;
-use Dompdf\Options;
+use Mpdf\Mpdf;
 
-class Pdf extends Dompdf
+class Pdf
 {
+    public $mpdf;
+
     public function __construct()
     {
-        $options = new Options();
-        $options->set('isRemoteEnabled', true);        // allow images/css via URL or base64
-        $options->set('isHtml5ParserEnabled', true);   // support modern HTML5/CSS
-        $options->set('defaultFont', 'DejaVu Sans');   // better unicode support (₹ etc.)
-        $options->set('dpi', 96);                      // scaling consistency
-        $options->set('chroot', FCPATH);               // safe base path
-
-        parent::__construct($options);
+        $this->mpdf = new Mpdf([
+            'mode' => 'utf-8', 
+            'format' => 'A4', 
+            'orientation' => 'P',
+            'tempDir' => sys_get_temp_dir()
+        ]);
+        
+        $this->mpdf->SetDisplayMode('fullpage');
+        $this->mpdf->autoScriptToLang = true;
+        $this->mpdf->autoLangToFont = true;
     }
 
     public function create($html, $filename = 'document', $stream = true)
     {
-        $this->loadHtml($html, 'UTF-8');
-        $this->setPaper('A4', 'portrait');
-        $this->render();
-
+        $this->mpdf->WriteHTML($html);
+        
         if ($stream) {
-            $this->stream($filename . ".pdf", ["Attachment" => 1]);
+            $this->mpdf->Output($filename . '.pdf', 'D'); // D for download
         } else {
-            return $this->output();
+            return $this->mpdf->Output('', 'S'); // S for string/return
         }
     }
 }

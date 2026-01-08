@@ -21443,6 +21443,28 @@ public function award($para1 = '', $para2 = '')
 
             $this->load->view('back/index', $pagedata);
 
+        } elseif ($para1 == 'download_pdf') {
+            
+            $award_id = $para2;
+            $entry    = $this->db->get_where('award_entries', array('id' => $award_id))->row_array();
+
+            if (empty($entry)) {
+                $this->session->set_flashdata('alert', 'demo_msg');
+                redirect(base_url() . 'admin/award/report', 'refresh');
+            }
+
+            $data['entry'] = $entry;
+
+            // Load PDF library
+            $this->load->library('pdf');
+            
+            // Load HTML from PDF view
+            $html = $this->load->view('back/awards/pdf', $data, true);
+            
+            // Generate PDF
+            $filename = 'Award_Details_' . $entry['id'];
+            $this->pdf->create($html, $filename);
+
         } else {
             redirect(base_url() . 'admin', 'refresh');
         }

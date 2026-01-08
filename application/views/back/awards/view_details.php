@@ -23,6 +23,7 @@ if ($entry['award_for'] == 'legion') {
             <div class="panel-heading">
                 <h3 class="panel-title">Award Details: <?= $entry['category']; ?> (<?= $entry['year']; ?>)</h3>
                 <div class="pull-right" style="margin-top: -25px; margin-right: 15px;">
+                    <a href="<?= base_url('admin/award/download_pdf/' . $entry['id']); ?>" class="btn btn-warning btn-sm" target="_blank"> <i class="fa fa-file-pdf-o"></i> Download PDF</a>
                     <a href="<?= base_url('admin/award/report'); ?>" class="btn btn-primary btn-sm"> <i class="fa fa-arrow-left"></i> Back to Report</a>
                 </div>
             </div>
