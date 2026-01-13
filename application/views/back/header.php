@@ -167,7 +167,10 @@
 	var myVar = setInterval(myTimer ,1000);
 	function myTimer() {
 	  var d = new Date();
-	  document.getElementById("demo").innerHTML = d.toLocaleTimeString();
+	  var demo = document.getElementById("demo");
+	  if (demo) {
+	  	demo.innerHTML = d.toLocaleTimeString();
+	  }
 	}
 </script>
 </header>

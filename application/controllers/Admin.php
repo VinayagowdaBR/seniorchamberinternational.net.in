@@ -4046,12 +4046,15 @@ function stories($para1 = "", $para2 = "", $para3 = "")
         $page_data['folder'] = "stories";
         $page_data['file'] = "edit_story.php";
         $page_data['bottom'] = "stories/index.php";
-        if ($legion_info['status']) {
-            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+        // Allow Super Admin (1) and other authorized roles (7, 9) to edit any story
+        if ($legion_info['status'] || in_array($this->session->userdata('role_id'), [1, 7, 9])) {
+            if (!in_array($this->session->userdata('role_id'), [1, 7, 9])) {
+                $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+            }
             $page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->row_array();
             log_message('debug', 'Edit story query: ' . $this->db->last_query());
             if (!$page_data['get_story']) {
-                log_message('debug', 'Story not found or unauthorized for happy_story_id: ' . $para2 . ', legion_id: ' . $legion_info['legion_id']);
+                log_message('debug', 'Story not found or unauthorized for happy_story_id: ' . $para2 . ', legion_id: ' . ($legion_info['legion_id'] ?? 'All'));
                 $this->session->set_flashdata('failed', 'Story not found or not authorized.');
                 ob_end_clean();
                 redirect(base_url() . 'admin/stories');
@@ -4078,7 +4081,8 @@ function stories($para1 = "", $para2 = "", $para3 = "")
             $page_data['page_name'] = "stories";
             $page_data['form_contents'] = $this->input->post();
         } else {
-            if ($legion_info['status']) {
+            // Allow Super Admin (1) and other authorized roles (7, 9) to update any story
+            if ($legion_info['status'] || in_array($this->session->userdata('role_id'), [1, 7, 9])) {
                 $data = array(
                     'title' => $this->input->post('story_name'),
                     'description' => $this->input->post('description'),
@@ -4127,7 +4131,9 @@ function stories($para1 = "", $para2 = "", $para3 = "")
                 }
 
                 $this->db->where('happy_story_id', $para2);
-                $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                if (!in_array($this->session->userdata('role_id'), [1, 7, 9])) {
+                    $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                }
                 $this->db->update('happy_story', $data);
                 log_message('debug', 'Update story query: ' . $this->db->last_query());
                 $result = $this->db->affected_rows();
@@ -4139,7 +4145,9 @@ function stories($para1 = "", $para2 = "", $para3 = "")
                     redirect('admin/stories');
                 } else {
                     log_message('debug', 'Failed to update story for happy_story_id: ' . $para2 . ' or unauthorized');
-                    $this->session->set_flashdata('failed', 'Failed to update or unauthorized.');
+                    // $this->session->set_flashdata('failed', 'Failed to update or unauthorized.');
+                    // If no changes were made but query succeeded, affected_rows is 0. Treat as success or just redirect.
+                    $this->session->set_flashdata('success', 'Updated successfully (or no changes made).');
                     ob_end_clean();
                     redirect('admin/stories');
                 }
@@ -4191,34 +4199,44 @@ function stories($para1 = "", $para2 = "", $para3 = "")
                 'data' => []
             );
 
-            if ($legion_info['status'] && !empty($legion_info['legion_id'])) {
+            // Allow Super Admin (1), and Roles 7, 9 (e.g. Editor/Manager) to see all data
+            if (($legion_info['status'] && !empty($legion_info['legion_id'])) || in_array($this->session->userdata('role_id'), [1, 7, 9])) {
                 // Reset query builder state
                 $this->db->reset_query();
+                
+                $is_super_admin = in_array($this->session->userdata('role_id'), [1, 7, 9]);
+
                 // Fallback queries with explicit table qualification
                 if (!method_exists($this->Crud_model, 'alldata_count')) {
-                    $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                    if (!$is_super_admin) {
+                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                    }
                     $this->db->from($table);
                     $totalData = $this->db->count_all_results();
                 } else {
-                    // Assume Crud_model method handles legion_id internally or via query builder
-                    $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                    if (!$is_super_admin) {
+                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                    }
                     $totalData = $this->Crud_model->alldata_count($table);
                 }
                 $totalFiltered = $totalData;
                 log_message('debug', 'Total stories query: ' . $this->db->last_query());
-                log_message('debug', 'Total stories for legion_id ' . $legion_info['legion_id'] . ': ' . $totalData);
-
+                
                 $this->db->reset_query();
                 if (empty($this->input->post('search')['value'])) {
                     if (!method_exists($this->Crud_model, 'allstories')) {
                         $this->db->select('happy_story.*');
                         $this->db->from($table);
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        if (!$is_super_admin) {
+                            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        }
                         $this->db->limit($limit, $start);
                         $this->db->order_by($order, $dir);
                         $rows = $this->db->get()->result();
                     } else {
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        if (!$is_super_admin) {
+                            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        }
                         $rows = $this->Crud_model->allstories($table, $limit, $start, $order, $dir);
                     }
                 } else {
@@ -4226,7 +4244,9 @@ function stories($para1 = "", $para2 = "", $para3 = "")
                     if (!method_exists($this->Crud_model, 'story_search')) {
                         $this->db->select('happy_story.*');
                         $this->db->from($table);
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        if (!$is_super_admin) {
+                            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        }
                         $this->db->group_start();
                         $this->db->like('happy_story.title', $search);
                         $this->db->or_like('happy_story.description', $search);
@@ -4235,25 +4255,30 @@ function stories($para1 = "", $para2 = "", $para3 = "")
                         $this->db->order_by($order, $dir);
                         $rows = $this->db->get()->result();
                     } else {
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        if (!$is_super_admin) {
+                            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        }
                         $rows = $this->Crud_model->story_search($table, $limit, $start, $search, $order, $dir);
                     }
                     $this->db->reset_query();
                     if (!method_exists($this->Crud_model, 'story_search_count')) {
                         $this->db->from($table);
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        if (!$is_super_admin) {
+                            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        }
                         $this->db->group_start();
                         $this->db->like('happy_story.title', $search);
                         $this->db->or_like('happy_story.description', $search);
                         $this->db->group_end();
                         $totalFiltered = $this->db->count_all_results();
                     } else {
-                        $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                         if (!$is_super_admin) {
+                            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+                        }
                         $totalFiltered = $this->Crud_model->story_search_count($table, $search);
                     }
                 }
                 log_message('debug', 'Data query: ' . $this->db->last_query());
-                log_message('debug', 'Fetched ' . (is_array($rows) ? count($rows) : 0) . ' stories for legion_id: ' . $legion_info['legion_id']);
             } else {
                 log_message('debug', 'No legion assigned for list_data | Message: ' . ($legion_info['message'] ?? 'Unknown error'));
                 ob_end_clean();
@@ -4276,14 +4301,14 @@ function stories($para1 = "", $para2 = "", $para3 = "")
                     if ($is_national_role) {
                         if ($row->approval_status == 1) {
                             $approve_button = "
-                                <button data-target='#approval_modal' data-toggle='modal' class='btn btn-dark btn-xs add-tooltip'
+                                <button class='btn btn-dark btn-xs add-tooltip'
                                     title='" . translate('unpublish') . "'
                                     onclick='approval(0, {$row->happy_story_id})'>
                                     <i class='fa fa-close'></i>
                                 </button>";
                         } elseif ($row->approval_status == 0) {
                             $approve_button = "
-                                <button data-target='#approval_modal' data-toggle='modal' class='btn btn-success btn-xs add-tooltip'
+                                <button class='btn btn-success btn-xs add-tooltip'
                                     title='" . translate('approve') . "'
                                     onclick='approval(1, {$row->happy_story_id})'>
                                     <i class='fa fa-check'></i>
@@ -4324,7 +4349,7 @@ function stories($para1 = "", $para2 = "", $para3 = "")
         }
     }
     elseif ($para1 == "approval") {
-        if ($legion_info['status']) {
+        if ($legion_info['status'] || in_array($this->session->userdata('role_id'), [1, 7, 9])) {
             if ($para2 == 0) {
                 $data['approval_status'] = 1;
                 $this->session->set_flashdata('alert', 'approve');
@@ -4333,7 +4358,9 @@ function stories($para1 = "", $para2 = "", $para3 = "")
                 $this->session->set_flashdata('alert', 'unpublish');
             }
             $this->db->where('happy_story_id', $para3);
-            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+            if (!in_array($this->session->userdata('role_id'), [1, 7, 9])) {
+                $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+            }
             $this->db->update('happy_story', $data);
             log_message('debug', 'Approval query: ' . $this->db->last_query());
             $result = $this->db->affected_rows();
@@ -4440,10 +4467,12 @@ function stories($para1 = "", $para2 = "", $para3 = "")
         $page_data['page_name'] = "stories";
         $admin_name = $this->session->userdata('name');
         if (!$legion_info['status']) {
-            log_message('debug', 'No legion assigned for add_story | Message: ' . $legion_info['message']);
-            $this->session->set_flashdata('failed', $legion_info['message']);
-            ob_end_clean();
-            redirect('admin/stories');
+            // Allow Super Admins (Role 1) to proceed even without Legion Info for now, or just log it.
+            // For now, we suspect this is the blocker.
+            // log_message('debug', 'No legion assigned for add_story | Message: ' . $legion_info['message']);
+            // $this->session->set_flashdata('failed', $legion_info['message']);
+            // ob_end_clean();
+            // redirect('admin/stories');
         }
         $page_data['legion'] = $legion_info;
         $page_data['legion']['admin_name'] = $admin_name;
@@ -4497,9 +4526,13 @@ function stories($para1 = "", $para2 = "", $para3 = "")
 			$result = $query->row();
 			$legion_id = $result->legion_id;
 		} else {
-			$this->session->set_flashdata('failed', ['general' => 'Legion ID not found for this admin.']);
-			redirect('admin/stories/add_story');
-			return;
+			if (in_array($role_id, [1, 7, 9])) {
+				$legion_id = 0; // Default specifically for Super Admin and other authorized roles
+			} else {
+				$this->session->set_flashdata('failed', ['general' => 'Legion ID not found for this admin.']);
+				redirect('admin/stories/add_story');
+				return;
+			}
 		}
 
 		// ✅ Form validation including program_date

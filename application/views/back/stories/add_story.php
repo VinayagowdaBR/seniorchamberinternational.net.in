@@ -29,7 +29,7 @@
                             <div class="form-group">
                                 <label class="col-sm-2 control-label"><b>President Name</b><span class="text-danger">*</span></label>
                                 <div class="col-sm-8">
-                                    <input type="text" class="form-control" id="president_name" name="president_name" value="<?= htmlspecialchars($legion['admin_name']) ?>" required readonly>
+                                    <input type="text" class="form-control" id="president_name" name="president_name" value="<?= htmlspecialchars(isset($legion['admin_name']) ? $legion['admin_name'] : '') ?>" required readonly>
                                     <?php if (isset($this->session->flashdata('failed')['president_name'])): ?>
                                         <span class="text-danger"><?= $this->session->flashdata('failed')['president_name']; ?></span>
                                     <?php endif; ?>
@@ -40,7 +40,7 @@
                             <div class="form-group">
                                 <label class="col-sm-2 control-label"><b>Area</b><span class="text-danger">*</span></label>
                                 <div class="col-sm-8">
-                                    <input type="text" class="form-control" id="area" name="area" value="<?= htmlspecialchars($legion['area_name']) ?>" required readonly>
+                                    <input type="text" class="form-control" id="area" name="area" value="<?= htmlspecialchars(isset($legion['area_name']) ? $legion['area_name'] : '') ?>" required readonly>
                                     <?php if (isset($this->session->flashdata('failed')['area'])): ?>
                                         <span class="text-danger"><?= $this->session->flashdata('failed')['area']; ?></span>
                                     <?php endif; ?>
@@ -51,7 +51,7 @@
                             <div class="form-group">
                                 <label class="col-sm-2 control-label"><b>Legion Name</b><span class="text-danger">*</span></label>
                                 <div class="col-sm-8">
-                                    <input type="text" class="form-control" id="legion_name" name="legion_name" value="<?= htmlspecialchars($legion['legion_name']) ?>" required readonly>
+                                    <input type="text" class="form-control" id="legion_name" name="legion_name" value="<?= htmlspecialchars(isset($legion['legion_name']) ? $legion['legion_name'] : '') ?>" required readonly>
                                     <?php if (isset($this->session->flashdata('failed')['legion_name'])): ?>
                                         <span class="text-danger"><?= $this->session->flashdata('failed')['legion_name']; ?></span>
                                     <?php endif; ?>

@@ -231,7 +231,8 @@ $(document).ready(function () {
     // Approval modal
     window.approval = function (status, story_id) {
         $('#approval_status').val(status);
-        $('#type_name').html(status == 1 ? "<?php echo translate('unpublish')?>" : "<?php echo translate('approve')?>");
+        // Fix: If status is 1 (Approve), show 'approve'. If 0 (Unpublish), show 'unpublish'.
+        $('#type_name').html(status == 1 ? "<?php echo translate('approve')?>" : "<?php echo translate('unpublish')?>");
         $('#story_id').val(story_id);
         $('#approval_modal').modal('show');
     };
@@ -244,6 +245,26 @@ $(document).ready(function () {
             success: function () {
                 $('#approval_modal').modal('hide');
                 table.ajax.reload(null, false); // Refresh table without resetting pagination
+                
+                // Show success alert
+                const alertHtml = `
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                        <?php echo translate('approval_status_updated_successfully')?>
+                    </div>`;
+                
+                // Remove existing alerts to prevent stacking
+                $('.alert').remove();
+                
+                // Prepend to page content
+                $('#page-content').prepend(alertHtml);
+                
+                // Auto fade out
+                setTimeout(function () {
+                    $('.alert').fadeOut('slow');
+                }, 5000);
             },
             error: function (xhr) {
                 alert("<?php echo translate('error_updating_status')?>: " + xhr.statusText);

@@ -64,9 +64,16 @@ public function update_story($id, $data)
     $legions = $this->db->get()->result_array();
     $legion_ids = array_column($legions, 'legion_id');
 
+    // Prepare legacy return structure for compatibility with Admin controller
+    $legion_id = !empty($legion_ids) ? $legion_ids[0] : 0;
+    $status = !empty($legion_ids);
+
     return [
+        'status' => $status,
+        'legion_id' => $legion_id,
         'area_ids' => $area_ids,
-        'legion_ids' => $legion_ids
+        'legion_ids' => $legion_ids,
+        'message' => $status ? '' : 'No legion assigned'
     ];
 }
 

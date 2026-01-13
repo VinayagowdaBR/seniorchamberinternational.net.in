@@ -62,7 +62,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 $active_group = 'default';
 $query_builder = TRUE;
 
-$hostname = $_SERVER['HTTP_HOST']; // Get the current host
+if (isset($_SERVER['HTTP_HOST'])) {
+    $hostname = $_SERVER['HTTP_HOST'];
+} else {
+    $hostname = 'localhost'; // Default for CLI
+}
 
 if ($hostname == 'localhost' || $hostname == '127.0.0.1') {
     // Local environment

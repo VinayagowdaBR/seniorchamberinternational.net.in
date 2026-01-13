@@ -58,7 +58,10 @@ $autoload['packages'] = array();
 |
 |	$autoload['libraries'] = array('user_agent' => 'ua');
 */
-$autoload['libraries'] = array('session', 'xmlrpc', 'database', 'form_validation');
+$autoload['libraries'] = array('xmlrpc', 'database', 'form_validation');
+if (!is_cli()) {
+    $autoload['libraries'][] = 'session';
+}
 
 /*
 | -------------------------------------------------------------------
