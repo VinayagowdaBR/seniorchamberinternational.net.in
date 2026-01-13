@@ -4,15 +4,14 @@
     <title>Award Details</title>
     <style>
         @page {
-            margin: 10mm;
-            border: 3px double #000; /* Double border for all pages */
-            padding: 10mm;
+            margin: 15mm;
         }
         body { 
             font-family: 'Times New Roman', serif; 
             font-size: 14pt; 
             color: #000; 
-            margin: 0; padding: 0; 
+            margin: 0; 
+            padding: 10px; 
         }
         
         /* Typography */
@@ -43,7 +42,7 @@
             color: red;
             font-weight: bold;
             display: inline-block;
-            width: 250px; /* Fixed width for alignment */
+            width: 250px;
         }
         .value {
             color: #000;
@@ -52,11 +51,9 @@
 
         /* Footer Signature */
         .signature-section {
-            position: absolute;
-            bottom: 50px;
-            right: 50px;
             text-align: right;
-            width: 300px;
+            margin-top: 150px;
+            padding-right: 30px;
         }
 
         /* Content Pages */
@@ -81,7 +78,7 @@
             margin-top: 10px;
         }
         .img-cell {
-            width: 48%; /* 2 columns */
+            width: 48%;
             padding: 5px;
             text-align: center;
             vertical-align: top;
@@ -107,7 +104,6 @@
 
     <!-- Cover Page -->
     <div class="logo-center">
-        <!-- Using the most likely logo found -->
         <img src="<?= FCPATH . 'template/front/images/logo.png'; ?>" width="120">
     </div>
 
@@ -142,7 +138,6 @@
         <?php endif; ?>
 
         <?php 
-        // Extract extra fields from form_data if available
         $form_data = ($entry['award_for'] == 'legion') 
             ? json_decode($entry['legion_form_json'], true) 
             : json_decode($entry['individual_form_json'], true);
@@ -163,7 +158,7 @@
             <span class="value"><?= isset($form_data['affiliation_date']) ? $form_data['affiliation_date'] : 'N/A'; ?></span>
         </div>
 
-         <div class="cover-field">
+        <div class="cover-field">
             <span class="label">Date:</span>
             <span class="value"><?= date('d/m/Y', strtotime($entry['created_at'])); ?></span>
         </div>
@@ -194,7 +189,7 @@
                         $count = 0;
                         foreach ($crit['images'] as $img): 
                             if ($count > 0 && $count % 2 == 0) {
-                                echo '</tr><tr>'; // New row every 2 images
+                                echo '</tr><tr>';
                             }
                         ?>
                             <td class="img-cell">
@@ -204,7 +199,6 @@
                             $count++;
                         endforeach; 
                         
-                        // Fill empty cell if odd number of images
                         if ($count % 2 != 0) {
                             echo '<td class="img-cell"></td>';
                         }
@@ -213,9 +207,10 @@
                 </table>
             <?php endif; ?>
 
-            <div style="margin-bottom: 30px;"></div> <!-- Spacer between criteria -->
+            <div style="margin-bottom: 30px;"></div>
         <?php endforeach; ?>
     <?php endif; ?>
 
 </body>
 </html>
+

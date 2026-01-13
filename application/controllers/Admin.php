@@ -21463,7 +21463,7 @@ public function award($para1 = '', $para2 = '')
             
             // Generate PDF
             $filename = 'Award_Details_' . $entry['id'];
-            $this->pdf->create($html, $filename);
+            $this->pdf->create($html, $filename, true, true); // Last param enables page border
 
         } else {
             redirect(base_url() . 'admin', 'refresh');
