@@ -4,6 +4,9 @@ function get_entry_criteria($award_criteria, $entry) {
     $cat  = $entry['category'];
     return isset($award_criteria[$type][$cat]) ? $award_criteria[$type][$cat] : array();
 }
+
+// Check if current user has judge permission
+$has_judge_permission = $this->Crud_model->admin_permission('judge_award');
 ?>
 
 <div id="content-container">
@@ -39,7 +42,7 @@ function get_entry_criteria($award_criteria, $entry) {
                         <!-- Entry Header -->
                         <div class="panel-heading" style="background-color: #f5f5f5;">
                             <div class="row">
-                                <div class="col-md-8">
+                                <div class="col-md-6">
                                     <h4 style="margin: 0;">
                                         <strong>#<?= $idx++; ?> - <?= $entry['category']; ?></strong>
                                         <small class="text-muted">(<?= ucfirst($entry['award_for']); ?>)</small>
@@ -59,26 +62,47 @@ function get_entry_criteria($award_criteria, $entry) {
                                         <?php endif; ?>
                                     </div>
                                 </div>
-                                <div class="col-md-4 text-right">
+                                <div class="col-md-6 text-right">
+                                    <!-- View Details Button -->
                                     <a href="<?= base_url('admin/award/view_details/' . $entry['id']); ?>" 
                                        class="btn btn-info btn-sm" 
-                                       target="_blank"
-                                       style="margin-bottom: 5px;">
-                                        <i class="fa fa-eye"></i> View Full Details
+                                       target="_blank">
+                                        <i class="fa fa-eye"></i> View Details
                                     </a>
-                                    <br>
-                                    <button type="button" 
-                                            class="btn btn-primary btn-sm" 
-                                            data-toggle="collapse" 
-                                            data-target="#entry-<?= $entry['id']; ?>"
-                                            onclick="toggleJudgeBtn(<?= $entry['id']; ?>)">
-                                        <i class="fa fa-gavel"></i> <span id="judge-btn-<?= $entry['id']; ?>">Judge & Give Marks</span>
-                                    </button>
+                                    
+                                    <!-- Quick Approve/Reject Buttons (Always visible) -->
+                                    <?php if ($entry['status'] == 'pending'): ?>
+                                        <form method="post" action="<?= base_url('admin/award/update_status/'.$entry['id']); ?>" style="display: inline;">
+                                            <input type="hidden" name="points[quick_approve]" value="0">
+                                            <button type="submit" name="status" value="approved" class="btn btn-success btn-sm" 
+                                                    onclick="return confirm('Are you sure you want to APPROVE this entry without judging?');">
+                                                <i class="fa fa-check"></i> Approve
+                                            </button>
+                                        </form>
+                                        <form method="post" action="<?= base_url('admin/award/update_status/'.$entry['id']); ?>" style="display: inline;">
+                                            <button type="submit" name="status" value="rejected" class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Are you sure you want to REJECT this entry?');">
+                                                <i class="fa fa-times"></i> Reject
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Judge Button (Only for users with judge_award permission) -->
+                                    <?php if ($has_judge_permission): ?>
+                                        <button type="button" 
+                                                class="btn btn-primary btn-sm" 
+                                                data-toggle="collapse" 
+                                                data-target="#entry-<?= $entry['id']; ?>"
+                                                onclick="toggleJudgeBtn(<?= $entry['id']; ?>)">
+                                            <i class="fa fa-gavel"></i> <span id="judge-btn-<?= $entry['id']; ?>">Judge & Give Marks</span>
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
         
-                        <!-- Judging Panel -->
+                        <!-- Judging Panel (Only for users with judge_award permission) -->
+                        <?php if ($has_judge_permission): ?>
                         <div id="entry-<?= $entry['id']; ?>" class="panel-collapse collapse">
                             <div class="panel-body" style="background-color: #fafafa;">
                                 
@@ -227,6 +251,7 @@ function get_entry_criteria($award_criteria, $entry) {
                                 </form>
                             </div>
                         </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
         

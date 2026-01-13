@@ -624,7 +624,7 @@ $member_pages = array('free_members', 'premium_members', 'national_members', 'ng
                                 </li>
                                 <?php } if ($this->Crud_model->admin_permission('manage_roles')) { ?>
                                 <li <?php if($page_name=="role") echo 'class="active-link"'; ?>>
-                                    <a href="<?=base_url()?>admin/role/"><i class="fa fa-sliders"></i><?php echo translate('manage_roles'); ?></a>
+                                    <a href="<?=base_url('admin/role')?>"><i class="fa fa-sliders"></i><?php echo translate('manage_roles'); ?></a>
                                 </li>
                                 <?php } ?>
                             </ul>
