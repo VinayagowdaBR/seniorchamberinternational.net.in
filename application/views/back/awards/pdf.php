@@ -126,11 +126,7 @@
         </div>
 
         <?php if($entry['award_for'] == 'individual'): ?>
-            <div class="cover-field">
-                <span class="label">Name of the President:</span>
-                <span class="value"><?= isset($entry['president_name']) ? $entry['president_name'] : 'N/A'; ?></span>
-            </div>
-            
+
             <div class="cover-field">
                 <span class="label">Name of the Nominee:</span>
                 <span class="value"><?= $entry['nominee_name']; ?></span>

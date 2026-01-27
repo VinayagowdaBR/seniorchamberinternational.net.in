@@ -37,7 +37,6 @@ if ($entry['award_for'] == 'legion') {
                             <tr><th>Legion Name</th><td><?= $entry['legion_name']; ?></td></tr>
                             <?php if($entry['award_for'] == 'individual'): ?>
                                 <tr><th>Nominee Name</th><td><?= $entry['nominee_name']; ?></td></tr>
-                                <tr><th>Member ID</th><td><?= $entry['member_id']; ?></td></tr>
                             <?php endif; ?>
                             <tr><th>Area ID</th><td><?= $entry['area_id']; ?></td></tr>
                             <tr><th>Status</th><td><span class="label label-success"><?= ucfirst($entry['status']); ?></span></td></tr>
@@ -53,8 +52,22 @@ if ($entry['award_for'] == 'legion') {
                 <table class="table table-striped">
                     <?php if (!empty($form_data)): ?>
                         <?php foreach ($form_data as $key => $value): ?>
+                            <?php 
+                                // Filter out removed fields
+                                $ignored_fields = [
+                                    'form_project_name', 'legion_support_doc', 'individual_support_doc', 
+                                    'individual_photo', 'form_age', 'form_sex', 'form_qualifications', 
+                                    'form_vocation', 'form_marital_status', 'form_spouse_name', 'form_children_names'
+                                ];
+                                if (in_array($key, $ignored_fields)) continue;
+
+                                // Rename keys
+                                $display_key = ucwords(str_replace('_', ' ', $key));
+                                if ($key === 'form_project_date') $display_key = 'Bidding Date';
+                                if ($key === 'form_legion_award_date') $display_key = 'Date of Award Bidding';
+                            ?>
                             <tr>
-                                <th width="30%"><?= ucwords(str_replace('_', ' ', $key)); ?></th>
+                                <th width="30%"><?= $display_key; ?></th>
                                 <td>
                                     <?php 
                                         // Check if value is criteria_data array

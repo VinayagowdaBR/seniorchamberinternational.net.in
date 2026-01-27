@@ -66,14 +66,7 @@
 
                 <!-- New Project Fields -->
                 <div class="form-group">
-                    <label class="col-sm-3 control-label">Project/Program Name</label>
-                    <div class="col-sm-6">
-                        <input type="text" name="form_project_name" class="form-control" placeholder="Required for Program/Project Awards" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-3 control-label">Date of Project</label>
+                    <label class="col-sm-3 control-label">Bidding Date</label>
                     <div class="col-sm-3">
                         <input type="date" name="form_project_date" class="form-control">
                     </div>
@@ -154,13 +147,7 @@
                 <!-- Dynamic Criteria Section -->
                 <div id="legion-criteria-container"></div>
 
-                <div class="form-group">
-                    <label class="col-sm-3 control-label">Supporting Documents</label>
-                    <div class="col-sm-6">
-                         <input type="file" name="legion_support_doc" class="form-control" required>
-                         <span class="help-block">Upload PDF or ZIP (Max 10MB)</span>
-                    </div>
-                </div>
+
             </div>
 
             <!-- Individual section -->
@@ -189,17 +176,8 @@
                 <div class="form-group">
                     <label class="col-sm-3 control-label">Legion</label>
                     <div class="col-sm-6">
-                        <select name="legion_id_individual" id="ind_legion_id" class="form-control" onchange="loadIndMembers(); setIndLegionName()" required>
+                        <select name="legion_id_individual" id="ind_legion_id" class="form-control" onchange="setIndLegionName()" required>
                             <option value="">Choose Legion</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-3 control-label">Member</label>
-                    <div class="col-sm-6">
-                        <select name="member_id" id="ind_member_id" class="form-control" required>
-                            <option value="">Choose Member</option>
                         </select>
                     </div>
                 </div>
@@ -244,51 +222,10 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="col-sm-3 control-label">Age</label>
-                    <div class="col-sm-2">
-                        <input type="number" name="form_age" class="form-control" min="0">
-                    </div>
 
-                    <label class="col-sm-1 control-label">Sex</label>
-                    <div class="col-sm-2">
-                        <input type="text" name="form_sex" class="form-control">
-                    </div>
-                </div>
 
                 <div class="form-group">
-                    <label class="col-sm-3 control-label">Qualifications</label>
-                    <div class="col-sm-3">
-                        <input type="text" name="form_qualifications" class="form-control">
-                    </div>
-
-                    <label class="col-sm-1 control-label">Vocation</label>
-                    <div class="col-sm-3">
-                        <input type="text" name="form_vocation" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-3 control-label">Marital Status (S/M)</label>
-                    <div class="col-sm-3">
-                        <input type="text" name="form_marital_status" class="form-control">
-                    </div>
-
-                    <label class="col-sm-1 control-label">Name of Spouse</label>
-                    <div class="col-sm-3">
-                        <input type="text" name="form_spouse_name" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-3 control-label">Name(s) of Children</label>
-                    <div class="col-sm-6">
-                        <input type="text" name="form_children_names" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-3 control-label">Date of Local Recognition</label>
+                    <label class="col-sm-3 control-label">Date of Award Bidding</label>
                     <div class="col-sm-3">
                         <input type="date" name="form_legion_award_date" class="form-control">
                     </div>
@@ -311,20 +248,7 @@
                 <!-- Dynamic Criteria Section -->
                 <div id="individual-criteria-container"></div>
 
-                <div class="form-group">
-                    <label class="col-sm-3 control-label">Passport Photo</label>
-                    <div class="col-sm-6">
-                         <input type="file" name="individual_photo" class="form-control" required>
-                    </div>
-                </div>
 
-                <div class="form-group">
-                    <label class="col-sm-3 control-label">Supporting Documents</label>
-                    <div class="col-sm-6">
-                         <input type="file" name="individual_support_doc" class="form-control" required>
-                         <span class="help-block">Upload PDF or ZIP (Max 10MB)</span>
-                    </div>
-                </div>
             </div>
 
             <hr>
@@ -462,7 +386,6 @@ function loadIndLegions() {
     var areaId = $('#ind_area_id').val();
     if (!areaId) {
         $('#ind_legion_id').html('<option value="">Choose Legion</option>');
-        $('#ind_member_id').html('<option value="">Choose Member</option>');
         return;
     }
     $.get('<?= base_url('admin/get_legions_of_area'); ?>/' + areaId, function(res) {
@@ -474,54 +397,10 @@ function loadIndLegions() {
             }
         } catch(e) {}
         $('#ind_legion_id').html(html);
-        $('#ind_member_id').html('<option value="">Choose Member</option>'); // reset member
     });
 }
 
-function loadIndMembers() {
-    var legionId = $('#ind_legion_id').val();
-    if (!legionId) {
-        $('#ind_member_id').html('<option value="">Choose Member</option>');
-        $('#ind_member_id').prop('disabled', false); // Ensure it's enabled
-        return;
-    }
-    
-    // Ensure member select is enabled
-    $('#ind_member_id').prop('disabled', false);
-    
-    // Show loading state
-    $('#ind_member_id').html('<option value="">Loading...</option>');
-    
-    $.ajax({
-        url: '<?= base_url('admin/get_members_of_legion'); ?>/' + legionId,
-        type: 'GET',
-        dataType: 'json',
-        cache: false,
-        success: function(members) {
-            var html = '<option value="">Choose Member</option>';
-            if (members && Array.isArray(members) && members.length > 0) {
-                for (var i=0; i<members.length; i++) {
-                    var firstName = members[i].first_name || '';
-                    var lastName = members[i].last_name || '';
-                    var memberId = members[i].member_id || '';
-                    var profileId = members[i].member_profile_id || '';
-                    var name = (firstName + ' ' + lastName).trim() || 'Unknown';
-                    html += '<option value="'+memberId+'">'+name+' ('+profileId+')</option>';
-                }
-            } else {
-                html += '<option value="">No members found</option>';
-            }
-            $('#ind_member_id').html(html).prop('disabled', false);
-        },
-        error: function(xhr, status, error) {
-            console.error('Error loading members:', error);
-            console.error('Status:', status);
-            console.error('Response:', xhr.responseText);
-            console.error('Legion ID:', legionId);
-            $('#ind_member_id').html('<option value="">Error loading members</option>').prop('disabled', false);
-        }
-    });
-}
+
 
 function setIndLegionName() {
     var name = $('#ind_legion_id option:selected').data('name') || '';
