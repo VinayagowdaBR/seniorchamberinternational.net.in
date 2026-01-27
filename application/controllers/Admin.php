@@ -997,18 +997,25 @@ public function add_member() {
 
 			$member_approval = $this->db->get_where('general_settings', array('type' => 'member_approval_by_admin'))->row()->value;
 			$page_data['title'] = "Admin || " . $this->system_title;
-			if ($this->session->flashdata('alert') == "block") {
-				$page_data['danger_alert'] = translate("you_have_successfully_blocked_this_member!");
-			} elseif ($this->session->flashdata('alert') == "unblock") {
-				$page_data['success_alert'] = translate("you_have_successfully_unlocked_this_member!");
-			} elseif ($this->session->flashdata('alert') == "delete") {
-				$page_data['success_alert'] = translate("this_member_is_moved_to_deleted_member_list!");
-			} elseif ($this->session->flashdata('alert') == "failed_delete") {
-				$page_data['danger_alert'] = translate("failed_to_delete_this_member!");
-			} elseif ($this->session->flashdata('alert') == "member_approval") {
-				$page_data['success_alert'] = translate("you_have_successfully_approved_this_member!");
-			} elseif ($this->session->flashdata('alert') == "demo_msg") {
-				$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
+			
+			// Only show these alerts on member LIST pages, not on add_member, deleted_members, etc.
+			$list_pages = ['free_members', 'premium_members', 'national_members', 'ngb_members', 'legion_members', ''];
+			if (in_array($para1, $list_pages)) {
+				// Read flashdata ONCE to properly consume it
+				$alert = $this->session->flashdata('alert');
+				if ($alert == "block") {
+					$page_data['danger_alert'] = translate("you_have_successfully_blocked_this_member!");
+				} elseif ($alert == "unblock") {
+					$page_data['success_alert'] = translate("you_have_successfully_unlocked_this_member!");
+				} elseif ($alert == "delete") {
+					$page_data['success_alert'] = translate("this_member_is_moved_to_deleted_member_list!");
+				} elseif ($alert == "failed_delete") {
+					$page_data['danger_alert'] = translate("failed_to_delete_this_member!");
+				} elseif ($alert == "member_approval") {
+					$page_data['success_alert'] = translate("you_have_successfully_approved_this_member!");
+				} elseif ($alert == "demo_msg") {
+					$page_data['danger_alert'] = translate("this_operation_is_disabled_in_demo!");
+				}
 			}
 
 
@@ -1933,12 +1940,20 @@ public function add_member() {
 					$page_data['bottom'] 	= "members/index.php";
 					$page_data['page_name'] = "add_member";
 					$page_data['areas'] = $this->Crud_model->get_all_areas();
-					if ($this->session->flashdata('alert') == "add") {
+					
+					// Clear any member list alerts (these shouldn't show on Add Member page)
+					unset($page_data['success_alert']);
+					unset($page_data['danger_alert']);
+					
+					// Only show add_member specific alerts (read flashdata once)
+					$add_alert = $this->session->flashdata('alert');
+					if ($add_alert == "add") {
 						$page_data['success_alert'] = translate("you_have_successfully_added_a_member!!");
-					} elseif ($this->session->flashdata('alert') == "add_fail") {
+					} elseif ($add_alert == "add_fail") {
 						$page_data['danger_alert'] = translate("member_registration_failed!");
 					}
 					$this->load->view('back/index', $page_data);
+
 				} elseif ($para2 == "do_add") {
 					$this->form_validation->set_rules('fname', 'First Name', 'required');
 					$this->form_validation->set_rules('lname', 'Last Name', 'required');
@@ -4383,12 +4398,19 @@ function stories($para1 = "", $para2 = "", $para3 = "")
         $page_data['folder'] = "stories";
         $page_data['file'] = "view_story.php";
         $page_data['bottom'] = "stories/stories.php";
-        if ($legion_info['status']) {
-            $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+        
+        // Allow Super Admin (1) and roles 7, 9 to view any story without legion restriction
+        $is_super_admin = in_array($this->session->userdata('role_id'), [1, 7, 9]);
+        
+        if ($legion_info['status'] || $is_super_admin) {
+            // Only apply legion filter if NOT super admin
+            if (!$is_super_admin && $legion_info['status']) {
+                $this->db->where('happy_story.legion_id', $legion_info['legion_id']);
+            }
             $page_data['get_story'] = $this->db->get_where("happy_story", array("happy_story_id" => $para2))->result();
             log_message('debug', 'View story query: ' . $this->db->last_query());
             if (empty($page_data['get_story'])) {
-                log_message('debug', 'Story not found or unauthorized for happy_story_id: ' . $para2 . ', legion_id: ' . $legion_info['legion_id']);
+                log_message('debug', 'Story not found or unauthorized for happy_story_id: ' . $para2 . ', legion_id: ' . ($legion_info['legion_id'] ?? 'N/A'));
                 $this->session->set_flashdata('failed', 'Story not found or not authorized.');
                 ob_end_clean();
                 redirect(base_url() . 'admin/stories');
