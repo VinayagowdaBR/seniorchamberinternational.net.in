@@ -64,26 +64,16 @@ $story_data = $this->db->select('*')->from('happy_story')->where('approval_statu
                 <!-- Date Range Form -->
                 <form method="post" action="<?= base_url('admin/generate') ?>" id="date-range-form">
                     <div class="row mb-4">
+                        <div class="col-md-2">
+                            <label for="report_year" class="form-label"><?php echo translate('select_year')?></label>
+                            <select id="report_year" class="form-control">
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
                         <div class="col-md-4 col-lg-3">
                             <label for="date_range" class="form-label"><?php echo translate('select_date_range')?></label>
-                            <select id="date_range" name="date_range" class="form-control" required>
-                                <option value=""><?php echo translate('choose_range')?></option>
-                                <?php
-                                $year = date('Y');
-                                $next_year = $year + 1;
-                                $ranges = [
-                                    ['start' => "$year-04-01", 'end' => "$year-06-10"],
-                                    ['start' => "$year-06-11", 'end' => "$year-08-10"],
-                                    ['start' => "$year-08-11", 'end' => "$year-10-10"],
-                                    ['start' => "$year-10-11", 'end' => "$year-12-10"],
-                                    ['start' => "$year-12-11", 'end' => "$next_year-02-20"],
-                                ];
-                                foreach ($ranges as $range) {
-                                    $label = date('j M', strtotime($range['start'])) . ' - ' . date('j M', strtotime($range['end']));
-                                    $value = $range['start'] . '|' . $range['end'];
-                                    echo '<option value="' . $value . '">' . $label . '</option>';
-                                }
-                                ?>
+                            <select id="date_range" name="date_range" class="form-control" required disabled>
+                                <option value=""><?php echo translate('choose_year_first')?></option>
                             </select>
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
@@ -193,6 +183,73 @@ $(document).ready(function () {
     setTimeout(function () {
         $('.alert').fadeOut('slow');
     }, 5000);
+
+    // Populate Years and Date Ranges
+    const startYear = 2024;
+    const currentYear = new Date().getFullYear();
+    const endYear = 2027; // As requested, explicit range until 2027 or higher
+    const yearSelect = $('#report_year');
+    const dateRangeSelect = $('#date_range');
+
+    for (let y = startYear; y <= endYear; y++) {
+        yearSelect.append(new Option(y, y));
+    }
+    // Set default to current year if within range, else first available
+    if (currentYear >= startYear && currentYear <= endYear) {
+        yearSelect.val(currentYear);
+    } else {
+        yearSelect.val(startYear);
+    }
+    
+    function updateDateRanges() {
+        const selectedYear = parseInt(yearSelect.val());
+        dateRangeSelect.empty();
+        
+        if (!selectedYear) {
+            dateRangeSelect.append(new Option('<?php echo translate("choose_year_first")?>', ''));
+            dateRangeSelect.prop('disabled', true);
+            return;
+        }
+
+        dateRangeSelect.prop('disabled', false);
+        dateRangeSelect.append(new Option('<?php echo translate("choose_range")?>', ''));
+
+        const nextYear = selectedYear + 1;
+        const ranges = [
+            { start: `${selectedYear}-04-01`, end: `${selectedYear}-06-10` },
+            { start: `${selectedYear}-06-11`, end: `${selectedYear}-08-10` },
+            { start: `${selectedYear}-08-11`, end: `${selectedYear}-10-10` },
+            { start: `${selectedYear}-10-11`, end: `${selectedYear}-12-10` },
+            { start: `${selectedYear}-12-11`, end: `${nextYear}-02-20` }
+        ];
+
+        ranges.forEach(range => {
+            // Format date as "1 Apr - 10 Jun"
+            const startDate = new Date(range.start);
+            const endDate = new Date(range.end);
+            const options = { day: 'numeric', month: 'short' };
+            // Note: Date parsing from YYYY-MM-DD string is UTC in JS usually, but here for display labels mostly fine. 
+            // To be safe and avoid timezone shifts showing wrong day, we can parse manually or append time.
+            // Simple string manipulation for label is safer for consistency.
+            
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const startLabel = `${startDate.getDate()} ${months[startDate.getMonth()]} ${startDate.getFullYear()}`;
+            const endLabel = `${endDate.getDate()} ${months[endDate.getMonth()]} ${endDate.getFullYear()}`;
+            
+            const label = `${startLabel} - ${endLabel}`;
+            const value = `${range.start}|${range.end}`;
+            dateRangeSelect.append(new Option(label, value));
+        });
+    }
+
+    // Initialize logic
+    updateDateRanges();
+
+    // Year change listener
+    yearSelect.on('change', function() {
+        updateDateRanges();
+        $('#generate_pdf').hide(); // Hide button until range selected
+    });
 
     // Date range dropdown
     $('#date_range').on('change', function () {

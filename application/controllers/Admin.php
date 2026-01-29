@@ -1617,7 +1617,12 @@ public function add_member() {
 					$page_data['folder'] 	= "members";
 					$page_data['file']	 	= "edit_member.php";
 					$page_data['bottom'] 	= "members/members.php";
-					$page_data['get_free_member_by_id'] = $this->db->get_where("member", array("membership" => 1, "member_id" => $para3))->result();
+					$get_member = $this->db->get_where("member", array("membership" => 1, "member_id" => $para3))->result();
+					$page_data['get_free_member_by_id'] = $get_member;
+					if (!empty($get_member)) {
+						$area_id = $get_member[0]->area_id;
+						$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+					}
 				} elseif ($para2 == "print_member") {
 					$this->load->library('pdf');
 					$page_data['get_free_member_by_id'] = $this->db->get_where("member", array("membership" => 1, "member_id" => $para3))->result();
@@ -1684,7 +1689,12 @@ public function add_member() {
 					$page_data['folder'] 	= "members";
 					$page_data['file']	 	= "edit_member.php";
 					$page_data['bottom'] 	= "members/members.php";
-					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 2, "member_id" => $para3))->result();
+					$get_member = $this->db->get_where("member", array("membership" => 2, "member_id" => $para3))->result();
+					$page_data['get_premium_member_by_id'] = $get_member;
+					if (!empty($get_member)) {
+						$area_id = $get_member[0]->area_id;
+						$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+					}
 				} elseif ($para2 == "print_member") {
 					$this->load->library('pdf');
 					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 2, "member_id" => $para3))->result();
@@ -1699,6 +1709,28 @@ public function add_member() {
 					$dompdf->render();
 					$fileName = $page_data['get_premium_member_by_id'][0]->first_name . " " . $page_data['get_premium_member_by_id'][0]->last_name . " " . "Member Details";
 					$dompdf->stream($fileName . ".pdf", array("Attachment" => 0));
+				} elseif ($para2 == "id_card") {
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 2, "member_id" => $para3))->result();
+					$page_data['member_type'] = "Legions";
+					$page_data['parameter'] 	= "premium_members";
+					$page_data['page_name'] 	= "premium_members";
+					$this->load->view('back/members/id_card', $page_data);
+				} elseif ($para2 == "download_id_card") {
+					$this->load->library('pdf');
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 2, "member_id" => $para3))->result();
+					$page_data['member_type'] = "Legions";
+					$page_data['parameter'] 	= "premium_members";
+					$page_data['page_name'] 	= "premium_members";
+					$page_data['download_pdf'] = true;
+					$this->load->view('back/members/id_card', $page_data);
+					$html = $this->output->get_output();
+					$dompdf = new pdf();
+					$dompdf->setPaper('A4', 'portrait');
+					$dompdf->loadHtml($html);
+					$dompdf->set_option('isRemoteEnabled', TRUE);
+					$dompdf->render();
+					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
+					$dompdf->stream($fileName . ".pdf", array("Attachment" => 1));
 				}
 				elseif ($para2 == "starmatching") {
 					$page_data['top'] = "members/index.php";
@@ -1754,7 +1786,12 @@ public function add_member() {
 					$page_data['folder'] 	= "members";
 					$page_data['file']	 	= "edit_member.php";
 					$page_data['bottom'] 	= "members/members.php";
-					$page_data['get_national_member_by_id'] = $this->db->get_where("member", array("membership" => 3, "member_id" => $para3))->result();
+					$get_member = $this->db->get_where("member", array("membership" => 3, "member_id" => $para3))->result();
+					$page_data['get_national_member_by_id'] = $get_member;
+					if (!empty($get_member)) {
+						$area_id = $get_member[0]->area_id;
+						$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+					}
 				} elseif ($para2 == "print_member") {
 					$this->load->library('pdf');
 					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 3, "member_id" => $para3))->result();
@@ -1822,7 +1859,12 @@ public function add_member() {
 					$page_data['folder'] 	= "members";
 					$page_data['file']	 	= "edit_member.php";
 					$page_data['bottom'] 	= "members/members.php";
-					$page_data['get_guest_member_by_id'] = $this->db->get_where("member", array("membership" => 0, "member_id" => $para3))->result();
+					$get_member = $this->db->get_where("member", array("membership" => 0, "member_id" => $para3))->result();
+					$page_data['get_guest_member_by_id'] = $get_member;
+					if (!empty($get_member)) {
+						$area_id = $get_member[0]->area_id;
+						$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+					}
 				} elseif ($para2 == "print_member") {
 					$this->load->library('pdf');
 					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 0, "member_id" => $para3))->result();
@@ -1889,7 +1931,12 @@ public function add_member() {
 					$page_data['folder'] 	= "members";
 					$page_data['file']	 	= "edit_member.php";
 					$page_data['bottom'] 	= "members/members.php";
-					$page_data['get_ngb_member_by_id'] = $this->db->get_where("member", array("membership" => 4, "member_id" => $para3))->result();
+					$get_member = $this->db->get_where("member", array("membership" => 4, "member_id" => $para3))->result();
+					$page_data['get_ngb_member_by_id'] = $get_member;
+					if (!empty($get_member)) {
+						$area_id = $get_member[0]->area_id;
+						$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+					}
 				} elseif ($para2 == "print_member") {
 					$this->load->library('pdf');
 					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 4, "member_id" => $para3))->result();
@@ -2001,7 +2048,7 @@ public function add_member() {
 							'age'                 => '',
 							'marital_status'        => '',
 							'number_of_children'    => '',
-							'area'                  => '',
+							'area'                  => $this->input->post('area'),
 							'on_behalf'             => $this->input->post('on_behalf')
 						);
 						$basic_info = json_encode($basic_info);
@@ -2225,6 +2272,8 @@ public function add_member() {
 						$data['status'] = 'approved';
 						$data['first_name'] = $this->input->post('fname');
 						$data['last_name'] = $this->input->post('lname');
+						$data['area_id'] = $this->input->post('area_id');
+						$data['legion_id'] = $this->input->post('legion_id');
 						$data['gender'] = $this->input->post('gender');
 						$data['email'] = $this->input->post('email');
 						$data['email_verification_status'] = '1';
@@ -2333,10 +2382,14 @@ public function add_member() {
 				$this->form_validation->set_rules('last_name', 'Last Name', 'required');
 				$this->form_validation->set_rules('gender', 'Gender', 'required');
 				//$this->form_validation->set_rules('on_behalf', 'On Behalf', 'required');
-				if ($this->input->post('old_email') != $this->input->post('email')) {
+				$email = $this->input->post('email');
+				$old_email = $this->input->post('old_email');
+				if (trim($email) != trim($old_email)) {
 					$this->form_validation->set_rules('email', 'Email', 'required|is_unique[member.email]', array('required' => 'The %s is required.', 'is_unique' => 'This %s already exists.'));
 				}
-				if ($this->input->post('old_mobile') != $this->input->post('mobile')) {
+				$mobile = $this->input->post('mobile');
+				$old_mobile = $this->input->post('old_mobile');
+				if (trim($mobile) != trim($old_mobile)) {
 					$this->form_validation->set_rules('mobile', 'Mobile', 'required|is_unique[member.mobile]', array('required' => 'The %s is required.', 'is_unique' => 'This %s already exists.'));
 				}
 				$this->form_validation->set_rules('marital_status', 'Marital Status', 'required');
@@ -2382,27 +2435,52 @@ public function add_member() {
 					
 					$this->session->set_flashdata('alert', 'edit_fail');
 					if ($para3 == 'premium_members') {
-						$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 2, "member_id" => $para2))->result();
-						$page_data['member_type'] = "Premium";
+						$get_member = $this->db->get_where("member", array("membership" => 2, "member_id" => $para2))->result();
+						$page_data['get_premium_member_by_id'] = $get_member;
+						if (!empty($get_member)) {
+							$area_id = $get_member[0]->area_id;
+							$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+						}
+						$page_data['member_type'] = "Legions";
 						$page_data['parameter'] = "premium_members";
 						$page_data['page_name'] = "premium_members";
 					} elseif ($para3 == 'free_members') {
-						$page_data['get_free_member_by_id'] = $this->db->get_where("member", array("membership" => 1, "member_id" => $para2))->result();
-						$page_data['member_type'] = "Free";
+						$get_member = $this->db->get_where("member", array("membership" => 1, "member_id" => $para2))->result();
+						$page_data['get_free_member_by_id'] = $get_member;
+						if (!empty($get_member)) {
+							$area_id = $get_member[0]->area_id;
+							$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+						}
+						$page_data['member_type'] = "Visitors";
 						$page_data['parameter'] = "free_members";
 						$page_data['page_name'] = "free_members";
 					} elseif ($para3 == 'guest_members') {
-						$page_data['get_guest_member_by_id'] = $this->db->get_where("member", array("membership" => 0, "member_id" => $para2))->result();
-						$page_data['member_type'] = "Free";
+						$get_member = $this->db->get_where("member", array("membership" => 0, "member_id" => $para2))->result();
+						$page_data['get_guest_member_by_id'] = $get_member;
+						if (!empty($get_member)) {
+							$area_id = $get_member[0]->area_id;
+							$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+						}
+						$page_data['member_type'] = "Guest";
 						$page_data['parameter'] = "guest_members";
 						$page_data['page_name'] = "guest_members";
 					} elseif ($para3 == 'national_members') {
-						$page_data['get_free_member_by_id'] = $this->db->get_where("member", array("membership" => 3, "member_id" => $para2))->result();
+						$get_member = $this->db->get_where("member", array("membership" => 3, "member_id" => $para2))->result();
+						$page_data['get_national_member_by_id'] = $get_member;
+						if (!empty($get_member)) {
+							$area_id = $get_member[0]->area_id;
+							$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+						}
 						$page_data['member_type'] = "National";
 						$page_data['parameter'] = "national_members";
 						$page_data['page_name'] = "national_members";
 					} elseif ($para3 == 'ngb_members') {
-						$page_data['get_ngb_member_by_id'] = $this->db->get_where("member", array("membership" => 4, "member_id" => $para2))->result();
+						$get_member = $this->db->get_where("member", array("membership" => 4, "member_id" => $para2))->result();
+						$page_data['get_ngb_member_by_id'] = $get_member;
+						if (!empty($get_member)) {
+							$area_id = $get_member[0]->area_id;
+							$page_data['legions'] = $this->db->get_where('legions', array('area_id' => $area_id))->result_array();
+						}
 						$page_data['member_type'] = "Ngb";
 						$page_data['parameter'] = "ngb_members";
 						$page_data['page_name'] = "ngb_members";
@@ -2417,7 +2495,6 @@ public function add_member() {
 						$data['email'] = $this->input->post('email');
 					}
 					$data['mobile'] = $this->input->post('mobile');
-					$data['membership'] = $this->input->post('membership');
 
 					$data['date_of_birth'] = strtotime($this->input->post('date_of_birth'));
 					$data['height'] = $this->input->post('height');
@@ -19908,32 +19985,34 @@ public function generate() {
         log_message('debug', 'Row: ' . json_encode($row));
     }
 
-    if ($admin_id) {
-        $this->db->select('member_name, legion_name, area_name');
-        $this->db->from('happy_story');
-        $this->db->where('posted_by', $admin_id);
-        $this->db->order_by('post_time', 'DESC');
-        $this->db->limit(1);
-        $query = $this->db->get();
-        log_message('debug', 'Admin query executed: ' . $this->db->last_query());
+    // Fetch Admin Name from Session
+    $data['member_name'] = $this->session->userdata('name') ? $this->session->userdata('name') : 'N/A';
+    
+    // Fetch Legion and Area Info
+    $legion_info = $this->Crud_model->get_legion_and_area_by_admin($admin_id);
+    log_message('debug', 'PDF Gen - Legion Info: ' . json_encode($legion_info));
 
-        if ($query->num_rows() > 0) {
-            $row = $query->row_array();
-            $data['member_name'] = htmlspecialchars($row['member_name'] ?? 'N/A');
-            $data['legion_name'] = htmlspecialchars($row['legion_name'] ?? 'N/A');
-            $data['area_name'] = htmlspecialchars($row['area_name'] ?? 'N/A');
-            log_message('debug', 'Admin data: ' . json_encode($row));
-        } else {
-            $data['member_name'] = 'N/A';
-            $data['legion_name'] = 'N/A';
-            $data['area_name'] = 'N/A';
-            log_message('debug', 'No admin data found for posted_by: ' . $admin_id);
+    $data['legion_name'] = 'N/A';
+    $data['area_name'] = 'N/A';
+
+    if ($legion_info['status'] && !empty($legion_info['legion_id'])) {
+        // Fetch Legion Name
+        $legion_query = $this->db->get_where('legions', array('id' => $legion_info['legion_id']));
+        if ($legion_query->num_rows() > 0) {
+            $data['legion_name'] = $legion_query->row()->name;
+            
+            // Try to fetch Area Name via Legion's area_id
+            $l_row = $legion_query->row();
+            if (!empty($l_row->area_id)) {
+                 $area_query = $this->db->get_where('areas', array('id' => $l_row->area_id));
+                 if ($area_query->num_rows() > 0) {
+                     $data['area_name'] = $area_query->row()->name;
+                 }
+            }
         }
-    } else {
-        $data['member_name'] = 'N/A';
-        $data['legion_name'] = 'N/A';
-        $data['area_name'] = 'N/A';
-        log_message('debug', 'No admin ID set, defaulting to N/A for admin data');
+    } elseif ($admin_id == 1 || in_array($this->session->userdata('role_id'), [1, 7, 9])) {
+        // Super Admin or High level roles
+        $data['legion_name'] = 'Senior Chamber International';
     }
 
     $formatted_start = date('d-m-Y', strtotime($start_date));

@@ -27,7 +27,9 @@
       <!--  <?php endif;?>-->
 			  
 			    <!--left_panel kundali and video stop--> 
+			    <!--left_panel kundali and video stop--> 
 				<a href="#" id="demo-dt-delete-btn" data-target='#package_modal' data-toggle='modal' class="btn btn-info btn-sm add-tooltip" data-toggle="tooltip" data-placement="top" title="Packages" onclick='view_package(<?=$value->member_id?>)'><i class="fa fa-object-ungroup"></i></a>
+				<a href="<?=base_url()?>admin/members/<?=$parameter?>/id_card/<?=$value->member_id?>" class="btn btn-warning btn-sm btn-labeled fa fa-id-card" target="_blank">ID Card</a>
 				<?php
 				if ($value->is_blocked == 'no') {
 				?>

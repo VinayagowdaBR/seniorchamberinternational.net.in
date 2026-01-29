@@ -33,7 +33,7 @@
         </div>
       </div>
 
-      <?php $member_id = $this->uri->segment(5); ?>
+      <?php $member_id = $value->member_id; ?>
 
           
             <form id="input-progress" class="form-default" role="form" action="<?=base_url()?>admin/members/update_member/<?=$member_id?>/<?=$parameter?>" method="POST" enctype="multipart/form-data" onsubmit="return updatePercent();">

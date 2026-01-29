@@ -34,6 +34,11 @@
 		$additional_personal_details = json_decode($value->additional_personal_details, true);
 		$partner_expectation = json_decode($value->partner_expectation, true);
 	}
+	$selected_area = $value->area_id;
+	$selected_legion = $value->legion_id;
+	if (!isset($legions)) {
+		$legions = array();
+	}
 ?>
 <!--CONTENT CONTAINER-->
 <!--===================================================-->
