@@ -1660,6 +1660,7 @@ public function add_member() {
 					$page_data['parameter'] 	= "free_members";
 					$page_data['page_name'] 	= "free_members";
 					$this->load->view('back/members/id_card', $page_data);
+					return;
 				} elseif ($para2 == "download_id_card") {
 					$this->load->library('pdf');
 					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 1, "member_id" => $para3))->result();
@@ -1672,6 +1673,7 @@ public function add_member() {
 					$pdf = new pdf();
 					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
 					$pdf->create($html, $fileName, true);
+					return;
 				}
 
 
@@ -1733,6 +1735,7 @@ public function add_member() {
 					$page_data['parameter'] 	= "premium_members";
 					$page_data['page_name'] 	= "premium_members";
 					$this->load->view('back/members/id_card', $page_data);
+					return;
 				} elseif ($para2 == "download_id_card") {
 					$this->load->library('pdf');
 					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 2, "member_id" => $para3))->result();
@@ -1745,6 +1748,7 @@ public function add_member() {
 					$pdf = new pdf();
 					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
 					$pdf->create($html, $fileName, true);
+					return;
 				}
 				elseif ($para2 == "starmatching") {
 					$page_data['top'] = "members/index.php";
@@ -1844,6 +1848,7 @@ public function add_member() {
 					$page_data['parameter'] 	= "national_members";
 					$page_data['page_name'] 	= "national_members";
 					$this->load->view('back/members/id_card', $page_data);
+					return;
 				} elseif ($para2 == "download_id_card") {
 					$this->load->library('pdf');
 					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 3, "member_id" => $para3))->result();
@@ -1856,6 +1861,7 @@ public function add_member() {
 					$pdf = new pdf();
 					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
 					$pdf->create($html, $fileName, true);
+					return;
 				}
 
 
@@ -1935,6 +1941,7 @@ public function add_member() {
 					$page_data['parameter'] 	= "guest_members";
 					$page_data['page_name'] 	= "guest_members";
 					$this->load->view('back/members/id_card', $page_data);
+					return;
 				} elseif ($para2 == "download_id_card") {
 					$this->load->library('pdf');
 					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 0, "member_id" => $para3))->result();
@@ -1947,6 +1954,7 @@ public function add_member() {
 					$pdf = new pdf();
 					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
 					$pdf->create($html, $fileName, true);
+					return;
 				}
 
 
@@ -2025,6 +2033,7 @@ public function add_member() {
 					$page_data['parameter'] 	= "ngb_members";
 					$page_data['page_name'] 	= "ngb_members";
 					$this->load->view('back/members/id_card', $page_data);
+					return;
 				} elseif ($para2 == "download_id_card") {
 					$this->load->library('pdf');
 					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 4, "member_id" => $para3))->result();
@@ -2037,6 +2046,7 @@ public function add_member() {
 					$pdf = new pdf();
 					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
 					$pdf->create($html, $fileName, true);
+					return;
 				}
 
 

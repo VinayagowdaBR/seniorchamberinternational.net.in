@@ -421,7 +421,7 @@
                 <div class="key-dates">
                     <div class="date-box">
                         <span class="date-label">Joined On</span>
-                        <span class="date-val"><?=date('d M Y', $value->member_since)?></span>
+                        <span class="date-val"><?=date('d M Y', strtotime($value->member_since))?></span>
                     </div>
                     <div class="date-box" style="text-align: right;">
                         <span class="date-label">Valid Until</span>
@@ -429,19 +429,30 @@
                     </div>
                 </div>
 
-                <div class="contact-row">
-                    <div class="icon-circle">📞</div>
+                <div class="contact-row" style="align-items: flex-start;">
+                    <div class="icon-circle">🏢</div>
                     <div>
-                        <div class="label" style="font-size: 10px;">Emergency Contact</div>
-                        <div class="value" style="text-align: left; font-size: 12px;">+91 98765 43210</div>
+                        <div class="label" style="font-size: 11px; font-weight: 700; color: #1e3c72; margin-bottom: 2px;">SENIOR CHAMBER INTERNATIONAL</div>
+                        <div class="value" style="text-align: left; font-size: 11px; font-weight: 400; line-height: 1.4;">
+                            GF 20, VYAPARABHAVAN<br>
+                            CALICUT, KERALA - 673 001
+                        </div>
                     </div>
                 </div>
                 
                 <div class="contact-row">
-                    <div class="icon-circle">🌐</div>
+                    <div class="icon-circle">✉️</div>
                     <div>
-                        <div class="label" style="font-size: 10px;">Website</div>
-                        <div class="value" style="text-align: left; font-size: 12px;">www.seniorchamber.com</div>
+                        <div class="label" style="font-size: 10px;">Email</div>
+                        <div class="value" style="text-align: left; font-size: 11px;">scins2122@gmail.com</div>
+                    </div>
+                </div>
+
+                <div class="contact-row">
+                    <div class="icon-circle">📞</div>
+                    <div>
+                        <div class="label" style="font-size: 10px;">Mobile</div>
+                        <div class="value" style="text-align: left; font-size: 11px;">+91 97452 21380</div>
                     </div>
                 </div>
 
@@ -452,12 +463,7 @@
                     3. Misuse of this card allows the organization to revoke membership.
                 </div>
 
-                <div class="signature-area">
-                    <!-- Signature Font Placeholder -->
-                    <div style="font-family: 'Brush Script MT', cursive; font-size: 24px; color: #1e3c72; margin-bottom: 5px;">Authorized</div>
-                    <div class="sig-line"></div>
-                    <div class="sig-text">Authorized Signature</div>
-                </div>
+
             </div>
 
             <div class="website-footer">
