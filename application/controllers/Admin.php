@@ -1654,6 +1654,24 @@ public function add_member() {
 					} elseif ($this->session->flashdata('alert') == "upgrade") {
 						$page_data['success_alert'] = translate("you_have_successfully_upgraded_the_member_package!");
 					}
+				} elseif ($para2 == "id_card") {
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 1, "member_id" => $para3))->result();
+					$page_data['member_type'] = "Visitors";
+					$page_data['parameter'] 	= "free_members";
+					$page_data['page_name'] 	= "free_members";
+					$this->load->view('back/members/id_card', $page_data);
+				} elseif ($para2 == "download_id_card") {
+					$this->load->library('pdf');
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 1, "member_id" => $para3))->result();
+					$page_data['member_type'] = "Visitors";
+					$page_data['parameter'] 	= "free_members";
+					$page_data['page_name'] 	= "free_members";
+					$page_data['download_pdf'] = true;
+					$this->load->view('back/members/id_card', $page_data);
+					$html = $this->output->get_output();
+					$pdf = new pdf();
+					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
+					$pdf->create($html, $fileName, true);
 				}
 
 
@@ -1724,13 +1742,9 @@ public function add_member() {
 					$page_data['download_pdf'] = true;
 					$this->load->view('back/members/id_card', $page_data);
 					$html = $this->output->get_output();
-					$dompdf = new pdf();
-					$dompdf->setPaper('A4', 'portrait');
-					$dompdf->loadHtml($html);
-					$dompdf->set_option('isRemoteEnabled', TRUE);
-					$dompdf->render();
+					$pdf = new pdf();
 					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
-					$dompdf->stream($fileName . ".pdf", array("Attachment" => 1));
+					$pdf->create($html, $fileName, true);
 				}
 				elseif ($para2 == "starmatching") {
 					$page_data['top'] = "members/index.php";
@@ -1824,6 +1838,24 @@ public function add_member() {
 					} elseif ($this->session->flashdata('alert') == "upgrade") {
 						$page_data['success_alert'] = translate("you_have_successfully_upgraded_the_member_package!");
 					}
+				} elseif ($para2 == "id_card") {
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 3, "member_id" => $para3))->result();
+					$page_data['member_type'] = "National";
+					$page_data['parameter'] 	= "national_members";
+					$page_data['page_name'] 	= "national_members";
+					$this->load->view('back/members/id_card', $page_data);
+				} elseif ($para2 == "download_id_card") {
+					$this->load->library('pdf');
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 3, "member_id" => $para3))->result();
+					$page_data['member_type'] = "National";
+					$page_data['parameter'] 	= "national_members";
+					$page_data['page_name'] 	= "national_members";
+					$page_data['download_pdf'] = true;
+					$this->load->view('back/members/id_card', $page_data);
+					$html = $this->output->get_output();
+					$pdf = new pdf();
+					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
+					$pdf->create($html, $fileName, true);
 				}
 
 
@@ -1897,6 +1929,24 @@ public function add_member() {
 					} elseif ($this->session->flashdata('alert') == "upgrade") {
 						$page_data['success_alert'] = translate("you_have_successfully_upgraded_the_member_package!");
 					}
+				} elseif ($para2 == "id_card") {
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 0, "member_id" => $para3))->result();
+					$page_data['member_type'] = "Guest";
+					$page_data['parameter'] 	= "guest_members";
+					$page_data['page_name'] 	= "guest_members";
+					$this->load->view('back/members/id_card', $page_data);
+				} elseif ($para2 == "download_id_card") {
+					$this->load->library('pdf');
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 0, "member_id" => $para3))->result();
+					$page_data['member_type'] = "Guest";
+					$page_data['parameter'] 	= "guest_members";
+					$page_data['page_name'] 	= "guest_members";
+					$page_data['download_pdf'] = true;
+					$this->load->view('back/members/id_card', $page_data);
+					$html = $this->output->get_output();
+					$pdf = new pdf();
+					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
+					$pdf->create($html, $fileName, true);
 				}
 
 
@@ -1969,6 +2019,24 @@ public function add_member() {
 					} elseif ($this->session->flashdata('alert') == "upgrade") {
 						$page_data['success_alert'] = translate("you_have_successfully_upgraded_the_member_package!");
 					}
+				} elseif ($para2 == "id_card") {
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 4, "member_id" => $para3))->result();
+					$page_data['member_type'] = "Ngb";
+					$page_data['parameter'] 	= "ngb_members";
+					$page_data['page_name'] 	= "ngb_members";
+					$this->load->view('back/members/id_card', $page_data);
+				} elseif ($para2 == "download_id_card") {
+					$this->load->library('pdf');
+					$page_data['get_premium_member_by_id'] = $this->db->get_where("member", array("membership" => 4, "member_id" => $para3))->result();
+					$page_data['member_type'] = "Ngb";
+					$page_data['parameter'] 	= "ngb_members";
+					$page_data['page_name'] 	= "ngb_members";
+					$page_data['download_pdf'] = true;
+					$this->load->view('back/members/id_card', $page_data);
+					$html = $this->output->get_output();
+					$pdf = new pdf();
+					$fileName = "IDCard_" . $page_data['get_premium_member_by_id'][0]->member_profile_id;
+					$pdf->create($html, $fileName, true);
 				}
 
 
