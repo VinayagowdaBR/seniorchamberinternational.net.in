@@ -2848,11 +2848,26 @@ $data['legion_id'] = $this->input->post('legion_id');
 $data['legion']    = $this->input->post('legion');
 $data['area_id']   = $this->input->post('area_id');
 $data['area']      = $this->input->post('area');
+$data['membership'] = $this->input->post('membership');
 
 $this->db->where('member_id', $para2);
 $result = $this->db->update('member', $data);
 recache();
 if ($result) {
+    // Update redirect parameter based on new membership
+    $membership = $this->input->post('membership');
+    if ($membership == '0') {
+        $para3 = 'guest_members';
+    } elseif ($membership == '1') {
+        $para3 = 'free_members';
+    } elseif ($membership == '2') {
+        $para3 = 'premium_members';
+    } elseif ($membership == '3') {
+        $para3 = 'national_members';
+    } elseif ($membership == '4') {
+        $para3 = 'ngb_members';
+    }
+
     $this->session->set_flashdata('alert', 'edit');
     redirect(base_url() . 'admin/members/' . $para3, 'refresh');
 }
@@ -21467,6 +21482,41 @@ public function membership_management($para1 = '', $para2 = '') {
 
 // C:\xampp\htdocs\senior-new\application\controllers\Admin.php
 
+    // Helper to check granular permissions
+    function check_permission_status($codename) {
+        $admin_id = $this->session->userdata('admin_id');
+        
+        // Super Admin (ID 1) always has access
+        if ($admin_id == 1) {
+            return TRUE;
+        }
+        
+        // Fetch admin to get role
+        $admin = $this->db->get_where('admin', array('admin_id' => $admin_id))->row();
+        if (!$admin) return FALSE;
+        
+        $role_id = $admin->role; 
+        
+        // Get permission ID
+        $perm = $this->db->get_where('permission', array('codename' => $codename))->row();
+        if (!$perm) {
+            return FALSE;
+        }
+
+        // Get Role permissions
+        $role = $this->db->get_where('role', array('role_id' => $role_id))->row();
+        if (!$role) {
+            return FALSE;
+        }
+        
+        $role_perms = json_decode($role->permission);
+        if (is_array($role_perms) && in_array($perm->permission_id, $role_perms)) {
+            return TRUE;
+        }
+        
+        return FALSE;
+    }
+
 public function award($para1 = '', $para2 = '')
 {
     if ($this->admin_permission() == FALSE) {
@@ -21668,6 +21718,10 @@ public function award($para1 = '', $para2 = '')
             $pagedata['pagename'] = 'award/report';
             $pagedata['entries']  = $this->Crud_model->get_award_entries('approved');
             
+            // Check permission for delete button
+            $pagedata['can_delete'] = $this->check_permission_status('delete_award_report');
+            $pagedata['is_super_admin'] = ($this->session->userdata('admin_id') == 1);
+
             $this->load->view('back/index', $pagedata);
 
         } elseif ($para1 == 'view_details') {
@@ -21751,6 +21805,46 @@ public function award($para1 = '', $para2 = '')
             // Generate PDF
             $filename = 'Award_Details_' . $entry['id'];
             $this->pdf->create($html, $filename, true, true); // Last param enables page border
+
+        } elseif ($para1 == 'delete') {
+            if (!$this->check_permission_status('delete_award_report')) {
+                $this->session->set_flashdata('alert', 'demo_msg'); // Access denied generic message
+                redirect(base_url() . 'admin/award/report', 'refresh');
+            }
+            
+            // Check if entry exists
+            $entry = $this->db->get_where('award_entries', array('id' => $para2))->row_array();
+            if ($entry) {
+                // Delete files if any
+                $criteria_data = json_decode($entry['criteria_data'], true);
+                /* 
+                   Ideally we should delete files here loop through images in criteria_data 
+                   and other file fields like support_doc etc.
+                   For now, we just delete the record as per request.
+                */
+
+                $this->db->where('id', $para2);
+                $this->db->delete('award_entries');
+                $this->session->set_flashdata('alert', 'delete');
+            } else {
+                 $this->session->set_flashdata('alert', 'failed_delete');
+            }
+            redirect(base_url() . 'admin/award/report', 'refresh');
+
+        } elseif ($para1 == 'delete_bulk') {
+            // Only Super Admin (ID 1) can bulk delete
+            if ($this->session->userdata('admin_id') != 1) {
+                $this->session->set_flashdata('alert', 'demo_msg');
+                redirect(base_url() . 'admin/award/report', 'refresh');
+            }
+
+            $ids = $this->input->post('entries');
+            if (!empty($ids) && is_array($ids)) {
+                $this->db->where_in('id', $ids);
+                $this->db->delete('award_entries');
+                $this->session->set_flashdata('alert', 'delete');
+            }
+            redirect(base_url() . 'admin/award/report', 'refresh');
 
         } else {
             redirect(base_url() . 'admin', 'refresh');

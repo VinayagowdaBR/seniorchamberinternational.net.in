@@ -134,6 +134,23 @@
                 </div>
 
                 <div class="row">
+                  <div class="col-md-12">
+                    <div class="form-group has-feedback">
+                        <label for="membership" class="text-uppercase c-gray-light"><?php echo translate('membership_type')?><span class="text-danger">*</span></label>
+                        <select class="form-control form-control-sm selectpicker" name="membership">
+                            <option value="0" <?php if($value->membership == 0) echo 'selected'; ?>><?=translate('guest')?></option>
+                            <option value="1" <?php if($value->membership == 1) echo 'selected'; ?>><?=translate('free')?> (Visitors)</option>
+                            <option value="2" <?php if($value->membership == 2) echo 'selected'; ?>><?=translate('legion')?></option>
+                            <option value="3" <?php if($value->membership == 3) echo 'selected'; ?>><?=translate('national')?></option>
+                            <option value="4" <?php if($value->membership == 4) echo 'selected'; ?>><?=translate('ngb')?></option>
+                        </select>
+                        <span class="glyphicon form-control-feedback" aria-hidden="true"></span>
+                        <div class="help-block with-errors"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
                     <div class="col-md-6">
                         <div class="form-group has-feedback">
                             <label for="date_of_birth" class="text-uppercase c-gray-light"><?php echo translate('date_of_birth')?><span class="text-danger">*</span></label>
