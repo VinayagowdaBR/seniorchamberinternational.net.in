@@ -640,6 +640,16 @@ public function add_member() {
 					'admin_id' => $para2
 				))->result_array();
 
+				$page_data['areas'] = $this->Crud_model->get_all_areas();
+				
+				// Get existing Area
+				$existing_area = $this->db->get_where('admin_area', array('admin_id' => $para2))->row_array();
+				$page_data['existing_area_id'] = $existing_area ? $existing_area['area_id'] : '';
+
+				// Get existing Legion
+				$existing_legion = $this->db->get_where('admin_legion', array('admin_id' => $para2))->row_array();
+				$page_data['existing_legion_id'] = $existing_legion ? $existing_legion['legion_id'] : '';
+
 				if ($this->session->flashdata('alert') == "failed_edit") {
 					$page_data['danger_alert'] = translate("failed_to_add_the_data!");
 				}
@@ -729,8 +739,8 @@ public function add_member() {
 			
 					if ($admin_id) {
 						// Define static arrays of role IDs
-						$areaRoleArray   = [3, 4, 5,6]; // Replace with real area role IDs
-						$legionRoleArray = [2, 7,8,9];    // Replace with real legion role IDs
+						$areaRoleArray   = [2, 3, 4, 5, 6, 7, 8, 9]; 
+						$legionRoleArray = [2, 3, 4, 5, 6, 7, 8, 9];
 					
 						$role_id = (int)$this->input->post('role');
 					
@@ -800,6 +810,53 @@ public function add_member() {
 					$data['timestamp'] = time();
 					$this->db->where('admin_id', $para2);
 					$result = $this->db->update('admin', $data);
+
+					$admin_id = $para2;
+					$role_id = (int)$this->input->post('role');
+					
+					log_message('error', 'Update Admin ID: ' . $admin_id . ' Role ID: ' . $role_id);
+					log_message('error', 'POST Area: ' . $this->input->post('area'));
+					log_message('error', 'POST Legion: ' . $this->input->post('legion_id'));
+
+					// Define static arrays of role IDs (Same as in do_add)
+					$areaRoleArray   = [2, 3, 4, 5, 6, 7, 8, 9]; 
+					$legionRoleArray = [2, 3, 4, 5, 6, 7, 8, 9];    
+
+					// Update admin_area
+					$this->db->delete('admin_area', array('admin_id' => $admin_id));
+					if (in_array($role_id, $areaRoleArray)) {
+						$area_id = $this->input->post('area');
+						if($area_id){
+								$area_data = [
+								'admin_id' => $admin_id,
+								'area_id'  => $area_id
+							];
+							$this->db->insert('admin_area', $area_data);
+							log_message('error', 'Inserted Admin Area: ' . json_encode($area_data));
+						} else {
+							log_message('error', 'Area ID empty, skipping insert');
+						}
+					} else {
+						log_message('error', 'Role ID not in AreaRoleArray');
+					}
+
+					// Update admin_legion
+					$this->db->delete('admin_legion', array('admin_id' => $admin_id));
+					if (in_array($role_id, $legionRoleArray)) {
+						$legion_id = $this->input->post('legion_id');
+						if($legion_id){
+							$legion_data = [
+								'admin_id'  => $admin_id,
+								'legion_id' => $legion_id
+							];
+							$this->db->insert('admin_legion', $legion_data);
+							log_message('error', 'Inserted Admin Legion: ' . json_encode($legion_data));
+						} else {
+							log_message('error', 'Legion ID empty, skipping insert');
+						}
+					} else {
+						log_message('error', 'Role ID not in LegionRoleArray');
+					}
 					recache();
 					if ($result) {
 						$this->session->set_flashdata('alert', 'add');
@@ -21533,6 +21590,24 @@ public function award($para1 = '', $para2 = '')
                                 $fname = uniqid('crit_') . '.' . $ext;
                                 if (move_uploaded_file($files['tmp_name'][$k], $upload_path . $fname)) {
                                     $uploaded_images[] = $upload_path . $fname;
+
+                                    // --- IMAGE COMPRESSION ---
+                                    $this->load->library('image_lib');
+                                    $config = array(); // Reset config
+                                    $config['image_library']  = 'gd2';
+                                    $config['source_image']   = $upload_path . $fname;
+                                    $config['create_thumb']   = FALSE;
+                                    $config['maintain_ratio'] = TRUE;
+                                    $config['width']          = 1024;
+                                    $config['height']         = 1024;
+                                    $config['quality']        = '60%';
+                                    
+                                    $this->image_lib->initialize($config);
+                                    if (!$this->image_lib->resize()) {
+                                        log_message('error', 'Image compression failed: ' . $this->image_lib->display_errors());
+                                    }
+                                    $this->image_lib->clear();
+                                    // -------------------------
                                 }
                             }
                         }

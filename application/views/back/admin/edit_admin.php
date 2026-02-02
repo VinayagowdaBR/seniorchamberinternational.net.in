@@ -93,6 +93,34 @@
 							</div>
 						</div>
 						
+						<?php $selected_area = !empty($form_contents['area']) ? $form_contents['area'] : (isset($existing_area_id) ? $existing_area_id : ''); ?>
+						<div class="form-group">
+							<label class="col-sm-3 control-label"><b>Area <span class="text-danger">*</span></b></label>
+							<div class="col-sm-8">
+								<select id="area" name="area" class="form-control" onchange="getLegions(this.value)">
+									<option value="">Select Area</option>
+									<?php foreach($areas as $area): ?>
+										<option value="<?= $area['id'] ?>" <?= ($area['id'] == $selected_area) ? 'selected' : '' ?>>
+											<?= $area['name'] ?>
+										</option>
+									<?php endforeach; ?>
+								</select>
+							</div>
+						</div>
+
+						<input type="hidden" id="existing_legion_id" value="<?= !empty($form_contents['legion_id']) ? $form_contents['legion_id'] : (isset($existing_legion_id) ? $existing_legion_id : '') ?>">
+
+						<!-- Legion dropdown -->
+						<div class="form-group">
+							<label class="col-sm-3 control-label"><b>Legion <span class="text-danger">*</span></b></label>
+							<div class="col-sm-8">
+								<select id="legion" name="legion_id" class="form-control">
+									<option value="">Select Legion</option>
+									<!-- Legions will be loaded dynamically -->
+								</select>
+							</div>
+						</div>
+						
 						<div class="form-group">
 							<div class="col-sm-offset-3 col-sm-8 text-right">
 								<button type="submit" class="btn btn-primary btn-sm btn-labeled fa fa-save">Save</button>
@@ -109,4 +137,37 @@
 	    $('#success_alert').fadeOut('fast');
 	    $('#danger_alert').fadeOut('fast');
 	}, 5000); // <-- time in milliseconds
+	
+	function getLegions(areaId, selectLegionId = null) {
+		if (areaId === '') {
+			document.getElementById('legion').innerHTML = '<option value="">Select Legion</option>';
+			return;
+		}
+
+		fetch("<?= base_url('admin/get_legions_of_area/') ?>" + areaId)
+			.then(response => response.json())
+			.then(data => {
+				console.log("Fetched legions:", data); 
+
+				let options = '<option value="">Select Legion</option>';
+				let selected = selectLegionId ? selectLegionId : document.getElementById('existing_legion_id').value;
+				
+				data.forEach(function (legion) {
+					let isSelected = (legion.id == selected) ? 'selected' : '';
+					options += `<option value="${legion.id}" ${isSelected}>${legion.name}</option>`;
+				});
+				document.getElementById('legion').innerHTML = options;
+			})
+			.catch(error => {
+				console.error('Error fetching legions:', error);
+			});
+	}
+
+    // Load legions on page load if area is selected
+    window.addEventListener('load', function() {
+        var areaVal = document.getElementById('area').value;
+        if(areaVal) {
+            getLegions(areaVal);
+        }
+    });
 </script>
